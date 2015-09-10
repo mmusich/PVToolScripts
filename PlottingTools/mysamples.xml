@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE SampleList SYSTEM "sample.dtd">
+
+<SampleList>
+<!-- Generic drawing options -->
+  <DrawingOptions>
+    <Ymin>0.</Ymin>
+    <Ymax>40.</Ymax>
+    <Yndiv>508</Yndiv>
+    <X1legend>0.28</X1legend>
+    <X2legend>0.58</X2legend>
+    <Y1legend>0.72</Y1legend>
+    <Y2legend>0.92</Y2legend>
+  </DrawingOptions>
+
+<!--This is the sample list-->
+ <Sample ID="0" Type="mc">
+	  <InputRootFile>1kEvents/try_0T_RelValNuGun_MC_1kEvts.root</InputRootFile>
+	  <Label>run2 MC</Label>
+	  <Color>ROOT.kAzure+10</Color>
+	  <MarkerStyle>ROOT.kOpenTriangleDown</MarkerStyle>
+  </Sample>
+  <Sample ID="1" Type="data">
+  	  <InputRootFile>1kEvents/try_run247068_1kEvts.root</InputRootFile>
+  	  <Label>run 2 data</Label>
+  	  <Color>ROOT.kBlack</Color>
+  	  <MarkerStyle>ROOT.kFullCircle</MarkerStyle>
+  </Sample>
+  <Sample ID="2" Type="data">
+  	  <InputRootFile>1kEvents/try_run2012D_1kEvts.root</InputRootFile>
+  	  <Label>run 1 data</Label>
+  	  <Color>ROOT.kRed</Color>
+  	  <MarkerStyle>ROOT.kOpenTriangleUp</MarkerStyle>
+  </Sample>
+
+ <!-- <Sample ID="0" Type="mc"> -->
+ <!-- 	  <InputRootFile>ApprovalPlots/try_0T_RelValNuGun_MC.root</InputRootFile> -->
+ <!-- 	  <Label>run2 MC</Label> -->
+ <!-- 	  <Color>ROOT.kAzure+10</Color> -->
+ <!-- 	  <MarkerStyle>ROOT.kDot</MarkerStyle> -->
+ <!--  </Sample> -->
+ <!--  <Sample ID="1" Type="data"> -->
+ <!--  	  <InputRootFile>ApprovalPlots/PVValidation_pp2015-Run2AliCosmics.root</InputRootFile> -->
+ <!--  	  <Label>run 2 cosmics</Label> -->
+ <!--  	  <Color>ROOT.kBlack</Color> -->
+ <!--  	  <MarkerStyle>ROOT.kFullCircle</MarkerStyle> -->
+ <!--  </Sample> -->
+ <!--  <Sample ID="2" Type="data"> -->
+ <!--  	  <InputRootFile>ApprovalPlots/PVValidation_pp2015-Run2AliCollisions.root</InputRootFile> -->
+ <!--  	  <Label>run 2 collisions</Label> -->
+ <!--  	  <Color>ROOT.kRed</Color> -->
+ <!--  	  <MarkerStyle>ROOT.kOpenTriangleUp</MarkerStyle> -->
+ <!--  </Sample> -->
+  <!-- <Sample ID="3" Type="data"> -->
+  <!--         <InputRootFile>ApprovalPlots/PVValidation_pp2015-Run1Ali.root</InputRootFile> -->
+  <!--         <Label>run 1 alignment</Label> -->
+  <!-- 	  <Color>ROOT.kGreen</Color> -->
+  <!-- 	  <MarkerStyle>ROOT.kOpenTriangleUp</MarkerStyle> -->
+  <!-- </Sample> -->
+</SampleList>
