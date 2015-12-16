@@ -12,9 +12,16 @@ setenv CMSSW_DIR ${CMSSW_BASE}/src/Alignment/OfflineValidation/test/PVValResults
 
 foreach filetostudy (`ls ${PWD}/$ObjName | grep .root`)
 
-     set namebase=`echo $filetostudy |awk '{split($0,a,"_"); print a[2]}'`
-     set datebase=`echo $filetostudy |awk '{split($0,b,"_"); print b[3]}'` 
+     #set namebase=`echo $filetostudy |awk '{split($0,a,"_"); print a[2]}'`
+     #set datebase=`echo $filetostudy |awk '{split($0,b,"_"); print b[]}'`
+     #set words = `echo $filetostudy:q | sed 's/_/ /g'`
+
+     # approach to ge the last item in the list
+     
+     set datebase=`echo $filetostudy |awk '{n=split($0,a,"_"); print a[n]}'`
      set theDate=`echo $datebase |awk '{split($0,c,"."); print c[1]}'`
+     
+     #echo "$datebase $theDate"
 
      set filetostudy2=`echo $filetostudy| sed "s/$theLabel/$theLabel2/g" `
      #set filetostudy2=`echo $filetostudy |sed 's/$theLabel/$theLabel2/g'`
@@ -23,7 +30,9 @@ foreach filetostudy (`ls ${PWD}/$ObjName | grep .root`)
      echo "$theLabel $theLabel2"
      echo "$filetostudy $filetostudy2"		
      
-     root -b -q  $PWD/FitPVResiduals_forLoop.C++\(\"${PWD}/$ObjName/$filetostudy=${theLabel}\,${PWD}/$ObjName2/$filetostudy2=${theLabel2}\"\,true\,false\,\"$theDate\"\)
+     #root -b -q  $PWD/FitPVResiduals_forLoop.C++\(\"${PWD}/$ObjName/$filetostudy=${theLabel}\,${PWD}/$ObjName2/$filetostudy2=${theLabel2}\"\,true\,false\,\"$theDate\"\)
+
+     root -b -q runMe.C\(\"${PWD}/$ObjName/$filetostudy=${theLabel}\,${PWD}/$ObjName2/$filetostudy2=${theLabel2}\"\,\"$theDate\"\)
 
      rm -f numevents.out 
      root -b -q  $PWD/check3.C\(\"${PWD}/$ObjName/$filetostudy\"\) > numevents.out
@@ -44,7 +53,7 @@ foreach filetostudy (`ls ${PWD}/$ObjName | grep .root`)
      	setenv flag "GOOD"
      endif
 
-     echo "- File $namebase had ${numevents} events. Fit separation: $deltaz \pm $sigmadeltaz"
+     echo "- File $theDate had ${numevents} events. Fit separation: $deltaz \pm $sigmadeltaz"
 
      echo $theDate $deltaz $sigmadeltaz ${numevents} $flag >> summary.txt
 
