@@ -382,16 +382,20 @@ void FitPVResiduals(TString namesandlabels,bool stdres,bool do2DMaps,TString the
   
 
   TString theStrDate       = theDate;
-  TString theStrAlignment  = LegLabels[0];
+  //TString theStrAlignment  = LegLabels[0];
+
+  TString theStrAlignment = "";
 
   /*
   std::vector<TString> vLabels(LegLabels, LegLabels+10);
   vLabels.shrink_to_fit();
   */
 
-  for(Int_t j=1; j < nFiles_; j++) {
-    theStrAlignment+=("_vs_"+LegLabels[j]);
-  }
+  //for(Int_t j=1; j < nFiles_; j++) {
+  //  theStrAlignment+=("_vs_"+LegLabels[j]);
+  // }
+
+  //theStrAlignment="";
 
   theStrDate.ReplaceAll(" ","");
   theStrAlignment.ReplaceAll(" ","_");
@@ -530,7 +534,7 @@ void FitPVResiduals(TString namesandlabels,bool stdres,bool do2DMaps,TString the
 void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanTrend[100],TH1F* dxyEtaMeanTrend[100],TH1F* dzEtaMeanTrend[100],Int_t nFiles, TString LegLabels[10],TString theDate){
 //*************************************************************
 
-  TLegend *lego = new TLegend(0.19,0.82,0.79,0.92);
+  TLegend *lego = new TLegend(0.19,0.75,0.79,0.92);
   //lego-> SetNColumns(2);
   lego->SetFillColor(10);
   lego->SetTextSize(0.042);
@@ -636,7 +640,7 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
 	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin[k]-safeDelta/2.),std::max(0.48,absmax[k]+safeDelta/2.));
 	} else {
 	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-8.8,absmin[k]-safeDelta/2.),std::max(8.8,absmax[k]+safeDelta/2.));
-	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-theExtreme-(safeDelta/2.),theExtreme+(safeDelta/2.));
+	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-10.,-theExtreme-(safeDelta/2.)),std::max(10.,theExtreme+(safeDelta/2.)));
 	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-theExtreme,theExtreme);
 	} 
 	dBiasTrend[k][i]->Draw("e1");
@@ -683,7 +687,7 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   TText *alitext = ali->AddText("Alignment: PCL"); //"Preliminary 2015 - 0T collision data");
   alitext->SetTextSize(0.04);
 
-  TLegend *lego = new TLegend(0.18,0.82,0.78,0.92);
+  TLegend *lego = new TLegend(0.18,0.75,0.78,0.92);
   //lego-> SetNColumns(2);
   //TLegend *lego = new TLegend(0.18,0.77,0.50,0.86);
   lego->SetFillColor(10);
@@ -808,7 +812,7 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
 	if(!onlyBias){
 	  meanplots[i]->GetYaxis()->SetRangeUser(absmin-safeDelta,absmax+safeDelta);
 	} else {
-	  meanplots[i]->GetYaxis()->SetRangeUser(-theExtreme-(TMath::Abs(absmin)/10.),theExtreme+(TMath::Abs(absmax/10.)));
+	  meanplots[i]->GetYaxis()->SetRangeUser(std::min(-10.,-theExtreme-(TMath::Abs(absmin)/10.)),std::max(10.,theExtreme+(TMath::Abs(absmax/10.))));
 	}
 	//meanplots[i]->GetYaxis()->SetRangeUser(-theExtreme,theExtreme);
       } 
@@ -1878,14 +1882,16 @@ void MakeNiceMapStyle(TH2 *hist)
   for(Int_t nX=1;nX<=nXCells;nX++){
     for(Int_t nY=1;nY<=nYCells;nY++){
       Double_t binContent = hist->GetBinContent(nX,nY);
-      if (binContent<=theNewMin) hist->SetBinContent(nX,nY,theNewMin);
-      else if (binContent>=theNewMax) hist->SetBinContent(nX,nY,theNewMax);
+      if (binContent<=theNewMin){ 
+	hist->SetBinContent(nX,nY,theNewMin);
+      } else if (binContent>=theNewMax){ 
+	hist->SetBinContent(nX,nY,theNewMax);
+      }
     }
   }
   
   //delete histContentByCell;
-
-  hist->GetZaxis()->SetRangeUser(0.99*theNewMin,0.99*theNewMax);
+  //hist->GetZaxis()->SetRangeUser(0.99*theNewMin,0.99*theNewMax);
 
 }
 
