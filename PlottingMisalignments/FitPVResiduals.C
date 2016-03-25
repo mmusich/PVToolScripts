@@ -137,6 +137,7 @@ void FitPVResiduals(TString namesandlabels,bool stdres,bool do2DMaps,TString the
     TObjString* legend = (TObjString*)LabelList->At(j);
     LegLabels[j] = legend->String();
     LegLabels[j].ReplaceAll("_"," ");
+    LegLabels[j].ReplaceAll("eq","=");
     cout<<"FitPVResiduals::FitPVResiduals(): label["<<j<<"]"<<LegLabels[j]<<endl;
     
   }
@@ -640,7 +641,7 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
 	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin[k]-safeDelta/2.),std::max(0.48,absmax[k]+safeDelta/2.));
 	} else {
 	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-8.8,absmin[k]-safeDelta/2.),std::max(8.8,absmax[k]+safeDelta/2.));
-	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-10.,-theExtreme-(safeDelta/2.)),std::max(10.,theExtreme+(safeDelta/2.)));
+	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-20.,-theExtreme-(safeDelta/2.)),std::max(20.,theExtreme+(safeDelta/2.)));
 	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-theExtreme,theExtreme);
 	} 
 	dBiasTrend[k][i]->Draw("e1");
@@ -812,7 +813,7 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
 	if(!onlyBias){
 	  meanplots[i]->GetYaxis()->SetRangeUser(absmin-safeDelta,absmax+safeDelta);
 	} else {
-	  meanplots[i]->GetYaxis()->SetRangeUser(std::min(-10.,-theExtreme-(TMath::Abs(absmin)/10.)),std::max(10.,theExtreme+(TMath::Abs(absmax/10.))));
+	  meanplots[i]->GetYaxis()->SetRangeUser(std::min(-20.,-theExtreme-(TMath::Abs(absmin)/10.)),std::max(20.,theExtreme+(TMath::Abs(absmax/10.))));
 	}
 	//meanplots[i]->GetYaxis()->SetRangeUser(-theExtreme,theExtreme);
       } 

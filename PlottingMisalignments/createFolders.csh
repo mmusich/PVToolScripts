@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-set TargetOutName = "Plots_Misalignments"
+set TargetOutName = "Plots_Misalignments_v4"
 
 mkdir ./${TargetOutName}
 mkdir ./${TargetOutName}/Biases/
@@ -17,6 +17,9 @@ mkdir ./${TargetOutName}/dxyVsEtaNorm
 mkdir ./${TargetOutName}/dzVsEtaNorm
 mkdir ./${TargetOutName}/dxyVsPhiNorm
 mkdir ./${TargetOutName}/dzVsPhiNorm
+mkdir ./${TargetOutName}/Maps
+mkdir ./${TargetOutName}/Maps/Abs
+mkdir ./${TargetOutName}/Maps/Norm
 
 mv BiasesCanvas*     ./${TargetOutName}/Biases/
 mv dzPhiBiasCanvas*  ./${TargetOutName}/Biases/dzPhi
@@ -32,6 +35,8 @@ mv dxyEtaTrend*      ./${TargetOutName}/dxyVsEta
 mv dzEtaTrend*       ./${TargetOutName}/dzVsEta
 mv dxyPhiTrend*      ./${TargetOutName}/dxyVsPhi
 mv dzPhiTrend*       ./${TargetOutName}/dzVsPhi
+mv d*Abs*            ./${TargetOutName}/Maps/Abs
+mv d*Norm*           ./${TargetOutName}/Maps/Norm
 
 cp index.php ./${TargetOutName}/Biases/
 cp index.php ./${TargetOutName}/Biases/dzPhi
@@ -47,3 +52,5 @@ cp index.php ./${TargetOutName}/dxyVsEtaNorm
 cp index.php ./${TargetOutName}/dzVsEtaNorm
 cp index.php ./${TargetOutName}/dxyVsPhiNorm
 cp index.php ./${TargetOutName}/dzVsPhiNorm
+cp index.php ./${TargetOutName}/Maps/Abs
+cp index.php ./${TargetOutName}/Maps/Norm
