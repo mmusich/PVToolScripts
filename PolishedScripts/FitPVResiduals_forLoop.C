@@ -447,6 +447,16 @@ void FitPVResiduals_forLoop(TString namesandlabels,bool stdres,bool do2DMaps,TSt
   BiasesCanvas->SaveAs("BiasesCanvas_"+theStrDate+".pdf");
   BiasesCanvas->SaveAs("BiasesCanvas_"+theStrDate+".png");
 
+  // Pull Plot
+
+  TCanvas *PullCanvas = new TCanvas("PullCanvas","PullCanvas",1200,1200);
+  arrangeBiasCanvas(PullCanvas,dxyNormPhiWidthTrend,dzNormPhiWidthTrend,dxyNormEtaWidthTrend,dzNormEtaWidthTrend,nFiles_,LegLabels,theDate);
+  
+  PullCanvas->SaveAs("PullCanvas_"+theStrDate+".pdf");
+  PullCanvas->SaveAs("PullCanvas_"+theStrDate+".png");
+
+  // single bias canvas plot
+
   TCanvas *dxyPhiBiasCanvas = new TCanvas("dxyPhiBiasCanvas","dxyPhiBiasCanvas",600,600);
   TCanvas *dxyEtaBiasCanvas = new TCanvas("dxyEtaBiasCanvas","dxyEtaBiasCanvas",600,600);
   TCanvas *dzPhiBiasCanvas  = new TCanvas("dzPhiBiasCanvas","dzPhiBiasCanvas",600,600);
@@ -528,7 +538,7 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
   pt->SetTextColor(1);
   pt->SetTextFont(61);
   // pt->SetTextAlign(22);
-  TText *text1 = pt->AddText("CMS"); // Preliminary 2015 - 3.8T collision data");
+  TText *text1 = pt->AddText("CMS"); // Preliminary 2016 - 3.8T collision data");
   text1->SetTextSize(0.05);
 
   float extraOverCmsTextSize  = 0.85;
@@ -546,7 +556,7 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
   pt3->SetTextColor(1);
   pt3->SetTextFont(42);
   // pt2->SetTextAlign(22);
-  TText *text3 = pt3->AddText("3.8T collision data 2015");
+  TText *text3 = pt3->AddText("3.8T collision data 2016");
   text3->SetTextSize(0.05*extraOverCmsTextSize);
 
   TPaveText *ptDate =new TPaveText(0.58,0.20,0.93,0.30,"blNDC");
@@ -615,6 +625,9 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
 	TString theTitle = dBiasTrend[k][i]->GetName();
 	if( theTitle.Contains("Norm")){
 	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin[k]-safeDelta/2.),std::max(0.48,absmax[k]+safeDelta/2.));
+	  if (theTitle.Contains("width")){
+	    dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,2.0);
+	  }
 	} else {
 	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-8.8,absmin[k]-safeDelta/2.),std::max(8.8,absmax[k]+safeDelta/2.));
 	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-theExtreme-(safeDelta/2.),theExtreme+(safeDelta/2.));
@@ -625,10 +638,12 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
 	Int_t nbins =  dBiasTrend[k][i]->GetNbinsX();
 	Double_t lowedge  = dBiasTrend[k][i]->GetBinLowEdge(1);
 	Double_t highedge = dBiasTrend[k][i]->GetBinLowEdge(nbins+1);
-	
-	TH1F* zeros = DrawZero(dBiasTrend[k][i],nbins,lowedge,highedge,1);
-	zeros->Draw("PLsame"); 
-	
+
+	if (!theTitle.Contains("width")){
+	  TH1F* zeros = DrawZero(dBiasTrend[k][i],nbins,lowedge,highedge,1);
+	  zeros->Draw("PLsame"); 
+	}
+		
       }
       else dBiasTrend[k][i]->Draw("e1sames");
       if(k==0){
@@ -658,7 +673,7 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   ali->SetLineColor(10);
   ali->SetShadowColor(10);
   // pt->SetTextAlign(22);
-  TText *alitext = ali->AddText("Alignment: PCL"); //"Preliminary 2015 - 0T collision data");
+  TText *alitext = ali->AddText("Alignment: PCL"); //"Preliminary 2016 - 0T collision data");
   alitext->SetTextSize(0.04);
 
   TLegend *lego = new TLegend(0.18,0.80,0.78,0.92);
@@ -685,7 +700,7 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   pt->SetTextColor(1);
   pt->SetTextFont(61);
   // pt->SetTextAlign(22);
-  TText *text1 = pt->AddText("CMS"); //"Preliminary 2015 - 0T collision data");
+  TText *text1 = pt->AddText("CMS"); //"Preliminary 2016 - 0T collision data");
   text1->SetTextSize(0.05);
  
   float extraOverCmsTextSize  = 0.76;
@@ -713,7 +728,7 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   pt3->SetTextColor(1);
   pt3->SetTextFont(42);
   // pt2->SetTextAlign(22);
-  TText *text3 = pt3->AddText("3.8T collision data 2015");
+  TText *text3 = pt3->AddText("3.8T collision data 2016");
   text3->SetTextSize(0.05*extraOverCmsTextSize);
 
   canv->SetFillColor(10);  
@@ -862,7 +877,7 @@ void arrangeCanvas2D(TCanvas *canv,TH2F* meanmaps[100],TH2F* widthmaps[100],Int_
     pt[i]->SetTextColor(1);
     pt[i]->SetTextFont(61);
     pt[i]->SetTextAlign(22);
-    TText *text1 = pt[i]->AddText("CMS"); // preliminary 2015 p-p data, #sqrt{s}=8 TeV "+LegLabels[i]);
+    TText *text1 = pt[i]->AddText("CMS"); // preliminary 2016 p-p data, #sqrt{s}=8 TeV "+LegLabels[i]);
     text1->SetTextSize(0.05);
     //delete text1;
 
@@ -951,7 +966,7 @@ void arrangeFitCanvas(TCanvas *canv,TH1F* meanplots[100],Int_t nFiles, TString L
   pt->SetTextColor(1);
   pt->SetTextFont(42);
   pt->SetTextAlign(62);
-  TText *text1 = pt->AddText("CMS preliminary 2015: p-p data, #sqrt{s}=13 TeV");
+  TText *text1 = pt->AddText("CMS preliminary 2016: p-p data, #sqrt{s}=13 TeV");
   text1->SetTextSize(0.05);
 
   TPaveText *ptDate =new TPaveText(0.78,0.20,0.93,0.30,"blNDC");
