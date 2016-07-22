@@ -149,20 +149,18 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   // dca absolute residuals
   TH1F* dxyPhiResiduals[nFiles_][nBins_];
   TH1F* dxyEtaResiduals[nFiles_][nBins_];
-  TH1F* dxyPtResiduals[nFiles_][nBins_];
 
   TH1F* dzPhiResiduals[nFiles_][nBins_];
   TH1F* dzEtaResiduals[nFiles_][nBins_];
-  TH1F* dzPtResiduals[nFiles_][nBins_];
+
 
   // dca normalized residuals
   TH1F* dxyNormPhiResiduals[nFiles_][nBins_];
   TH1F* dxyNormEtaResiduals[nFiles_][nBins_];
-  TH1F* dxyNormPtResiduals[nFiles_][nBins_];
  				        
   TH1F* dzNormPhiResiduals[nFiles_][nBins_];
   TH1F* dzNormEtaResiduals[nFiles_][nBins_];
-  TH1F* dzNormPtResiduals[nFiles_][nBins_];
+
   
   // double-differential residuals
   TH1F* dxyMapResiduals[nFiles_][nBins_][nBins_]; 
@@ -171,6 +169,14 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   TH1F* dxyNormMapResiduals[nFiles_][nBins_][nBins_];
   TH1F* dzNormMapResiduals[nFiles_][nBins_][nBins_]; 
   
+  // vs pT
+
+  TH1F* dzNormPtResiduals[nFiles_][nPtBins_];
+  TH1F* dxyNormPtResiduals[nFiles_][nPtBins_];
+
+  TH1F* dzPtResiduals[nFiles_][nPtBins_];
+  TH1F* dxyPtResiduals[nFiles_][nPtBins_];
+
   for(Int_t i=0;i<nFiles_;i++){
     for(Int_t j=0;j<nBins_;j++){
       
@@ -184,7 +190,6 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 	// DCA normalized residuals
 	dxyNormPhiResiduals[i][j] = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Transv_Phi_Residuals/histo_norm_dxy_phi_plot%i",j));
 	dxyNormEtaResiduals[i][j] = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Transv_Eta_Residuals/histo_norm_dxy_eta_plot%i",j));
-
 	dzNormPhiResiduals[i][j]  = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Long_Phi_Residuals/histo_norm_dz_phi_plot%i",j));
 	dzNormEtaResiduals[i][j]  = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Long_Eta_Residuals/histo_norm_dz_eta_plot%i",j));
 
@@ -630,7 +635,7 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
   pt3->SetTextColor(1);
   pt3->SetTextFont(42);
   pt3->SetTextAlign(22);
-  TText *text3 = pt3->AddText("2.84 fb^{-1} (13 TeV)");//, L=3.67fb^{-1}");
+  TText *text3 = pt3->AddText("2016 (13 TeV)");//, L=3.67fb^{-1}");
   text3->SetTextSize(0.05);//*extraOverCmsTextSize);
 
   TPaveText *ptDate =new TPaveText(0.3,0.86,0.79,0.92,"blNDC");
@@ -798,7 +803,7 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   pt3->SetTextColor(1);
   pt3->SetTextFont(42);
   pt3->SetTextAlign(32);
-  TText *text3 = pt3->AddText("2.84 fb^{-1} (13 TeV)"); // L=3.67fb^{-1}");
+  TText *text3 = pt3->AddText("2016 (13 TeV)"); // L=3.67fb^{-1}");
   text3->SetTextSize(0.05);//*extraOverCmsTextSize);
 
   canv->SetFillColor(10);  
@@ -1058,7 +1063,7 @@ void arrangeFitCanvas(TCanvas *canv,TH1F* meanplots[100],Int_t nFiles, TString L
   pt->SetTextColor(1);
   pt->SetTextFont(42);
   pt->SetTextAlign(62);
-  TText *text1 = pt->AddText("CMS preliminary 2015: p-p data, #sqrt{s}=13 TeV");
+  TText *text1 = pt->AddText("CMS preliminary 2016: p-p data, #sqrt{s}=13 TeV");
   text1->SetTextSize(0.05);
 
   TPaveText *ptDate =new TPaveText(0.78,0.20,0.93,0.30,"blNDC");
@@ -1562,130 +1567,59 @@ void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, T
 {
 
   //std::cout<<"trendPlot name: "<<trendPlot->GetName()<<std::endl;
-  //std::cout<<"residualsplot name "<<residualsPlot[0]->GetName()<<std::endl;
-  //std::cout<<"residualsplot entries"<<residualsPlot[0]->GetEntries()<<std::endl;
+  //std::cout<<"residualsplot name: "<<residualsPlot[0]->GetName()<<std::endl;
+  //std::cout<<"residualsplot entries: "<<residualsPlot[0]->GetEntries()<<std::endl;
 
   float phiInterval = (2*TMath::Pi()/myBins_);
   float etaInterval = 5./myBins_;
-
-  if (var_=="pT"){
     
-    for ( int i=0; i<nPtBins_; ++i ) {
-      
-      // std::cout<<i<<" residualsplot entries"<<residualsPlot[i]->GetEntries()<<std::endl;
-      
-      std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t> > myFit = std::make_pair(std::make_pair(0.,0.),std::make_pair(0.,0.));
-
-      if ( ((TString)trendPlot->GetName()).Contains("Norm") ) {
-	//std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > myFit = fitResiduals(residualsPlot[i]);
+  for ( int i=0; i<myBins_; ++i ) {
+       
+    char phipositionString[129];
+    float phiposition = (-TMath::Pi()+i*phiInterval)+(phiInterval/2);
+    sprintf(phipositionString,"%.1f",phiposition);
+    
+    char etapositionString[129];
+    float etaposition = (-2.5+i*etaInterval)+(etaInterval/2);
+    sprintf(etapositionString,"%.1f",etaposition);
+    
+    std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t> > myFit = std::make_pair(std::make_pair(0.,0.),std::make_pair(0.,0.));
+    
+    if ( ((TString)trendPlot->GetName()).Contains("Norm") ) {
+      myFit = fitResiduals(residualsPlot[i]);
+    } else {
+      if(residualsPlot[i]->GetEntries()>1000){
 	myFit = fitResiduals(residualsPlot[i]);
       } else {
-	//std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > myFit = fitStudentTResiduals(residualsPlot[i]);
-	//myFit = fitResiduals(residualsPlot[i]);
-	if(residualsPlot[i]->GetEntries()>0.){
-	  myFit = fitResiduals(residualsPlot[i]);
-	} else {
-	  myFit = fitResiduals(residualsPlot[i]);
-	  std::cout<<"WARNING!: not enough entries in "<<residualsPlot[i]->GetName()<<" to perform a decent fit"<<std::endl;
-	}
-      }
-      
-      if(fitPar_=="mean"){
-	float mean_      = myFit.first.first;
-	float meanErr_   = myFit.first.second;
-	trendPlot->SetBinContent(i+1,mean_);
-	trendPlot->SetBinError(i+1,meanErr_);
-      } else if (fitPar_=="width"){
-	float width_     = myFit.second.first;
-	float widthErr_  = myFit.second.second;
-	trendPlot->SetBinContent(i+1,width_);
-	trendPlot->SetBinError(i+1,widthErr_);
-      } else if (fitPar_=="median"){
-	float median_    = getMedian(residualsPlot[i]).first;
-	float medianErr_ = getMedian(residualsPlot[i]).second;
-	trendPlot->SetBinContent(i+1,median_);
-	trendPlot->SetBinError(i+1,medianErr_);
-      } else if (fitPar_=="mad"){
-	float mad_       = getMAD(residualsPlot[i]).first; 
-	float madErr_    = getMAD(residualsPlot[i]).second;
-	trendPlot->SetBinContent(i+1,mad_);
-	trendPlot->SetBinError(i+1,madErr_);
-      } else {
-	std::cout<<"PrimaryVertexValidation::FillTrendPlot() "<<fitPar_<<" unknown estimator!"<<std::endl;
-      } 
-    }
-  } else {
-        
-    for ( int i=0; i<myBins_; ++i ) {
-    
-      //int binn = i+1;
-      
-      char phipositionString[129];
-      // float phiposition = (-180+i*phiInterval)+(phiInterval/2);
-      float phiposition = (-TMath::Pi()+i*phiInterval)+(phiInterval/2);
-      sprintf(phipositionString,"%.1f",phiposition);
-      
-      char etapositionString[129];
-      float etaposition = (-2.5+i*etaInterval)+(etaInterval/2);
-      sprintf(etapositionString,"%.1f",etaposition);
-      
-      std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t> > myFit = std::make_pair(std::make_pair(0.,0.),std::make_pair(0.,0.));
-      
-      if ( ((TString)trendPlot->GetName()).Contains("Norm") ) {
-	//std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > myFit = fitResiduals(residualsPlot[i]);
 	myFit = fitResiduals(residualsPlot[i]);
-      } else {
-	//std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > myFit = fitStudentTResiduals(residualsPlot[i]);
-	//myFit = fitResiduals(residualsPlot[i]);
-	if(residualsPlot[i]->GetEntries()>1000){
-	  myFit = fitResiduals(residualsPlot[i]);
-	} else {
-	  myFit = fitResiduals(residualsPlot[i]);
-	}
-      }
-      
-      if(fitPar_=="mean"){
-	float mean_      = myFit.first.first;
-	float meanErr_   = myFit.first.second;
-	trendPlot->SetBinContent(i+1,mean_);
-	trendPlot->SetBinError(i+1,meanErr_);
-      } else if (fitPar_=="width"){
-	float width_     = myFit.second.first;
-	float widthErr_  = myFit.second.second;
-	trendPlot->SetBinContent(i+1,width_);
-	trendPlot->SetBinError(i+1,widthErr_);
-      } else if (fitPar_=="median"){
-	float median_    = getMedian(residualsPlot[i]).first;
-	float medianErr_ = getMedian(residualsPlot[i]).second;
-	trendPlot->SetBinContent(i+1,median_);
-	trendPlot->SetBinError(i+1,medianErr_);
-      } else if (fitPar_=="mad"){
-	float mad_       = getMAD(residualsPlot[i]).first; 
-	float madErr_    = getMAD(residualsPlot[i]).second;
-	trendPlot->SetBinContent(i+1,mad_);
-	trendPlot->SetBinError(i+1,madErr_);
-      } else {
-	std::cout<<"PrimaryVertexValidation::FillTrendPlot() "<<fitPar_<<" unknown estimator!"<<std::endl;
       }
     }
+    
+    if(fitPar_=="mean"){
+      float mean_      = myFit.first.first;
+      float meanErr_   = myFit.first.second;
+      trendPlot->SetBinContent(i+1,mean_);
+      trendPlot->SetBinError(i+1,meanErr_);
+    } else if (fitPar_=="width"){
+      float width_     = myFit.second.first;
+      float widthErr_  = myFit.second.second;
+      trendPlot->SetBinContent(i+1,width_);
+      trendPlot->SetBinError(i+1,widthErr_);
+    } else if (fitPar_=="median"){
+      float median_    = getMedian(residualsPlot[i]).first;
+      float medianErr_ = getMedian(residualsPlot[i]).second;
+      trendPlot->SetBinContent(i+1,median_);
+      trendPlot->SetBinError(i+1,medianErr_);
+    } else if (fitPar_=="mad"){
+      float mad_       = getMAD(residualsPlot[i]).first; 
+      float madErr_    = getMAD(residualsPlot[i]).second;
+      trendPlot->SetBinContent(i+1,mad_);
+      trendPlot->SetBinError(i+1,madErr_);
+    } else {
+      std::cout<<"PrimaryVertexValidation::FillTrendPlot() "<<fitPar_<<" unknown estimator!"<<std::endl;
+    }
   }
-	
-  if(var_=="phi"){
-    //  if( ((binn%2==0)&&(binn<=12)) || ((binn%2==1)&&(binn>12)) ) 
-    // if( ((binn%3==1)&&(binn<=12)) || ((binn%3==0)&&(binn>12)) ) 
-    //if((binn%3==0))
-    //  trendPlot->GetXaxis()->SetBinLabel(binn,phipositionString); 
-  } else if(var_=="eta"){
-    // if( ((binn%2==0)&&(binn<=12)) || ((binn%2==1)&&(binn>12)) ) 
-    // if( ((binn%3==1)&&(binn<=12)) || ((binn%3==0)&&(binn>12)) ) 
-    //if((binn%3==0))
-    //trendPlot->GetXaxis()->SetBinLabel(binn,etapositionString); 
-  } else {
-    //std::cout<<"PrimaryVertexValidation::FillTrendPlot() "<<var_<<" unknown track parameter!"<<std::endl;
-  }
-  
-  //trendPlot->GetXaxis()->LabelsOption("h");
-
+  	
   if(fitPar_=="mean" || fitPar_=="median"){
 
     TString res;
@@ -1869,9 +1803,11 @@ void  MakeNiceTrendPlotStyle(TH1 *hist,Int_t color)
 /*--------------------------------------------------------------------*/
 { 
 
-  Int_t markers[9] = {kFullSquare,kFullCircle,kDot,kFullTriangleDown,kOpenSquare,kOpenCircle,kFullTriangleDown,kFullTriangleUp,kOpenTriangleDown};
-  Int_t colors[8]  = {kBlack,kGreen+2,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
+  Int_t markers[9] = {kFullSquare,kFullCircle,kFullTriangleDown,kOpenSquare,kOpenCircle,kFullTriangleDown,kFullTriangleUp,kOpenTriangleDown,kDot};
+  //Int_t colors[8]  = {kBlack,kGreen+2,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
   
+  Int_t colors[8] = {kBlack,kRed,kBlue,kGreen+2,kMagenta,kCyan,kViolet,kOrange};
+
   // Int_t markers[4] = {kFullSquare,kFullCircle,kOpenSquare};
   // Int_t colors[4]  = {kBlack,kRed,kBlue};
 
