@@ -42,6 +42,45 @@
 #include <TStopwatch.h>
 #include "TkAlStyle.cc"
 
+struct Bands {
+  int run;
+  double nevents;
+  double ntracks;
+  vector<double> mean;
+  vector<double> width;
+  vector<double> min;
+  vector<double> max;
+  double dzfit;
+  double dzfitError;
+  void init(){
+    run=-999.;
+    nevents=-999;
+    ntracks=-999;
+    dzfit=0.;
+    dzfitError=0.;
+    mean.clear();
+    min.clear();
+    max.clear();
+    width.clear();
+  }
+  void printAll(){
+    std::cout<<"======================================================"<<std::endl;
+    std::cout<<"Run: "<< run << " |n. tracks:" << ntracks << " |n. events: " << nevents<< std::endl;
+    std::cout<<"dz fit = "  << dzfit << " +/- " << dzfitError << std::endl;
+    int size = mean.size();
+    TString types[4] = {"xy(phi)","z(phi) ","xy(eta)","z(eta) "};
+    
+    for(int i=0;i<size;i++){
+      if(i>3) continue;
+      std::cout<<"<d"<< types[i] << "> = "<< mean[i] << " (" << min[i] << "," << max[i] << ")" << std::endl;
+    }
+    std::cout<<"======================================================"<<std::endl;
+  }
+
+}; 
+
+Bands* BandResult = new Bands();
+
 void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_t nFiles,TString LegLabels[10],TString theDate="bogus",bool onlyBias=false);
 void arrangeCanvas2D(TCanvas *canv,TH2F* meanmaps[100],TH2F* widthmaps[100],Int_t nFiles,TString LegLabels[10],TString theDate="bogus");
 void arrangeFitCanvas(TCanvas *canv,TH1F* meanplots[100],Int_t nFiles, TString LegLabels[10],TString theDate="bogus");
@@ -58,8 +97,9 @@ std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > fitResid
 
 Double_t tp0Fit( Double_t *x, Double_t *par5 );
 std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > fitStudentTResiduals(TH1 *hist);
+std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist);
 
-void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, TString var_,Int_t nbins);
+void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, TString var_,Int_t nbins,TString theDate="bogus");
 void FillMap(TH2F* trendMap, TH1F* residualsMapPlot[24][24], TString fitPar_);
 
 void MakeNiceTrendPlotStyle(TH1 *hist,Int_t color);
@@ -67,7 +107,7 @@ void MakeNicePlotStyle(TH1 *hist);
 void MakeNiceMapStyle(TH2 *hist);
 void MakeNiceTF1Style(TF1 *f1,Int_t color);
 
-void FitPVResiduals_addPT(TString namesandlabels,bool stdres=true,bool do2DMaps=false,TString theDate="bogus");
+Bands* FitPVResiduals_forLoop(TString namesandlabels,bool stdres=true,bool do2DMaps=false,TString theDate="bogus");
 TH1F* DrawZero(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int_t iter);
 void makeNewXAxis (TH1F *h);
 void makeNewPairOfAxes (TH2F *h);
@@ -83,26 +123,35 @@ void setStyle();
 // global variables
 
 ofstream outfile("FittedDeltaZ.txt");
+fstream outfile1;
 Int_t my_colors[10]={kBlack,kRed,kBlue,kMagenta,kBlack,kRed,kBlue,kGreen};
 
-const Int_t nBins_   = 24;
-const Int_t nPtBins_ = 48;
+const Int_t nBins_ = 24;
 Float_t _boundMin   = -0.5;
 Float_t _boundSx    = (nBins_/4.)-0.5;
 Float_t _boundDx    = 3*(nBins_/4.)-0.5;
 Float_t _boundMax   = nBins_-0.5;
 
-Double_t mypT_bins[49] = {0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.25,4.5,4.75,5.0,5.5,6.,7.,8.,9.,11.,14.,20.}; 
-
 //*************************************************************
-void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TString theDate){
+Bands* FitPVResiduals_forLoop(TString namesandlabels,bool stdres,bool do2DMaps,TString theDate){
 //*************************************************************
   
+  BandResult->init();
+  BandResult->run = theDate.Atoi();
+
+  outfile1.open("my_file.txt", ios_base::out | ios_base::in);  // will not create file
+  if (outfile1.is_open()){
+    std::cout << "Warning, file already exists, proceed?";
+  } else {
+    outfile1.clear();
+    outfile1.open("my_file.txt", ios_base::out);  // will create if necessary
+  }
+
   TStopwatch timer; 	 
   timer.Start();
 
   gROOT->ProcessLine(".L TkAlStyle.cc+");
-  TkAlStyle::set(PRELIMINARY);	// set publication status
+  TkAlStyle::set(INPROGRESS);	// set publication status
 
   //Int_t colors[10]={kBlack,kRed,kBlue,kMagenta,kBlack,kRed,kBlue,kGreen};
   Int_t colors[8]={0,1,2,3,4,5,6,7};
@@ -138,9 +187,16 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
     // Retrieve labels
     TObjString* legend = (TObjString*)LabelList->At(j);
     LegLabels[j] = legend->String();
-    LegLabels[j].ReplaceAll("_"," ");
-    cout<<"FitPVResiduals_addPT::FitPVResiduals_addPT(): label["<<j<<"]"<<LegLabels[j]<<endl;
+    cout<<"FitPVResiduals_forLoop::FitPVResiduals_forLoop(): label["<<j<<"]"<<LegLabels[j]<<endl;
+
+    TH1F* h_nTracks = (TH1F*)fins[j]->Get("PVValidation/EventFeatures/h_nTracks");
+    BandResult->nevents=h_nTracks->GetEntries();
+   
+    TH1F* h_probePt = (TH1F*)fins[j]->Get("PVValidation/ProbeTrackFeatures/h_probePt");
+    BandResult->ntracks=h_probePt->GetEntries();
     
+    //std::cout<<"n. events="<< BandResult->nevents <<" n. tracks="<< BandResult->ntracks <<std::endl;
+
   }
 
   // already used in the global variables
@@ -149,18 +205,16 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   // dca absolute residuals
   TH1F* dxyPhiResiduals[nFiles_][nBins_];
   TH1F* dxyEtaResiduals[nFiles_][nBins_];
-
+  				        
   TH1F* dzPhiResiduals[nFiles_][nBins_];
   TH1F* dzEtaResiduals[nFiles_][nBins_];
-
 
   // dca normalized residuals
   TH1F* dxyNormPhiResiduals[nFiles_][nBins_];
   TH1F* dxyNormEtaResiduals[nFiles_][nBins_];
- 				        
+  				        
   TH1F* dzNormPhiResiduals[nFiles_][nBins_];
   TH1F* dzNormEtaResiduals[nFiles_][nBins_];
-
   
   // double-differential residuals
   TH1F* dxyMapResiduals[nFiles_][nBins_][nBins_]; 
@@ -169,14 +223,6 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   TH1F* dxyNormMapResiduals[nFiles_][nBins_][nBins_];
   TH1F* dzNormMapResiduals[nFiles_][nBins_][nBins_]; 
   
-  // vs pT
-
-  TH1F* dzNormPtResiduals[nFiles_][nPtBins_];
-  TH1F* dxyNormPtResiduals[nFiles_][nPtBins_];
-
-  TH1F* dzPtResiduals[nFiles_][nPtBins_];
-  TH1F* dxyPtResiduals[nFiles_][nPtBins_];
-
   for(Int_t i=0;i<nFiles_;i++){
     for(Int_t j=0;j<nBins_;j++){
       
@@ -186,7 +232,7 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 	dxyEtaResiduals[i][j] = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_Transv_Eta_Residuals/histo_dxy_eta_plot%i",j));
 	dzPhiResiduals[i][j]  = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_Long_Phi_Residuals/histo_dz_phi_plot%i",j));
 	dzEtaResiduals[i][j]  = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_Long_Eta_Residuals/histo_dz_eta_plot%i",j));
-
+	
 	// DCA normalized residuals
 	dxyNormPhiResiduals[i][j] = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Transv_Phi_Residuals/histo_norm_dxy_phi_plot%i",j));
 	dxyNormEtaResiduals[i][j] = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Transv_Eta_Residuals/histo_norm_dxy_eta_plot%i",j));
@@ -197,10 +243,10 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 	
 	for(Int_t k=0;k<nBins_;k++){
 	  
-	  //std::cout<<"dxyMapResiduals[i][j][k]->GetMean():" <<dxyMapResiduals[i][j][k]->GetMean()<<std::endl;
-
 	  // absolute residuals
-	  dxyMapResiduals[i][j][k] = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_DoubleDiffResiduals/histo_dxy_eta_plot%i_phi_plot%i",j,k));  
+	  dxyMapResiduals[i][j][k] = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_DoubleDiffResiduals/histo_dxy_eta_plot%i_phi_plot%i",j,k));
+	  //std::cout<<"dxyMapResiduals[i][j][k]->GetMean():" <<dxyMapResiduals[i][j][k]->GetMean()<<std::endl;
+	  
 	  dzMapResiduals[i][j][k]  = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_DoubleDiffResiduals/histo_dz_eta_plot%i_phi_plot%i",j,k));  
 	  
 	  // normalized residuals
@@ -223,13 +269,14 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 	dzNormPhiResiduals[i][j]  = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Long_Phi_Residuals/histo_norm_resz_phi_plot%i",j));
 	dzNormEtaResiduals[i][j]  = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Long_Eta_Residuals/histo_norm_resz_eta_plot%i",j));
 
-
 	// double differential residuals
       
 	for(Int_t k=0;k<nBins_;k++){
 
 	  // absolute residuals
 	  dxyMapResiduals[i][j][k] = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_DoubleDiffResiduals/histo_dxy_eta_plot%i_phi_plot%i",j,k));
+	  //std::cout<<"dxyMapResiduals[i][j][k]->GetMean():" <<dxyMapResiduals[i][j][k]->GetMean()<<std::endl;
+
 	  dzMapResiduals[i][j][k]  = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_DoubleDiffResiduals/histo_dz_eta_plot%i_phi_plot%i",j,k));  
 	  
 	  // normalized residuals
@@ -239,19 +286,6 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 	}
       }
     }
-
-    // vs pT
-
-    for (Int_t l=0;l<nPtBins_;l++){
-      
-      dxyPtResiduals[i][l]  = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_Transv_pT_Residuals/histo_dxy_pT_plot%i",l));
-      dzPtResiduals[i][l]   = (TH1F*)fins[i]->Get(Form("PVValidation/Abs_Long_pT_Residuals/histo_dz_pT_plot%i",l));
-
-      dxyNormPtResiduals[i][l]  = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Transv_pT_Residuals/histo_norm_dxy_pT_plot%i",l));
-      dzNormPtResiduals[i][l]   = (TH1F*)fins[i]->Get(Form("PVValidation/Norm_Long_pT_Residuals/histo_norm_dz_pT_plot%i",l));
-    
-    }
-
   }
  
   Double_t highedge=nBins_-0.5;
@@ -268,11 +302,6 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   TH1F* dxyEtaWidthTrend[nFiles_]; 
   TH1F* dzEtaMeanTrend[nFiles_];   
   TH1F* dzEtaWidthTrend[nFiles_];  
-  
-  TH1F* dxyPtMeanTrend[nFiles_];  
-  TH1F* dxyPtWidthTrend[nFiles_]; 
-  TH1F* dzPtMeanTrend[nFiles_];   
-  TH1F* dzPtWidthTrend[nFiles_];  
 
   // DCA normalized
 
@@ -286,11 +315,6 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   TH1F* dzNormEtaMeanTrend[nFiles_];   
   TH1F* dzNormEtaWidthTrend[nFiles_];  
 
-  TH1F* dxyNormPtMeanTrend[nFiles_];  
-  TH1F* dxyNormPtWidthTrend[nFiles_]; 
-  TH1F* dzNormPtMeanTrend[nFiles_];   
-  TH1F* dzNormPtWidthTrend[nFiles_];  
-
   // 2D maps
 
   // bias
@@ -303,7 +327,7 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   TH2F* dxyWidthMap[nFiles_]; 
   TH2F* dzWidthMap[nFiles_];  		
   TH2F* dxyNormWidthMap[nFiles_]; 
-  TH2F* dzNormWidthMap[nFiles_];
+  TH2F* dzNormWidthMap[nFiles_];         
 
 
   for(Int_t i=0;i<nFiles_;i++){
@@ -320,11 +344,6 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
     dzEtaMeanTrend[i]   = new TH1F(Form("means_dz_eta_%i",i),"#LT d_{z} #GT vs #eta sector;track #eta;#LT d_{z} #GT [#mum]",nBins_,lowedge,highedge); 
     dzEtaWidthTrend[i]  = new TH1F(Form("widths_dz_eta_%i",i),"#sigma(d_{xy}) vs #eta sector;track #eta;#sigma(d_{z}) [#mum]",nBins_,lowedge,highedge);
 
-    dxyPtMeanTrend[i]  = new TH1F(Form("means_dxy_pT_%i",i),"#LT d_{xy} #GT vs p_{T} sector;track p_{T} [GeV];#LT d_{xy} #GT [#mum]",nPtBins_,mypT_bins);
-    dxyPtWidthTrend[i] = new TH1F(Form("widths_dxy_pT_%i",i),"#sigma(d_{xy}) vs p_{T} sector;track p_{T} [GeV];#sigma(d_{xy}) [#mum]",nPtBins_,mypT_bins);
-    dzPtMeanTrend[i]   = new TH1F(Form("means_dz_pT_%i",i),"#LT d_{z} #GT vs p_{T} sector;track p_{T} [GeV];#LT d_{z} #GT [#mum]",nPtBins_,mypT_bins); 
-    dzPtWidthTrend[i]  = new TH1F(Form("widths_dz_pT_%i",i),"#sigma(d_{xy}) vs p_{T} sector;track p_{T} [GeV];#sigma(d_{z}) [#mum]",nPtBins_,mypT_bins);
-
     dxyNormPhiMeanTrend[i] = new TH1F(Form("means_dxyNorm_phi_%i",i),"#LT d_{xy}/#sigma_{d_{xy}} #GT vs #phi sector;track #phi [rad];#LT d_{xy}/#sigma_{d_{xy}} #GT [#mum]",nBins_,lowedge,highedge); 
     dxyNormPhiWidthTrend[i]= new TH1F(Form("widths_dxyNorm_phi_%i",i),"#sigma(d_{xy}/#sigma_{d_{xy}}) vs #phi sector;track #phi [rad];#sigma(d_{xy}/#sigma_{d_{xy}}) [#mum]",nBins_,lowedge,highedge);
     dzNormPhiMeanTrend[i]  = new TH1F(Form("means_dzNorm_phi_%i",i),"#LT d_{z}/#sigma_{d_{z}} #GT vs #phi sector;track #phi [rad];#LT d_{z}/#sigma_{d_{z}} #GT [#mum]",nBins_,lowedge,highedge); 
@@ -335,10 +354,6 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
     dzNormEtaMeanTrend[i]  = new TH1F(Form("means_dzNorm_eta_%i",i),"#LT d_{z}/#sigma_{d_{z}} #GT vs #eta sector;track #eta;#LT d_{z}/#sigma_{d_{z}} #GT [#mum]",nBins_,lowedge,highedge); 
     dzNormEtaWidthTrend[i] = new TH1F(Form("widths_dzNorm_eta_%i",i),"#sigma(d_{z}/#sigma_{d_{z}}) vs #eta sector;track #eta;#sigma(d_{z}/#sigma_{d_{z}}) [#mum]",nBins_,lowedge,highedge);
    
-    dxyNormPtMeanTrend[i] = new TH1F(Form("means_dxyNorm_pT_%i",i),"#LT d_{xy}/#sigma_{d_{xy}} #GT vs p_{T} sector;track p_{T} [GeV];#LT d_{xy}/#sigma_{d_{xy}} #GT [#mum]",nPtBins_,mypT_bins);
-    dxyNormPtWidthTrend[i]= new TH1F(Form("widths_dxyNorm_pT_%i",i),"#sigma(d_{xy}/#sigma_{d_{xy}}) vs p_{T} sector;track p_{T} [GeV];#sigma(d_{xy}/#sigma_{d_{xy}}) [#mum]",nPtBins_,mypT_bins);
-    dzNormPtMeanTrend[i]  = new TH1F(Form("means_dzNorm_pT_%i",i),"#LT d_{z}/#sigma_{d_{z}} #GT vs p_{T} sector;track p_{T} [GeV];#LT d_{z}/#sigma_{d_{z}} #GT [#mum]",nPtBins_,mypT_bins); 
-    dzNormPtWidthTrend[i] = new TH1F(Form("widths_dzNorm_pT_%i",i),"#sigma(d_{z}/#sigma_{d_{z}}) vs p_{T} sector;track p_{T} [GeV];#sigma(d_{z}/#sigma_{d_{z}}) [#mum]",nPtBins_,mypT_bins);
 
     // 2D maps
     dxyMeanMap[i]      = new TH2F(Form("means_dxy_map_%i",i), "#LT d_{xy} #GT map;track #eta;track #phi [rad];#LT d_{xy} #GT [#mum]",nBins_,lowedge,highedge,nBins_,lowedge,highedge);		       
@@ -353,21 +368,16 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 
     // DCA absolute
 
-    FillTrendPlot(dxyPhiMeanTrend[i] ,dxyPhiResiduals[i],"mean","phi",nBins_);  
-    FillTrendPlot(dxyPhiWidthTrend[i],dxyPhiResiduals[i],"width","phi",nBins_);
-    FillTrendPlot(dzPhiMeanTrend[i]  ,dzPhiResiduals[i] ,"mean","phi",nBins_);   
-    FillTrendPlot(dzPhiWidthTrend[i] ,dzPhiResiduals[i] ,"width","phi",nBins_);  
+    FillTrendPlot(dxyPhiMeanTrend[i] ,dxyPhiResiduals[i],"mean","phi",nBins_,theDate);  
+    FillTrendPlot(dxyPhiWidthTrend[i],dxyPhiResiduals[i],"width","phi",nBins_,theDate);
+    FillTrendPlot(dzPhiMeanTrend[i]  ,dzPhiResiduals[i] ,"mean","phi",nBins_,theDate);   
+    FillTrendPlot(dzPhiWidthTrend[i] ,dzPhiResiduals[i] ,"width","phi",nBins_,theDate);  
     
-    FillTrendPlot(dxyEtaMeanTrend[i] ,dxyEtaResiduals[i],"mean","eta",nBins_); 
-    FillTrendPlot(dxyEtaWidthTrend[i],dxyEtaResiduals[i],"width","eta",nBins_);
-    FillTrendPlot(dzEtaMeanTrend[i]  ,dzEtaResiduals[i] ,"mean","eta",nBins_); 
-    FillTrendPlot(dzEtaWidthTrend[i] ,dzEtaResiduals[i] ,"width","eta",nBins_);
-	
-    FillTrendPlot(dxyPtMeanTrend[i] ,dxyPtResiduals[i],"mean","pT",nPtBins_); 
-    FillTrendPlot(dxyPtWidthTrend[i],dxyPtResiduals[i],"width","pT",nPtBins_);
-    FillTrendPlot(dzPtMeanTrend[i]  ,dzPtResiduals[i] ,"mean","pT",nPtBins_); 
-    FillTrendPlot(dzPtWidthTrend[i] ,dzPtResiduals[i] ,"width","pT",nPtBins_);
-    
+    FillTrendPlot(dxyEtaMeanTrend[i] ,dxyEtaResiduals[i],"mean","eta",nBins_,theDate); 
+    FillTrendPlot(dxyEtaWidthTrend[i],dxyEtaResiduals[i],"width","eta",nBins_,theDate);
+    FillTrendPlot(dzEtaMeanTrend[i]  ,dzEtaResiduals[i] ,"mean","eta",nBins_,theDate); 
+    FillTrendPlot(dzEtaWidthTrend[i] ,dzEtaResiduals[i] ,"width","eta",nBins_,theDate);
+
     MakeNiceTrendPlotStyle(dxyPhiMeanTrend[i],colors[i]);
     MakeNiceTrendPlotStyle(dxyPhiWidthTrend[i],colors[i]);
     MakeNiceTrendPlotStyle(dzPhiMeanTrend[i],colors[i]);
@@ -377,28 +387,18 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
     MakeNiceTrendPlotStyle(dxyEtaWidthTrend[i],colors[i]);
     MakeNiceTrendPlotStyle(dzEtaMeanTrend[i],colors[i]);
     MakeNiceTrendPlotStyle(dzEtaWidthTrend[i],colors[i]);
-
-    MakeNiceTrendPlotStyle(dxyPtMeanTrend[i],colors[i]);
-    MakeNiceTrendPlotStyle(dxyPtWidthTrend[i],colors[i]);
-    MakeNiceTrendPlotStyle(dzPtMeanTrend[i],colors[i]);
-    MakeNiceTrendPlotStyle(dzPtWidthTrend[i],colors[i]);
-
+    
     // DCA normalized
 
-    FillTrendPlot(dxyNormPhiMeanTrend[i] ,dxyNormPhiResiduals[i],"mean","phi",nBins_);  
-    FillTrendPlot(dxyNormPhiWidthTrend[i],dxyNormPhiResiduals[i],"width","phi",nBins_);
-    FillTrendPlot(dzNormPhiMeanTrend[i]  ,dzNormPhiResiduals[i] ,"mean","phi",nBins_);   
-    FillTrendPlot(dzNormPhiWidthTrend[i] ,dzNormPhiResiduals[i] ,"width","phi",nBins_);  
+    FillTrendPlot(dxyNormPhiMeanTrend[i] ,dxyNormPhiResiduals[i],"mean","phi",nBins_,theDate);  
+    FillTrendPlot(dxyNormPhiWidthTrend[i],dxyNormPhiResiduals[i],"width","phi",nBins_,theDate);
+    FillTrendPlot(dzNormPhiMeanTrend[i]  ,dzNormPhiResiduals[i] ,"mean","phi",nBins_,theDate);   
+    FillTrendPlot(dzNormPhiWidthTrend[i] ,dzNormPhiResiduals[i] ,"width","phi",nBins_,theDate);  
     
-    FillTrendPlot(dxyNormEtaMeanTrend[i] ,dxyNormEtaResiduals[i],"mean","eta",nBins_); 
-    FillTrendPlot(dxyNormEtaWidthTrend[i],dxyNormEtaResiduals[i],"width","eta",nBins_);
-    FillTrendPlot(dzNormEtaMeanTrend[i]  ,dzNormEtaResiduals[i] ,"mean","eta",nBins_); 
-    FillTrendPlot(dzNormEtaWidthTrend[i] ,dzNormEtaResiduals[i] ,"width","eta",nBins_);
-       
-    FillTrendPlot(dxyNormPtMeanTrend[i] ,dxyNormPtResiduals[i],"mean","pT",nPtBins_);        
-    FillTrendPlot(dxyNormPtWidthTrend[i],dxyNormPtResiduals[i],"width","pT",nPtBins_);       
-    FillTrendPlot(dzNormPtMeanTrend[i]  ,dzNormPtResiduals[i] ,"mean","pT",nPtBins_);       
-    FillTrendPlot(dzNormPtWidthTrend[i] ,dzNormPtResiduals[i] ,"width","pT",nPtBins_);
+    FillTrendPlot(dxyNormEtaMeanTrend[i] ,dxyNormEtaResiduals[i],"mean","eta",nBins_,theDate); 
+    FillTrendPlot(dxyNormEtaWidthTrend[i],dxyNormEtaResiduals[i],"width","eta",nBins_,theDate);
+    FillTrendPlot(dzNormEtaMeanTrend[i]  ,dzNormEtaResiduals[i] ,"mean","eta",nBins_,theDate); 
+    FillTrendPlot(dzNormEtaWidthTrend[i] ,dzNormEtaResiduals[i] ,"width","eta",nBins_,theDate);
 
     MakeNiceTrendPlotStyle(dxyNormPhiMeanTrend[i],colors[i]);
     MakeNiceTrendPlotStyle(dxyNormPhiWidthTrend[i],colors[i]);
@@ -409,11 +409,6 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
     MakeNiceTrendPlotStyle(dxyNormEtaWidthTrend[i],colors[i]);
     MakeNiceTrendPlotStyle(dzNormEtaMeanTrend[i],colors[i]);
     MakeNiceTrendPlotStyle(dzNormEtaWidthTrend[i],colors[i]);
-
-    MakeNiceTrendPlotStyle(dxyNormPtMeanTrend[i],colors[i]);
-    MakeNiceTrendPlotStyle(dxyNormPtWidthTrend[i],colors[i]);
-    MakeNiceTrendPlotStyle(dzNormPtMeanTrend[i],colors[i]);
-    MakeNiceTrendPlotStyle(dzNormPtWidthTrend[i],colors[i]);
     
     // maps
     
@@ -446,44 +441,32 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   TString theStrDate = theDate;
   theStrDate.ReplaceAll(" ","");
 
-  TCanvas *dxyPhiTrend = new TCanvas("dxyPhiTrend","dxyPhiTrend",1200,600);
+  TCanvas *dxyPhiTrend = new TCanvas(Form("dxyPhiTrend_%s",theDate.Data()),"dxyPhiTrend",1200,600);
   arrangeCanvas(dxyPhiTrend,dxyPhiMeanTrend,dxyPhiWidthTrend,nFiles_,LegLabels,theDate);
 
   dxyPhiTrend->SaveAs("dxyPhiTrend_"+theStrDate+".pdf");
   dxyPhiTrend->SaveAs("dxyPhiTrend_"+theStrDate+".png");
 
-  TCanvas *dzPhiTrend = new TCanvas("dzPhiTrend","dzPhiTrend",1200,600);
+  TCanvas *dzPhiTrend = new TCanvas(Form("dzPhiTrend_%s",theDate.Data()),"dzPhiTrend",1200,600);
   arrangeCanvas(dzPhiTrend,dzPhiMeanTrend,dzPhiWidthTrend,nFiles_,LegLabels,theDate);
 
   dzPhiTrend->SaveAs("dzPhiTrend_"+theStrDate+".pdf");
   dzPhiTrend->SaveAs("dzPhiTrend_"+theStrDate+".png");
 
-  TCanvas *dxyEtaTrend = new TCanvas("dxyEtaTrend","dxyEtaTrend",1200,600);
+  TCanvas *dxyEtaTrend = new TCanvas(Form("dxyEtaTrend_%s",theDate.Data()),"dxyEtaTrend",1200,600);
   arrangeCanvas(dxyEtaTrend,dxyEtaMeanTrend,dxyEtaWidthTrend,nFiles_,LegLabels,theDate);
 
   dxyEtaTrend->SaveAs("dxyEtaTrend_"+theStrDate+".pdf");
   dxyEtaTrend->SaveAs("dxyEtaTrend_"+theStrDate+".png");
 
-  TCanvas *dzEtaTrend = new TCanvas("dzEtaTrend","dzEtaTrend",1200,600);
+  TCanvas *dzEtaTrend = new TCanvas(Form("dzEtaTrend_%s",theDate.Data()),"dzEtaTrend",1200,600);
   arrangeCanvas(dzEtaTrend,dzEtaMeanTrend,dzEtaWidthTrend,nFiles_,LegLabels,theDate);
 
   dzEtaTrend->SaveAs("dzEtaTrend_"+theStrDate+".pdf");
   dzEtaTrend->SaveAs("dzEtaTrend_"+theStrDate+".png");
 
-  TCanvas *dxyPtTrend = new TCanvas("dxyPtTrend","dxyPtTrend",800,800);
-  arrangeCanvas(dxyPtTrend,dxyPtMeanTrend,dxyPtWidthTrend,nFiles_,LegLabels,theDate);
-
-  dxyPtTrend->SaveAs("dxyPtTrend_"+theStrDate+".pdf");
-  dxyPtTrend->SaveAs("dxyPtTrend_"+theStrDate+".png");
-
-  TCanvas *dzPtTrend = new TCanvas("dzPtTrend","dzPtTrend",800,800);
-  arrangeCanvas(dzPtTrend,dzPtMeanTrend,dzPtWidthTrend,nFiles_,LegLabels,theDate);
-
-  dzPtTrend->SaveAs("dzPtTrend_"+theStrDate+".pdf");
-  dzPtTrend->SaveAs("dzPtTrend_"+theStrDate+".png");
-
   // fit dz vs phi
-  TCanvas *dzPhiTrendFit = new TCanvas("dzPhiTrendFit","dzPhiTrendFit",1200,600);
+  TCanvas *dzPhiTrendFit = new TCanvas(Form("dzPhiTrendFit_%s",theDate.Data()),"dzPhiTrendFit",1200,600);
   arrangeFitCanvas(dzPhiTrendFit,dzPhiMeanTrend,nFiles_,LegLabels,theDate);
 
   dzPhiTrendFit->SaveAs("dzPhiTrendFit_"+theStrDate+".pdf");
@@ -494,57 +477,41 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   delete dxyEtaTrend;
   delete dzEtaTrend;
   delete dzPhiTrendFit;
-  delete dxyPtTrend;
-  delete dzPtTrend;
 
   // DCA normalized
 
-  TCanvas *dxyNormPhiTrend = new TCanvas("dxyNormPhiTrend","dxyNormPhiTrend",1200,600);
+  TCanvas *dxyNormPhiTrend = new TCanvas(Form("dxyNormPhiTrend_%s",theDate.Data()),"dxyNormPhiTrend",1200,600);
   arrangeCanvas(dxyNormPhiTrend,dxyNormPhiMeanTrend,dxyNormPhiWidthTrend,nFiles_,LegLabels,theDate);
 
   dxyNormPhiTrend->SaveAs("dxyPhiTrendNorm_"+theStrDate+".pdf");
   dxyNormPhiTrend->SaveAs("dxyPhiTrendNorm_"+theStrDate+".png");
 
-  TCanvas *dzNormPhiTrend = new TCanvas("dzNormPhiTrend","dzNormPhiTrend",1200,600);
+  TCanvas *dzNormPhiTrend = new TCanvas(Form("dzNormPhiTrend_%s",theDate.Data()),"dzNormPhiTrend",1200,600);
   arrangeCanvas(dzNormPhiTrend,dzNormPhiMeanTrend,dzNormPhiWidthTrend,nFiles_,LegLabels,theDate);
 
   dzNormPhiTrend->SaveAs("dzPhiTrendNorm_"+theStrDate+".pdf");
   dzNormPhiTrend->SaveAs("dzPhiTrendNorm_"+theStrDate+".png");
 
-  TCanvas *dxyNormEtaTrend = new TCanvas("dxyNormEtaTrend","dxyNormEtaTrend",1200,600);
+  TCanvas *dxyNormEtaTrend = new TCanvas(Form("dxyNormEtaTrend_%s",theDate.Data()),"dxyNormEtaTrend",1200,600);
   arrangeCanvas(dxyNormEtaTrend,dxyNormEtaMeanTrend,dxyNormEtaWidthTrend,nFiles_,LegLabels,theDate);
 
   dxyNormEtaTrend->SaveAs("dxyEtaTrendNorm_"+theStrDate+".pdf");
   dxyNormEtaTrend->SaveAs("dxyEtaTrendNorm_"+theStrDate+".png");
 
-  TCanvas *dzNormEtaTrend = new TCanvas("dzNormEtaTrend","dzNormEtaTrend",1200,600);
+  TCanvas *dzNormEtaTrend = new TCanvas(Form("dzNormEtaTrend_%s",theDate.Data()),"dzNormEtaTrend",1200,600);
   arrangeCanvas(dzNormEtaTrend,dzNormEtaMeanTrend,dzNormEtaWidthTrend,nFiles_,LegLabels,theDate);
 
   dzNormEtaTrend->SaveAs("dzEtaTrendNorm_"+theStrDate+".pdf");
   dzNormEtaTrend->SaveAs("dzEtaTrendNorm_"+theStrDate+".png");
 
-  TCanvas *dxyNormPtTrend = new TCanvas("dxyNormPtTrend","dxyNormPtTrend",800,800);
-  arrangeCanvas(dxyNormPtTrend,dxyNormPtMeanTrend,dxyNormPtWidthTrend,nFiles_,LegLabels,theDate);
-
-  dxyNormPtTrend->SaveAs("dxyPtTrendNorm_"+theStrDate+".pdf");
-  dxyNormPtTrend->SaveAs("dxyPtTrendNorm_"+theStrDate+".png");
-
-  TCanvas *dzNormPtTrend = new TCanvas("dzNormPtTrend","dzNormPtTrend",800,800);
-  arrangeCanvas(dzNormPtTrend,dzNormPtMeanTrend,dzNormPtWidthTrend,nFiles_,LegLabels,theDate);
-
-  dzNormPtTrend->SaveAs("dzPtTrendNorm_"+theStrDate+".pdf");
-  dzNormPtTrend->SaveAs("dzPtTrendNorm_"+theStrDate+".png");
-  
   delete dxyNormPhiTrend;
   delete dzNormPhiTrend; 
   delete dxyNormEtaTrend;
   delete dzNormEtaTrend;
-  delete dxyNormPtTrend;
-  delete dzNormPtTrend;
 
   // Bias plots
 
-  TCanvas *BiasesCanvas = new TCanvas("BiasCanvas","BiasCanvas",1200,1200);
+  TCanvas *BiasesCanvas = new TCanvas(Form("BiasCanvas_%s",theDate.Data()),"BiasCanvas",1200,1200);
   arrangeBiasCanvas(BiasesCanvas,dxyPhiMeanTrend,dzPhiMeanTrend,dxyEtaMeanTrend,dzEtaMeanTrend,nFiles_,LegLabels,theDate);
   
   BiasesCanvas->SaveAs("BiasesCanvas_"+theStrDate+".pdf");
@@ -552,10 +519,10 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 
   delete BiasesCanvas;
 
-  TCanvas *dxyPhiBiasCanvas = new TCanvas("dxyPhiBiasCanvas","dxyPhiBiasCanvas",600,600);
-  TCanvas *dxyEtaBiasCanvas = new TCanvas("dxyEtaBiasCanvas","dxyEtaBiasCanvas",600,600);
-  TCanvas *dzPhiBiasCanvas  = new TCanvas("dzPhiBiasCanvas","dzPhiBiasCanvas",600,600);
-  TCanvas *dzEtaBiasCanvas  = new TCanvas("dzEtaBiasCanvas","dzEtaBiasCanvas",600,600);
+  TCanvas *dxyPhiBiasCanvas = new TCanvas(Form("dxyPhiBiasCanvas_%s",theDate.Data()),"dxyPhiBiasCanvas",600,600);
+  TCanvas *dxyEtaBiasCanvas = new TCanvas(Form("dxyEtaBiasCanvas_%s",theDate.Data()),"dxyEtaBiasCanvas",600,600);
+  TCanvas *dzPhiBiasCanvas  = new TCanvas(Form("dzPhiBiasCanvas_%s",theDate.Data()),"dzPhiBiasCanvas",600,600);
+  TCanvas *dzEtaBiasCanvas  = new TCanvas(Form("dzEtaBiasCanvas_%s",theDate.Data()),"dzEtaBiasCanvas",600,600);
   
   arrangeCanvas(dxyPhiBiasCanvas,dxyPhiMeanTrend,dxyPhiWidthTrend,nFiles_,LegLabels,theDate,true);
   arrangeCanvas(dzPhiBiasCanvas,dzPhiMeanTrend,dzPhiWidthTrend,nFiles_,LegLabels,theDate,true);
@@ -593,26 +560,26 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 
   if(do2DMaps){
   
-    TCanvas *dxyAbsMap = new TCanvas("dxyAbsMap","dxyAbsMap",1200,500*nFiles_);
+    TCanvas *dxyAbsMap = new TCanvas(Form("dxyAbsMap_%s",theDate.Data()),"dxyAbsMap",1200,500*nFiles_);
     arrangeCanvas2D(dxyAbsMap,dxyMeanMap,dxyWidthMap,nFiles_,LegLabels,theDate);
     dxyAbsMap->SaveAs("dxyAbsMap_"+theStrDate+".pdf");
     dxyAbsMap->SaveAs("dxyAbsMap_"+theStrDate+".png");
     
-    TCanvas *dzAbsMap = new TCanvas("dzAbsMap","dzAbsMap",1200,500*nFiles_);
+    TCanvas *dzAbsMap = new TCanvas(Form("dzAbsMap_%s",theDate.Data()),"dzAbsMap",1200,500*nFiles_);
     arrangeCanvas2D(dzAbsMap,dzMeanMap,dzWidthMap,nFiles_,LegLabels,theDate);
     dzAbsMap->SaveAs("dzAbsMap_"+theStrDate+".pdf");
     dzAbsMap->SaveAs("dzAbsMap_"+theStrDate+".png");
     
-    TCanvas *dxyNormMap = new TCanvas("dxyNormMap","dxyNormMap",1200,500*nFiles_);
+    TCanvas *dxyNormMap = new TCanvas(Form("dxyNormMap_%s",theDate.Data()),"dxyNormMap",1200,500*nFiles_);
     arrangeCanvas2D(dxyNormMap,dxyNormMeanMap,dxyNormWidthMap,nFiles_,LegLabels,theDate);
     dxyNormMap->SaveAs("dxyNormMap_"+theStrDate+".pdf");
     dxyNormMap->SaveAs("dxyNormMap_"+theStrDate+".png");
 
-    TCanvas *dzNormMap = new TCanvas("dzNormMap","dzNormMap",1200,500*nFiles_);
+    TCanvas *dzNormMap = new TCanvas(Form("dzNormMap_%s",theDate.Data()),"dzNormMap",1200,500*nFiles_);
     arrangeCanvas2D(dzNormMap,dzNormMeanMap,dzNormWidthMap,nFiles_,LegLabels,theDate);
     dzNormMap->SaveAs("dzNormMap_"+theStrDate+".pdf");
     dzNormMap->SaveAs("dzNormMap_"+theStrDate+".png");
-
+    
     delete dxyAbsMap;
     delete dzAbsMap;
     delete dxyNormMap;
@@ -624,8 +591,67 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
     fins[j]->Close();
   }
 
+  // // delete all hisograms
+  // for(Int_t i=0;i<nFiles_;i++){
+
+  //   delete dxyPhiMeanTrend[i];  	 
+  //   delete dxyPhiWidthTrend[i]; 	 
+  //   delete dzPhiMeanTrend[i];   	 
+  //   delete dzPhiWidthTrend[i];  	 
+    	       	 		 
+  //   delete dxyEtaMeanTrend[i];  	 
+  //   delete dxyEtaWidthTrend[i]; 	 
+  //   delete dzEtaMeanTrend[i];   	 
+  //   delete dzEtaWidthTrend[i];  	 
+                                                                          
+  //   delete dxyNormPhiMeanTrend[i];  	 
+  //   delete dxyNormPhiWidthTrend[i]; 	 
+  //   delete dzNormPhiMeanTrend[i];   	 
+  //   delete dzNormPhiWidthTrend[i];  	 
+    	       	 		 
+  //   delete dxyNormEtaMeanTrend[i];  	 
+  //   delete dxyNormEtaWidthTrend[i]; 	 
+  //   delete dzNormEtaMeanTrend[i];   	 
+  //   delete dzNormEtaWidthTrend[i];  	 
+                                     
+  //   delete dxyMeanMap[i];  		 
+  //   delete dzMeanMap[i];   		 
+  //   delete dxyNormMeanMap[i];  	 
+  //   delete dzNormMeanMap[i];		 
+                                     			 
+  //   delete dxyWidthMap[i]; 		 
+  //   delete dzWidthMap[i];  		 
+  //   delete dxyNormWidthMap[i]; 	 
+  //   delete dzNormWidthMap[i];         
+    
+  //   for(Int_t j=0;j<nBins_;j++){
+  //     delete dxyPhiResiduals[i][j];
+  //     delete dxyEtaResiduals[i][j];
+  
+  //     delete dzPhiResiduals[i][j];
+  //     delete dzEtaResiduals[i][j];
+      
+  //     delete dxyNormPhiResiduals[i][j];
+  //     delete dxyNormEtaResiduals[i][j];
+      
+  //     delete dzNormPhiResiduals[i][j];
+  //     delete dzNormEtaResiduals[i][j];
+    
+  //     for(Int_t k=0;k<nBins_;k++){
+  // 	delete dxyMapResiduals[i][j][k]; 
+  // 	delete dzMapResiduals[i][j][k];     
+	
+  // 	delete dxyNormMapResiduals[i][j][k];
+  // 	delete dzNormMapResiduals[i][j][k];
+  //     }
+  //   }
+  // }
+
   timer.Stop(); 	 
   timer.Print();
+
+  BandResult->printAll();
+  return BandResult;
 
 }
 
@@ -633,8 +659,8 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
 void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanTrend[100],TH1F* dxyEtaMeanTrend[100],TH1F* dzEtaMeanTrend[100],Int_t nFiles, TString LegLabels[10],TString theDate){
 //*************************************************************
 
-  TLegend *lego = new TLegend(0.19,0.76,0.79,0.86);
-  //lego-> SetNColumns(2);
+  TLegend *lego = new TLegend(0.19,0.80,0.79,0.92);
+  lego-> SetNColumns(2);
   lego->SetFillColor(10);
   lego->SetTextSize(0.042);
   lego->SetTextFont(42);
@@ -652,32 +678,32 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
 
   float extraOverCmsTextSize  = 0.85;
 
-  TPaveText *pt2 = new TPaveText(0.28,0.96,0.50,0.99,"NDC");
+  TPaveText *pt2 = new TPaveText(0.35,0.96,0.50,0.99,"NDC");
   pt2->SetFillColor(10);
   // pt2->SetTextColor(kBlue);
   pt2->SetTextFont(52);
   pt2->SetTextAlign(22);
-  TText *text2 = pt2->AddText(toTString(PRELIMINARY));
+  TText *text2 = pt2->AddText(toTString(INPROGRESS));
   text2->SetTextSize(0.05*extraOverCmsTextSize);
 
-  TPaveText *pt3 =new TPaveText(0.80,0.96,0.99,0.99,"NDC");
+  TPaveText *pt3 =new TPaveText(0.6,0.96,0.98,0.99,"NDC");
   pt3->SetFillColor(10);
   pt3->SetTextColor(1);
   pt3->SetTextFont(42);
-  pt3->SetTextAlign(22);
-  TText *text3 = pt3->AddText("2016 (13 TeV)");//, L=3.67fb^{-1}");
-  text3->SetTextSize(0.05);//*extraOverCmsTextSize);
+  // pt2->SetTextAlign(22);
+  TText *text3 = pt3->AddText("3.8T collision data 2015");
+  text3->SetTextSize(0.05*extraOverCmsTextSize);
 
-  TPaveText *ptDate =new TPaveText(0.3,0.86,0.79,0.92,"blNDC");
-  ptDate->SetFillColor(10);
-  // ptDate->SetLineColor(kBlue);
-  ptDate->SetBorderSize(0);
-  ptDate->SetLineWidth(0);
+  TPaveText *ptDate =new TPaveText(0.58,0.20,0.93,0.30,"blNDC");
+  ptDate->SetFillColor(kYellow);
+  ptDate->SetLineColor(kBlue);
+  ptDate->SetBorderSize(1);
+  ptDate->SetLineWidth(1);
   ptDate->SetTextFont(32);
-  //ptDate->SetTextColor(kBlue);
+  ptDate->SetTextColor(kBlue);
   // ptDate->SetTextAlign(22);
-  TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
-  textDate->SetTextSize(0.04);//*extraOverCmsTextSize);
+  TText *textDate = ptDate->AddText("run: "+theDate);
+  textDate->SetTextSize(0.05);//*extraOverCmsTextSize);
 
   canv->SetFillColor(10);  
   canv->Divide(2,2);
@@ -769,7 +795,7 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
 void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_t nFiles, TString LegLabels[10],TString theDate,bool onlyBias){
 //*************************************************************
 
-  TPaveText *ali = new TPaveText(0.18,0.85,0.50,0.93,"NDC");  
+  TPaveText *ali = new TPaveText(0.18,0.87,0.50,0.93,"NDC");  
   ali->SetFillColor(10);
   ali->SetTextColor(1);
   ali->SetTextFont(42);
@@ -780,8 +806,8 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   TText *alitext = ali->AddText("Alignment: PCL"); //"Preliminary 2015 - 0T collision data");
   alitext->SetTextSize(0.04);
 
-  TLegend *lego = new TLegend(0.18,0.75,0.78,0.87);
-  //lego-> SetNColumns(2);
+  TLegend *lego = new TLegend(0.18,0.80,0.78,0.92);
+  lego-> SetNColumns(2);
   //TLegend *lego = new TLegend(0.18,0.77,0.50,0.86);
   lego->SetFillColor(10);
   lego->SetTextSize(0.04);
@@ -793,7 +819,6 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   TPaveText *pt  = NULL;
   TPaveText *pt2 = NULL;
   TPaveText *pt3 = NULL;
-  TPaveText *ptDate = NULL;
 
   if(!onlyBias){ 
     pt =new TPaveText(0.179,0.955,0.260,0.985,"NDC");
@@ -811,84 +836,65 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   float extraOverCmsTextSize  = 0.76;
 
   if(!onlyBias){ 
-    pt2 =new TPaveText(0.27,0.95,0.503,0.98,"NDC");
+    pt2 =new TPaveText(0.3,0.95,0.503,0.98,"NDC");
   } else {
-    pt2 =new TPaveText(0.27,0.95,0.503,0.98,"NDC");
+    pt2 =new TPaveText(0.3,0.95,0.503,0.98,"NDC");
   }
 
   pt2->SetFillColor(10);
   pt2->SetTextColor(1);
   pt2->SetTextFont(52);
-  pt2->SetTextAlign(12);
-  TText *text2 = pt2->AddText(toTString(PRELIMINARY));
+  pt2->SetTextAlign(22);
+  TText *text2 = pt2->AddText(toTString(INPROGRESS));
   text2->SetTextSize(0.05*extraOverCmsTextSize);
 
   if(!onlyBias){ 
-    pt3 =new TPaveText(0.80,0.955,0.99,0.985,"NDC");
+    pt3 =new TPaveText(0.6,0.95,0.98,0.98,"NDC");
   } else {
-    pt3 =new TPaveText(0.80,0.955,0.99,0.985,"NDC");
+    pt3 =new TPaveText(0.6,0.95,0.98,0.98,"NDC");
   }
 
   pt3->SetFillColor(10);
   pt3->SetTextColor(1);
   pt3->SetTextFont(42);
-  pt3->SetTextAlign(32);
-  TText *text3 = pt3->AddText("2016 (13 TeV)"); // L=3.67fb^{-1}");
-  text3->SetTextSize(0.05);//*extraOverCmsTextSize);
+  // pt2->SetTextAlign(22);
+  TText *text3 = pt3->AddText("3.8T collision data 2015");
+  text3->SetTextSize(0.05*extraOverCmsTextSize);
 
   canv->SetFillColor(10);  
   //TPad *myPad = NULL;
 
-  if(!onlyBias){ 
-    ptDate =new TPaveText(0.3,0.88,0.78,0.91,"blNDC");
-  } else {
-    ptDate =new TPaveText(0.25,0.88,0.78,0.91,"blNDC");
-  }
-  
-  ptDate->SetFillColor(10);
-  //ptDate->SetLineColor(kBlue);
-  ptDate->SetBorderSize(0);
-  ptDate->SetLineWidth(0);
-  ptDate->SetTextFont(42);
-  //ptDate->SetTextColor(kBlue);
+  TPaveText *ptDate =new TPaveText(0.58,0.18,0.93,0.28,"blNDC");
+  ptDate->SetFillColor(kYellow);
+  ptDate->SetLineColor(kBlue);
+  ptDate->SetBorderSize(1);
+  ptDate->SetLineWidth(1);
+  ptDate->SetTextFont(32);
+  ptDate->SetTextColor(kBlue);
   // ptDate->SetTextAlign(22);
-  TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
-  textDate->SetTextSize(0.04);//*extraOverCmsTextSize);
+  TText *textDate = ptDate->AddText("run: "+theDate);
+  textDate->SetTextSize(0.05);//*extraOverCmsTextSize);
 
   if(!onlyBias) {
-
-    if( ((TString)meanplots[0]->GetName()).Contains("pT") ){
-      canv->Divide(1,2);
-      canv->cd(1)->SetLeftMargin(0.10);
-      canv->cd(2)->SetLeftMargin(0.10);
-    } else {
-      canv->Divide(2,1);
-      canv->cd(1)->SetLeftMargin(0.17);
-      canv->cd(2)->SetLeftMargin(0.17);
-    }
-
+    canv->Divide(2,1);
+    
     canv->cd(1)->SetBottomMargin(0.14);
+    canv->cd(1)->SetLeftMargin(0.17);
     canv->cd(1)->SetRightMargin(0.02);
     canv->cd(1)->SetTopMargin(0.06);  
     
     canv->cd(2)->SetBottomMargin(0.14);
+    canv->cd(2)->SetLeftMargin(0.17);
     canv->cd(2)->SetRightMargin(0.02);
     canv->cd(2)->SetTopMargin(0.06);  
     canv->cd(1);
-    
   } else {
-
-    if( ((TString)meanplots[0]->GetName()).Contains("pT") ){
-      canv->cd()->SetLeftMargin(0.10);
-    } else {
-      canv->cd()->SetLeftMargin(0.17);
-    }
-
+    
     canv->cd()->SetBottomMargin(0.14);
+    canv->cd()->SetLeftMargin(0.17);
     canv->cd()->SetRightMargin(0.02);
     canv->cd()->SetTopMargin(0.06);  
     canv->cd();
-
   }
 
   Double_t absmin(999.);
@@ -903,6 +909,17 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   Double_t theExtreme=std::max(absmax,TMath::Abs(absmin));
 
   for(Int_t i=0; i<nFiles; i++){
+    
+    std::pair<std::pair<Double_t,Double_t>, Double_t> biases = getBiases(meanplots[i]);
+    if(!onlyBias){
+      outfile1 <<LegLabels[i] << " " << meanplots[i]->GetName() <<"| mean:"<<biases.second <<" |min: "<<biases.first.first << " |max: "<<biases.first.second <<endl;
+    
+      BandResult->mean.push_back(biases.second);
+      BandResult->min.push_back(biases.first.first);
+      BandResult->max.push_back(biases.first.second);
+      BandResult->width.push_back(biases.first.second - biases.first.first);
+    }
+    outfile1.close();
     
     if(i==0){
       //meanplots[i]->GetYaxis()->SetRangeUser(absmin-safeDelta/2.,absmax+safeDelta);
@@ -946,7 +963,6 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   if(!onlyBias){
 
     canv->cd(2);
-
     Double_t absmax2(-999.);
     
     for(Int_t i=0; i<nFiles; i++){
@@ -1006,17 +1022,15 @@ void arrangeCanvas2D(TCanvas *canv,TH2F* meanmaps[100],TH2F* widthmaps[100],Int_
     text1->SetTextSize(0.05);
     //delete text1;
 
-    float extraOverCmsTextSize  = 0.76;
-
-    pt2[i] = new TPaveText(0.21,0.95,0.25,0.975,"NDC");
+    pt2[i] = new TPaveText(0.3,0.955,0.4,0.98,"NDC");
     pt2[i]->SetFillColor(10);
     pt2[i]->SetTextColor(1);
     //pt[i]->SetTextSize(0.05);
     pt2[i]->SetTextFont(52);
-    pt2[i]->SetTextAlign(12);
+    pt2[i]->SetTextAlign(22);
     // TText *text2 = pt2->AddText("run: "+theDate);
-    TText *text2 = pt2[i]->AddText(toTString(PRELIMINARY));
-    text2->SetTextSize(0.06*extraOverCmsTextSize); 
+    TText *text2 = pt2[i]->AddText(toTString(INPROGRESS));
+    text2->SetTextSize(0.05); 
     
     pt3[i] = new TPaveText(0.55,0.955,0.95,0.98,"NDC");
     pt3[i]->SetFillColor(10);
@@ -1085,7 +1099,7 @@ void arrangeFitCanvas(TCanvas *canv,TH1F* meanplots[100],Int_t nFiles, TString L
   lego->SetTextFont(42);
   lego->SetFillColor(10);
   lego->SetLineColor(10);
-  //lego->SetNColumns(2);
+  lego->SetNColumns(2);
   lego->SetShadowColor(10);
 
   TPaveText *pt = new TPaveText(0.148,0.95,0.89,0.97,"NDC");
@@ -1093,19 +1107,19 @@ void arrangeFitCanvas(TCanvas *canv,TH1F* meanplots[100],Int_t nFiles, TString L
   pt->SetTextColor(1);
   pt->SetTextFont(42);
   pt->SetTextAlign(62);
-  TText *text1 = pt->AddText("CMS preliminary 2016: p-p data, #sqrt{s}=13 TeV");
+  TText *text1 = pt->AddText("CMS preliminary 2015: p-p data, #sqrt{s}=13 TeV");
   text1->SetTextSize(0.05);
 
   TPaveText *ptDate =new TPaveText(0.78,0.20,0.93,0.30,"blNDC");
-  ptDate->SetFillColor(10);
-  //ptDate->SetLineColor(kBlue);
-  ptDate->SetBorderSize(0);
-  ptDate->SetLineWidth(0);
-  ptDate->SetTextFont(42);
-  //ptDate->SetTextColor(kBlue);
+  ptDate->SetFillColor(kYellow);
+  ptDate->SetLineColor(kBlue);
+  ptDate->SetBorderSize(1);
+  ptDate->SetLineWidth(1);
+  ptDate->SetTextFont(32);
+  ptDate->SetTextColor(kBlue);
   // ptDate->SetTextAlign(22);
-  TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
-  textDate->SetTextSize(0.04);//*extraOverCmsTextSize);
+  TText *textDate = ptDate->AddText("run: "+theDate);
+  textDate->SetTextSize(0.05);//*extraOverCmsTextSize);
 
   TF1 *fleft[nFiles]; 
   TF1 *fright[nFiles];
@@ -1186,6 +1200,10 @@ void arrangeFitCanvas(TCanvas *canv,TH1F* meanplots[100],Int_t nFiles, TString L
       outfile <<deltaZ<<"|"<<sigmadeltaZ<<endl;
     }
     
+
+    BandResult->dzfit=deltaZ;
+    BandResult->dzfitError=sigmadeltaZ;
+    outfile.close();
     delete theNewCanvas2;
 
   }
@@ -1195,6 +1213,28 @@ void arrangeFitCanvas(TCanvas *canv,TH1F* meanplots[100],Int_t nFiles, TString L
   ptDate->Draw("same");
   pt->Draw("same");
 
+}
+
+//*************************************************************
+std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist)
+//*************************************************************
+{
+  Double_t mean=0;
+  for(Int_t i=1;i<=hist->GetNbinsX();i++){
+    mean+=hist->GetBinContent(i);
+  }
+
+  mean = mean/hist->GetNbinsX();
+  
+  Double_t max=hist->GetMaximum();
+  Double_t min=hist->GetMinimum();
+  
+  std::pair<std::pair<Double_t,Double_t>, Double_t> result;
+  std::pair<Double_t,Double_t> resultBounds = std::make_pair(min,max);
+  result = make_pair(resultBounds,mean);
+  
+  return result;
+   
 }
 
 //*************************************************************
@@ -1243,7 +1283,6 @@ std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > fitStude
   tp0Fcn->SetParameter( 3, nn ); // N
   tp0Fcn->SetParameter( 4, bg );
   
-  //hist->Fit("tmp", "+rob=0.75");
   hist->Fit( "tmp", "R", "ep" );
   // h->Fit("tmp","V+","ep");
   
@@ -1258,27 +1297,14 @@ std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > fitStude
   std::pair<Double_t,Double_t> resultM;
   std::pair<Double_t,Double_t> resultW;
 
+  resultM = std::make_pair(res_mean,res_mean_err);
+  resultW = std::make_pair(res_width,res_width_err);
+
   std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > result;
   
-  if( (tp0Fcn->GetChisquare()/tp0Fcn->GetNDF())<100.){
+  result = std::make_pair(resultM,resultW);
+  return result;
 
-    resultM = std::make_pair(res_mean,res_mean_err);
-    resultW = std::make_pair(res_width,res_width_err);
-    
-    result = std::make_pair(resultM,resultW);
-
-    return result;
-
-  } else  {
-    
-    resultM = std::make_pair(0.,0.);
-    resultW = std::make_pair(0.,0.);
-    
-    result = std::make_pair(resultM,resultW);
-
-    return result;
-    
-  }
 
 }
 
@@ -1380,24 +1406,10 @@ std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > fitResid
 //*************************************************************
 {
   //float fitResult(9999);
-  if (hist->GetEntries() < 20){
-    
-    std::pair<Double_t,Double_t> resultMDef;
-    std::pair<Double_t,Double_t> resultWDef;
-    
-    resultMDef = std::make_pair(0.,100.);
-    resultWDef = std::make_pair(0.,100.);
-
-    std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > resultDefault;
-    resultDefault = std::make_pair(resultMDef,resultWDef);
-
-    return resultDefault;
-  }
+  //if (hist->GetEntries() < 20) return ;
   
   float mean  = hist->GetMean();
   float sigma = hist->GetRMS();
-
-  //std::cout<<"mean: " << mean << "sigma: " << sigma << std::endl;
   
   if(TMath::IsNaN(mean) || TMath::IsNaN(sigma)){  
     mean=0;
@@ -1592,39 +1604,40 @@ std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > fitResid
 }
 
 //*************************************************************
-void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, TString var_,Int_t myBins_)
+void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, TString var_,Int_t myBins_,TString theDate)
 //*************************************************************
 {
 
   //std::cout<<"trendPlot name: "<<trendPlot->GetName()<<std::endl;
-  //std::cout<<"residualsplot name: "<<residualsPlot[0]->GetName()<<std::endl;
-  //std::cout<<"residualsplot entries: "<<residualsPlot[0]->GetEntries()<<std::endl;
 
+  // float phiInterval = (360.)/myBins_;
   float phiInterval = (2*TMath::Pi()/myBins_);
   float etaInterval = 5./myBins_;
-    
+ 
   for ( int i=0; i<myBins_; ++i ) {
-       
+    
+    //int binn = i+1;
+
     char phipositionString[129];
+    // float phiposition = (-180+i*phiInterval)+(phiInterval/2);
     float phiposition = (-TMath::Pi()+i*phiInterval)+(phiInterval/2);
     sprintf(phipositionString,"%.1f",phiposition);
     
     char etapositionString[129];
     float etaposition = (-2.5+i*etaInterval)+(etaInterval/2);
     sprintf(etapositionString,"%.1f",etaposition);
-    
+
     std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t> > myFit = std::make_pair(std::make_pair(0.,0.),std::make_pair(0.,0.));
-    
+
     if ( ((TString)trendPlot->GetName()).Contains("Norm") ) {
+      //std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > myFit = fitResiduals(residualsPlot[i]);
       myFit = fitResiduals(residualsPlot[i]);
     } else {
-      if(residualsPlot[i]->GetEntries()>1000){
-	myFit = fitResiduals(residualsPlot[i]);
-      } else {
-	myFit = fitResiduals(residualsPlot[i]);
-      }
+      //std::pair<std::pair<Double_t,Double_t>, std::pair<Double_t,Double_t>  > myFit = fitStudentTResiduals(residualsPlot[i]);
+      myFit = fitResiduals(residualsPlot[i]);
+      //myFit = fitStudentTResiduals(residualsPlot[i]);
     }
-    
+
     if(fitPar_=="mean"){
       float mean_      = myFit.first.first;
       float meanErr_   = myFit.first.second;
@@ -1648,8 +1661,24 @@ void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, T
     } else {
       std::cout<<"PrimaryVertexValidation::FillTrendPlot() "<<fitPar_<<" unknown estimator!"<<std::endl;
     }
+
+    if(var_=="phi"){
+      //  if( ((binn%2==0)&&(binn<=12)) || ((binn%2==1)&&(binn>12)) ) 
+      // if( ((binn%3==1)&&(binn<=12)) || ((binn%3==0)&&(binn>12)) ) 
+      //if((binn%3==0))
+      //  trendPlot->GetXaxis()->SetBinLabel(binn,phipositionString); 
+    } else if(var_=="eta"){
+      // if( ((binn%2==0)&&(binn<=12)) || ((binn%2==1)&&(binn>12)) ) 
+      // if( ((binn%3==1)&&(binn<=12)) || ((binn%3==0)&&(binn>12)) ) 
+      //if((binn%3==0))
+      //trendPlot->GetXaxis()->SetBinLabel(binn,etapositionString); 
+    } else {
+      //std::cout<<"PrimaryVertexValidation::FillTrendPlot() "<<var_<<" unknown track parameter!"<<std::endl;
+    }
   }
-  	
+
+  //trendPlot->GetXaxis()->LabelsOption("h");
+
   if(fitPar_=="mean" || fitPar_=="median"){
 
     TString res;
@@ -1658,10 +1687,10 @@ void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, T
     else if(TString(residualsPlot[0]->GetName()).Contains("IP2D")) res="IP2D";
     else if(TString(residualsPlot[0]->GetName()).Contains("resz")) res="resz";
     
-    TCanvas *fitOutput = new TCanvas(Form("fitOutput_%s_%s_%s",res.Data(),var_.Data(),trendPlot->GetName()),Form("fitOutput_%s_%s",res.Data(),var_.Data()),1200,1200);
+    TCanvas *fitOutput = new TCanvas(Form("fitOutput_%s_%s_%s_%s",res.Data(),var_.Data(),trendPlot->GetName(),theDate.Data()),Form("fitOutput_%s_%s",res.Data(),var_.Data()),1200,1200);
     fitOutput->Divide(5,5);
     
-    TCanvas *fitPulls = new TCanvas(Form("fitPulls_%s_%s_%s",res.Data(),var_.Data(),trendPlot->GetName()),Form("fitPulls_%s_%s",res.Data(),var_.Data()),1200,1200);
+    TCanvas *fitPulls = new TCanvas(Form("fitPulls_%s_%s_%s_%s",res.Data(),var_.Data(),trendPlot->GetName(),theDate.Data()),Form("fitPulls_%s_%s",res.Data(),var_.Data()),1200,1200);
     fitPulls->Divide(5,5);
 
     TH1F* residualsPull[myBins_];
@@ -1669,7 +1698,7 @@ void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, T
     for(Int_t i=0;i<myBins_;i++){
       
       TF1 *tmp1 = (TF1*)residualsPlot[i]->GetListOfFunctions()->FindObject("tmp");
-      if(tmp1) fitOutput->cd(i+1)->SetLogy();
+      fitOutput->cd(i+1)->SetLogy();
       fitOutput->cd(i+1)->SetBottomMargin(0.16);
       //fitOutput->cd(i+1)->SetTopMargin(0.05);
       //residualsPlot[i]->Sumw2();
@@ -1683,22 +1712,24 @@ void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, T
 
       //std::cout<<"*********************"<<std::endl;
       //std::cout<<"fitOutput->cd("<<i+1<<")"<<std::endl;
-      //std::cout<<"residualsPlot["<<i<<"]->GetTitle() = "<<residualsPlot[i]->GetName()<<std::endl;
+      //std::cout<<"residualsPlot["<<i<<"]->GetTitle() = "<<residualsPlot[i]->GetTitle()<<std::endl;
       
       // -- for chi2 ----
-      TPaveText *pt = new TPaveText(0.25,0.79,0.45,0.89,"NDC");
+      TPaveText *pt = new TPaveText(0.13,0.78,0.33,0.88,"NDC");
       pt->SetFillColor(10);
       pt->SetTextColor(1);
-      pt->SetTextSize(0.09);
+      pt->SetTextSize(0.07);
       pt->SetTextFont(42);
       pt->SetTextAlign(22);
 
+      TString COUT;
+
       //TF1 *tmp1 = (TF1*)residualsPlot[i]->GetListOfFunctions()->FindObject("tmp");
-      TString COUT = "";
-      if(tmp1){
-	COUT = Form("#chi^{2}_{n}=%.1f",tmp1->GetChisquare()/tmp1->GetNDF());
-      }
-      
+      if(tmp1)
+	COUT = Form("#chi^{2}/ndf=%.1f",tmp1->GetChisquare()/tmp1->GetNDF());
+      else
+	COUT = "";
+
       TText *text1 = pt->AddText(COUT);
       text1->SetTextFont(72);
       text1->SetTextColor(kBlue);
@@ -1726,11 +1757,10 @@ void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, T
  
       residualsPull[i]=(TH1F*)residualsPlot[i]->Clone(Form("pull_%s",residualsPlot[i]->GetName()));
       for(Int_t nbin=1;nbin<=residualsPull[i]->GetNbinsX(); nbin++){
-      	if(residualsPlot[i]->GetBinContent(nbin)!=0 && tmp1){ 
+	if(!tmp1)
+	  continue;
+      	if(residualsPlot[i]->GetBinContent(nbin)!=0){ 
 	  residualsPull[i]->SetBinContent(nbin,(residualsPlot[i]->GetBinContent(nbin) - tmp1->Eval(residualsPlot[i]->GetBinCenter(nbin)))/residualsPlot[i]->GetBinContent(nbin));
-	  residualsPull[i]->SetBinError(nbin,0.1);
-	} else {
-	  residualsPull[i]->SetBinContent(nbin,0);
 	  residualsPull[i]->SetBinError(nbin,0.1);
 	}
       }
@@ -1772,6 +1802,9 @@ void FillTrendPlot(TH1F* trendPlot, TH1F* residualsPlot[100], TString fitPar_, T
     fitOutput->SaveAs(Form("fitOutput_%s.pdf",(((TString)trendPlot->GetName()).ReplaceAll("means_","")).Data()));
     fitPulls->SaveAs(Form("fitPulls_%s.pdf",(((TString)trendPlot->GetName()).ReplaceAll("means_","")).Data()));
     //fitOutput->SaveAs(Form("fitOutput_%s.png",(((TString)trendPlot->GetName()).ReplaceAll("means_","")).Data()));
+    
+    delete fitOutput;
+    delete fitPulls;
 
   }
 }
@@ -1825,7 +1858,7 @@ void FillMap(TH2F* trendMap, TH1F* residualsMapPlot[24][24], TString fitPar_)
 	trendMap->SetBinContent(j+1,i+1,mad_);
 	trendMap->SetBinError(j+1,i+1,madErr_);
       } else {
-	std::cout<<"FitPVResiduals_addPT::FillMap() "<<fitPar_<<" unknown estimator!"<<std::endl;
+	std::cout<<"FitPVResiduals_forLoop::FillMap() "<<fitPar_<<" unknown estimator!"<<std::endl;
       }   
     } // closes loop on eta bins
   } // cloeses loop on phi bins
@@ -1836,13 +1869,11 @@ void  MakeNiceTrendPlotStyle(TH1 *hist,Int_t color)
 /*--------------------------------------------------------------------*/
 { 
 
-  Int_t markers[9] = {kFullSquare,kFullCircle,kFullTriangleDown,kOpenSquare,kOpenCircle,kFullTriangleDown,kFullTriangleUp,kOpenTriangleDown,kDot};
-  //Int_t colors[8]  = {kBlack,kGreen+2,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
+  Int_t markers[8] = {kFullSquare,kFullCircle,kOpenSquare,kOpenCircle,kFullTriangleDown,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
+  Int_t colors[8]  = {kBlack,kBlue,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
   
-  Int_t colors[8] = {kBlack,kRed,kBlue,kGreen+2,kMagenta,kCyan,kViolet,kOrange};
-
   // Int_t markers[4] = {kFullSquare,kFullCircle,kOpenSquare};
-  // Int_t colors[4]  = {kBlack,kRed,kBlue};
+  //Int_t colors[4]  = {kBlack,kRed,kBlue};
 
   hist->SetStats(kFALSE);  
   hist->SetLineWidth(2);
@@ -1853,12 +1884,7 @@ void  MakeNiceTrendPlotStyle(TH1 *hist,Int_t color)
   hist->GetXaxis()->SetTitleSize(0.065);
   hist->GetYaxis()->SetTitleSize(0.065);
   hist->GetXaxis()->SetTitleOffset(1.0);
-  
-  if(((TString)hist->GetName()).Contains("pT")){
-    hist->GetYaxis()->SetTitleOffset(0.7);
-  } else {
-    hist->GetYaxis()->SetTitleOffset(1.2);
-  }
+  hist->GetYaxis()->SetTitleOffset(1.2);
   hist->GetXaxis()->SetLabelFont(42);
   hist->GetYaxis()->SetLabelFont(42);
   hist->GetYaxis()->SetLabelSize(.05);
@@ -1950,13 +1976,13 @@ void MakeNiceMapStyle(TH2 *hist)
   std::pair<Double_t,Double_t> theMAD = getMAD(histContentByCell);
 
  
-  std::cout<<std::setw(24)<< left << hist->GetName() << "| mean: "<<std::setw(10)<<theMeanOfCells<<"| min: "<<std::setw(10)<< min <<"| max: "<<std::setw(10)<<max<<"| rms: "<<std::setw(10)<<theRMSOfCells<<"| mad: "<<std::setw(10)<<theMAD.first<<std::endl;
+  //std::cout<<std::setw(24)<< left << hist->GetName() << "| mean: "<<std::setw(10)<<theMeanOfCells<<"| min: "<<std::setw(10)<< min <<"| max: "<<std::setw(10)<<max<<"| rms: "<<std::setw(10)<<theRMSOfCells<<"| mad: "<<std::setw(10)<<theMAD.first<<std::endl;
 
   TCanvas *cCheck = new TCanvas(Form("cCheck_%s",hist->GetName()),Form("cCheck_%s",hist->GetName()),800,800);
   cCheck->Divide(1,2);
   cCheck->cd(1);
   hist->Draw("box");
-  //cCheck->cd(2)->SetLogy();
+  cCheck->cd(2)->SetLogy();
 
   histContentByCell->Draw();
   
@@ -1984,17 +2010,17 @@ void MakeNiceMapStyle(TH2 *hist)
   l2->SetLineWidth(4);
   l2->Draw("same");
 
-  // //   for(Int_t nX=1;nX<=nXCells;nX++){
-  // //     for(Int_t nY=1;nY<=nYCells;nY++){
-  // //       Double_t binContent = hist->GetBinContent(nX,nY);
-  // //       if (binContent<=theNewMin) hist->SetBinContent(nX,nY,theNewMin);
-  // //       else if (binContent>=theNewMax) hist->SetBinContent(nX,nY,theNewMax);
-  // //     }
-  // //   }
+  //   for(Int_t nX=1;nX<=nXCells;nX++){
+  //     for(Int_t nY=1;nY<=nYCells;nY++){
+  //       Double_t binContent = hist->GetBinContent(nX,nY);
+  //       if (binContent<=theNewMin) hist->SetBinContent(nX,nY,theNewMin);
+  //       else if (binContent>=theNewMax) hist->SetBinContent(nX,nY,theNewMax);
+  //     }
+  //   }
   
-  // //delete histContentByCell;
+  //delete histContentByCell;
 
-  hist->GetZaxis()->SetRangeUser(0.99*theNewMin,0.99*theNewMax);
+  //hist->GetZaxis()->SetRangeUser(0.99*theNewMin,0.99*theNewMax);
 
 }
 
@@ -2051,7 +2077,7 @@ TH1F* DrawZero(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int_t i
   }
   hzero->SetLineWidth(2);
   hzero->SetLineStyle(9);
-  hzero->SetLineColor(kMagenta);
+  hzero->SetLineColor(kRed);
   
   return hzero;
 }
@@ -2073,12 +2099,8 @@ void makeNewXAxis (TH1F *h)
     axmin = -TMath::Pi();
     axmax = TMath::Pi();
     ndiv = 510;
-  } else if (myTitle.Contains("pT")) {
-    axmin = 0;
-    axmax = 19.99;
-    ndiv = 510;
-  } else {
-    std::cout<<"unrecognized x-axis variable"<<std::endl;
+  } else  {
+    std::cout<<"unrecognized variable"<<std::endl;
   }
   
   // Remove the current axis
@@ -2220,7 +2242,7 @@ void FitULine(TH1 *hist)
     if (hist->GetFunction(func1.GetName())) { // Take care that it is later on drawn:
       hist->GetFunction(func1.GetName())->ResetBit(TF1::kNotDraw);
     }
-    //cout<<"FitPVResiduals_addPT() fit Up done!"<<endl;
+    //cout<<"FitPVResiduals_forLoop() fit Up done!"<<endl;
   }
   
 }
@@ -2239,7 +2261,7 @@ void FitDLine(TH1 *hist)
     if (hist->GetFunction(func2.GetName())) { // Take care that it is later on drawn:
       hist->GetFunction(func2.GetName())->ResetBit(TF1::kNotDraw);
     }
-    // cout<<"FitPVResiduals_addPT() fit Down done!"<<endl;
+    // cout<<"FitPVResiduals_forLoop() fit Down done!"<<endl;
   } 
 }
 

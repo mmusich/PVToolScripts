@@ -32,17 +32,12 @@ foreach filetostudy (`ls ${PWD}/$ObjName | grep .root`)
      
      #root -b -q  $PWD/FitPVResiduals_forLoop.C++\(\"${PWD}/$ObjName/$filetostudy=${theLabel}\,${PWD}/$ObjName2/$filetostudy2=${theLabel2}\"\,true\,false\,\"$theDate\"\)
 
-     root -b -q runMe.C\(\"${PWD}/$ObjName/$filetostudy=${theLabel}\,${PWD}/$ObjName2/$filetostudy2=${theLabel2}\"\,\"$theDate\"\)
-
+     
      rm -f numevents.out 
      root -b -q  $PWD/check3.C\(\"${PWD}/$ObjName/$filetostudy\"\) > numevents.out
      set rawnumevents=`tail -1 numevents.out`
      set numevents=`echo $rawnumevents | awk '{split($0,a,")"); print a[2]}'` 
-    
-     set rawfits=`tail -1 FittedDeltaZ.txt`
-     set deltaz=`echo $rawfits | awk '{split($0,a,"|"); print a[1]}'`
-     set sigmadeltaz=`echo $rawfits | awk '{split($0,a,"|"); print a[2]}'` 
- 
+     
      setenv flag "BAD"
 
      if (! -d summary.txt ) then
@@ -52,6 +47,17 @@ foreach filetostudy (`ls ${PWD}/$ObjName | grep .root`)
      if (${numevents} > 1000) then
      	setenv flag "GOOD"
      endif
+
+     if ( $flag == "BAD") then
+	echo "BAD run: n.events=$numevents"
+	continue
+     endif
+
+     root -b -q runMe.C\(\"${PWD}/$ObjName/$filetostudy=${theLabel}\,${PWD}/$ObjName2/$filetostudy2=${theLabel2}\"\,\"$theDate\"\)
+
+     set rawfits=`tail -1 FittedDeltaZ.txt`
+     set deltaz=`echo $rawfits | awk '{split($0,a,"|"); print a[1]}'`
+     set sigmadeltaz=`echo $rawfits | awk '{split($0,a,"|"); print a[2]}'` 
 
      echo "- File $theDate had ${numevents} events. Fit separation: $deltaz \pm $sigmadeltaz"
 
@@ -82,6 +88,10 @@ mkdir ./${TargetOutName}/dxyVsEtaNorm
 mkdir ./${TargetOutName}/dzVsEtaNorm
 mkdir ./${TargetOutName}/dxyVsPhiNorm
 mkdir ./${TargetOutName}/dzVsPhiNorm
+mkdir ./${TargetOutName}/dxyVsPt
+mkdir ./${TargetOutName}/dzVsPt
+mkdir ./${TargetOutName}/dxyVsPtNorm
+mkdir ./${TargetOutName}/dzVsPtNorm   
 
 mv BiasesCanvas*     ./${TargetOutName}/Biases/
 mv dzPhiBiasCanvas*  ./${TargetOutName}/Biases/dzPhi
@@ -97,6 +107,10 @@ mv dxyEtaTrend*      ./${TargetOutName}/dxyVsEta
 mv dzEtaTrend*       ./${TargetOutName}/dzVsEta
 mv dxyPhiTrend*      ./${TargetOutName}/dxyVsPhi
 mv dzPhiTrend*       ./${TargetOutName}/dzVsPhi
+mv dxyPtTrend*       ./${TargetOutName}/dxyVsPt
+mv dzPtTrend*        ./${TargetOutName}/dzVsPt
+mv dxyPtTrendNorm*   ./${TargetOutName}/dxyVsPtNorm
+mv dzPtTrendNorm*    ./${TargetOutName}/dzVsPtNorm
 
 cp index.php ./${TargetOutName}/Biases/
 cp index.php ./${TargetOutName}/Biases/dzPhi
@@ -112,7 +126,7 @@ cp index.php ./${TargetOutName}/dxyVsEtaNorm
 cp index.php ./${TargetOutName}/dzVsEtaNorm
 cp index.php ./${TargetOutName}/dxyVsPhiNorm
 cp index.php ./${TargetOutName}/dzVsPhiNorm
-
-
-
-
+cp index.php ./${TargetOutName}/dxyVsPt      
+cp index.php ./${TargetOutName}/dzVsPt	      
+cp index.php ./${TargetOutName}/dxyVsPtNorm  
+cp index.php ./${TargetOutName}/dzVsPtNorm   
