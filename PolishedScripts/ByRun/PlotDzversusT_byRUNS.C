@@ -3,6 +3,7 @@
 #include "TROOT.h"
 #include "TkAlStyle.cc"
 #include "TAxis.h"
+#include "TArrow.h"
 #include "TTreeIndex.h"
 #include "TBox.h"
 #include "TGraphErrors.h"
@@ -245,8 +246,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   }
   graph_dxy_phi_shade->SetFillStyle(3013);
   graph_dxy_phi_shade->SetFillColor(16);
-  graph_dxy_phi_min->SetLineColor(kRed);
-  graph_dxy_phi_max->SetLineColor(kRed);
+  graph_dxy_phi_min->SetLineColor(kGray);
+  graph_dxy_phi_max->SetLineColor(kGray);
   graph_dxy_phi_min->SetLineWidth(2);
   graph_dxy_phi_max->SetLineWidth(2);
 
@@ -257,8 +258,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   graph_dxy_phi->SetTitle("d_{xy} vs #phi average bias vs. time");
   graph_dxy_phi->SetMarkerStyle(20);
   graph_dxy_phi->SetMarkerSize(0.5);
-  graph_dxy_phi->SetMarkerColor(kRed);
-  graph_dxy_phi->SetLineColor(kRed);
+  graph_dxy_phi->SetMarkerColor(kBlack);
+  graph_dxy_phi->SetLineColor(kBlack);
 
   //////***************************************************///////
 
@@ -281,8 +282,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   }
   graph_dz_phi_shade->SetFillStyle(3013);
   graph_dz_phi_shade->SetFillColor(16);
-  graph_dz_phi_min->SetLineColor(kRed);
-  graph_dz_phi_max->SetLineColor(kRed);
+  graph_dz_phi_min->SetLineColor(kGray);
+  graph_dz_phi_max->SetLineColor(kGray);
   graph_dz_phi_min->SetLineWidth(2);
   graph_dz_phi_max->SetLineWidth(2);
   
@@ -293,8 +294,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   graph_dz_phi->SetTitle("d_{z} vs #phi average bias vs. time");
   graph_dz_phi->SetMarkerStyle(20);
   graph_dz_phi->SetMarkerSize(0.5);
-  graph_dz_phi->SetMarkerColor(kRed);
-  graph_dz_phi->SetLineColor(kRed);
+  graph_dz_phi->SetMarkerColor(kBlack);
+  graph_dz_phi->SetLineColor(kBlack);
 
   //////***************************************************///////
 
@@ -317,8 +318,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   }
   graph_dxy_eta_shade->SetFillStyle(3013);
   graph_dxy_eta_shade->SetFillColor(16);
-  graph_dxy_eta_min->SetLineColor(kRed);
-  graph_dxy_eta_max->SetLineColor(kRed);
+  graph_dxy_eta_min->SetLineColor(kGray);
+  graph_dxy_eta_max->SetLineColor(kGray);
   graph_dxy_eta_min->SetLineWidth(2);
   graph_dxy_eta_max->SetLineWidth(2);
 
@@ -330,8 +331,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
 
   graph_dxy_eta->SetMarkerStyle(20);
   graph_dxy_eta->SetMarkerSize(0.5);
-  graph_dxy_eta->SetMarkerColor(kRed);
-  graph_dxy_eta->SetLineColor(kRed);
+  graph_dxy_eta->SetMarkerColor(kBlack);
+  graph_dxy_eta->SetLineColor(kBlack);
 
   //////***************************************************///////
 
@@ -354,8 +355,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   }
   graph_dz_eta_shade->SetFillStyle(3013);
   graph_dz_eta_shade->SetFillColor(16);
-  graph_dz_eta_min->SetLineColor(kRed);
-  graph_dz_eta_max->SetLineColor(kRed);
+  graph_dz_eta_min->SetLineColor(kGray);
+  graph_dz_eta_max->SetLineColor(kGray);
   graph_dz_eta_min->SetLineWidth(2);
   graph_dz_eta_max->SetLineWidth(2);
 
@@ -367,8 +368,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
 
   graph_dz_eta->SetMarkerStyle(20);
   graph_dz_eta->SetMarkerSize(0.5);
-  graph_dz_eta->SetMarkerColor(kRed);
-  graph_dz_eta->SetLineColor(kRed);
+  graph_dz_eta->SetMarkerColor(kBlack);
+  graph_dz_eta->SetLineColor(kBlack);
   
   TCanvas *c_dz_fit = new TCanvas("c_dz_fit","", 1000,500);
   c_dz_fit->SetFillColor(0);
@@ -392,8 +393,8 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   graph_dz_fit->GetYaxis()->SetTitleOffset(0.80);
   graph_dz_fit->SetMarkerStyle(20);
   graph_dz_fit->SetMarkerSize(0.5);
-  graph_dz_fit->SetMarkerColor(kRed);
-  graph_dz_fit->SetLineColor(kRed);
+  graph_dz_fit->SetMarkerColor(kBlack);
+  graph_dz_fit->SetLineColor(kBlack);
   
   TGraph *noDataGraph = new TGraph(NumEvents-numEventsGood,noDatax,noDatay);
 
@@ -531,6 +532,17 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   L6->SetLineWidth(1);
   L6->SetLineStyle(9);
 
+  TString boundaries[27] = {"275657","275658","275766","275772","275778","275828","275829","275837","275841","275847","275887","275921","276242","276243","276244","276282","276283","276315","276317","276327","276352","276361","276363","276384","276453","276454","276653"};
+
+  TArrow *lines[27];
+
+  for(Int_t i=0;i<27;i++){
+    lines[i]=new TArrow(boundaries[i].Atoi(),-30.,boundaries[i].Atoi(),30,0.5,"|>");
+    lines[i]->SetLineColor(kBlue);
+    lines[i]->SetLineStyle(9);
+    lines[i]->SetLineWidth(2);
+  }
+
   dummyGraph_dxy_phi->SetMarkerColorAlpha(0,0.);
   dummyGraph_dz_phi->SetMarkerColorAlpha(0,0.);
   dummyGraph_dxy_eta->SetMarkerColorAlpha(0,0.);
@@ -567,12 +579,12 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   magnetCyle260432_x->Draw("same");
 
   graph_dxy_phi->Draw("lpsame");
-  //graph_dxy_phi_shade->Draw("fsame");
+  graph_dxy_phi_shade->Draw("fsame");
   graph_dxy_phi_min->SetMarkerSize(0.2);
   graph_dxy_phi_max->SetMarkerSize(0.2);  
 
-  graph_dxy_phi_min->SetLineColor(kRed);
-  graph_dxy_phi_max->SetLineColor(kBlue);
+  graph_dxy_phi_min->SetLineColor(kGray);
+  graph_dxy_phi_max->SetLineColor(kGray);
   graph_dxy_phi_min->Draw("lsame"); 
   graph_dxy_phi_max->Draw("lsame");
  
@@ -582,6 +594,10 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   l4->Draw("SAME");
   l5->Draw("SAME");
   l6->Draw("SAME");
+
+  for(Int_t i=0;i<27;i++){
+    lines[i]->Draw("same");
+  }
 
   c_dxy_phi->SaveAs(Form("dxy_phi_%s.png",tag.c_str()));
   c_dxy_phi->SaveAs(Form("dxy_phi_%s.pdf",tag.c_str()));
@@ -606,10 +622,10 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
 
   //graph_dz_phi->GetYaxis()->SetRangeUser(-max_scale,max_scale);
   graph_dz_phi->Draw("lpsame");
-  //graph_dz_phi_shade->Draw("fsame");
+  graph_dz_phi_shade->Draw("fsame");
 
-  graph_dz_phi_min->SetLineColor(kRed);
-  graph_dz_phi_max->SetLineColor(kBlue);
+  graph_dz_phi_min->SetLineColor(kGray);
+  graph_dz_phi_max->SetLineColor(kGray);
 
   graph_dz_phi_min->Draw("lsame"); 
   graph_dz_phi_max->Draw("lsame");
@@ -620,6 +636,10 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   l4->Draw("SAME");
   l5->Draw("SAME");
   l6->Draw("SAME");
+
+  for(Int_t i=0;i<27;i++){
+    lines[i]->Draw("same");
+  }
 
   c_dz_phi->SaveAs(Form("dz_phi_%s.png",tag.c_str()));
   c_dz_phi->SaveAs(Form("dz_phi_%s.pdf",tag.c_str()));
@@ -644,10 +664,10 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   magnetCyle260432_x->Draw("same");
 
   graph_dxy_eta->Draw("lpsame");
-  // graph_dxy_eta_shade->Draw("fsame");
+  graph_dxy_eta_shade->Draw("fsame");
   
-  graph_dxy_eta_min->SetLineColor(kRed);
-  graph_dxy_eta_max->SetLineColor(kBlue);
+  graph_dxy_eta_min->SetLineColor(kGray);
+  graph_dxy_eta_max->SetLineColor(kGray);
   
   graph_dxy_eta_min->Draw("lsame"); 
   graph_dxy_eta_max->Draw("lsame");
@@ -658,6 +678,10 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   l4->Draw("SAME");
   l5->Draw("SAME");
   l6->Draw("SAME");
+
+  for(Int_t i=0;i<27;i++){
+    lines[i]->Draw("same");
+  }
 
   c_dxy_eta->SaveAs(Form("dxy_eta_%s.png",tag.c_str()));
   c_dxy_eta->SaveAs(Form("dxy_eta_%s.pdf",tag.c_str()));
@@ -690,6 +714,10 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   l5->Draw("SAME");
   l6->Draw("SAME");
 
+  for(Int_t i=0;i<27;i++){
+    lines[i]->Draw("same");
+  }
+  
   c_dz_fit->SaveAs(Form("dz_fit_%s.png",tag.c_str()));
   c_dz_fit->SaveAs(Form("dz_fit_%s.pdf",tag.c_str()));
 
@@ -712,9 +740,9 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   magnetCyle260432_L->Draw("same");
 
   graph_dz_eta->Draw("lpsame");
-  //graph_dz_eta_shade->Draw("fsame");
-  graph_dz_eta_min->SetLineColor(kRed);
-  graph_dz_eta_max->SetLineColor(kBlue);
+  graph_dz_eta_shade->Draw("fsame");
+  graph_dz_eta_min->SetLineColor(kGray);
+  graph_dz_eta_max->SetLineColor(kGray);
   graph_dz_eta_min->Draw("lsame"); 
   graph_dz_eta_max->Draw("lsame");
 
@@ -727,6 +755,9 @@ void PlotDzversusT_byRUNS(string tag="PromptGT"){
   L5->Draw("SAME");
   L6->Draw("SAME");
  
+  for(Int_t i=0;i<27;i++){
+    lines[i]->Draw("same");
+  }
 
   c_dz_eta->SaveAs(Form("dz_eta_%s.pdf",tag.c_str()));
   c_dz_eta->SaveAs(Form("dz_eta_%s.png",tag.c_str()));

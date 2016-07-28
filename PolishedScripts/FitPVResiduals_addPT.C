@@ -104,7 +104,7 @@ void FitPVResiduals_addPT(TString namesandlabels,bool stdres,bool do2DMaps,TStri
   timer.Start();
 
   gROOT->ProcessLine(".L TkAlStyle.cc+");
-  TkAlStyle::set(PRELIMINARY);	// set publication status
+  TkAlStyle::set(INPROGRESS);	// set publication status
 
   //Int_t colors[10]={kBlack,kRed,kBlue,kMagenta,kBlack,kRed,kBlue,kGreen};
   Int_t colors[8]={0,1,2,3,4,5,6,7};
@@ -654,15 +654,15 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
 
   float extraOverCmsTextSize  = 0.85;
 
-  TPaveText *pt2 = new TPaveText(0.28,0.96,0.50,0.99,"NDC");
+  TPaveText *pt2 = new TPaveText(0.36,0.96,0.50,0.99,"NDC");
   pt2->SetFillColor(10);
   // pt2->SetTextColor(kBlue);
   pt2->SetTextFont(52);
   pt2->SetTextAlign(22);
-  TText *text2 = pt2->AddText(toTString(PRELIMINARY));
+  TText *text2 = pt2->AddText(toTString(INPROGRESS));
   text2->SetTextSize(0.05*extraOverCmsTextSize);
 
-  TPaveText *pt3 =new TPaveText(0.80,0.96,0.99,0.99,"NDC");
+  TPaveText *pt3 =new TPaveText(0.75,0.96,0.98,0.99,"NDC");
   pt3->SetFillColor(10);
   pt3->SetTextColor(1);
   pt3->SetTextFont(42);
@@ -675,10 +675,11 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
   // ptDate->SetLineColor(kBlue);
   ptDate->SetBorderSize(0);
   ptDate->SetLineWidth(0);
-  ptDate->SetTextFont(32);
-  //ptDate->SetTextColor(kBlue);
-  // ptDate->SetTextAlign(22);
-  TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
+  ptDate->SetTextFont(42);
+  ptDate->SetTextColor(kBlue);
+  //ptDate->SetTextAlign(22);
+  //TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
+  TText *textDate = ptDate->AddText("#bf{run: "+theDate+"}");
   textDate->SetTextSize(0.04);//*extraOverCmsTextSize);
 
   canv->SetFillColor(10);  
@@ -830,7 +831,7 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   pt2->SetTextColor(1);
   pt2->SetTextFont(52);
   pt2->SetTextAlign(12);
-  TText *text2 = pt2->AddText(toTString(PRELIMINARY));
+  TText *text2 = pt2->AddText(toTString(INPROGRESS));
   text2->SetTextSize(0.05*extraOverCmsTextSize);
 
   if(!onlyBias){ 
@@ -856,13 +857,14 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
   }
   
   ptDate->SetFillColor(10);
-  //ptDate->SetLineColor(kBlue);
+  ptDate->SetLineColor(kBlue);
   ptDate->SetBorderSize(0);
   ptDate->SetLineWidth(0);
   ptDate->SetTextFont(42);
-  //ptDate->SetTextColor(kBlue);
-  // ptDate->SetTextAlign(22);
-  TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
+  ptDate->SetTextColor(kBlue);
+  //ptDate->SetTextAlign(22);
+  //TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
+  TText *textDate = ptDate->AddText("#bf{run: "+theDate+"}");
   textDate->SetTextSize(0.04);//*extraOverCmsTextSize);
 
   if(!onlyBias) {
@@ -1034,8 +1036,8 @@ void arrangeCanvas2D(TCanvas *canv,TH2F* meanmaps[100],TH2F* widthmaps[100],Int_
     //pt[i]->SetTextSize(0.05);
     pt2[i]->SetTextFont(52);
     pt2[i]->SetTextAlign(12);
-    // TText *text2 = pt2->AddText("run: "+theDate);
-    TText *text2 = pt2[i]->AddText(toTString(PRELIMINARY));
+    // TText *text2 = pt2->AddText("#bf{run: "+theDate+"}");
+    TText *text2 = pt2[i]->AddText(toTString(INPROGRESS));
     text2->SetTextSize(0.06*extraOverCmsTextSize); 
     
     pt3[i] = new TPaveText(0.55,0.955,0.95,0.98,"NDC");
@@ -1043,7 +1045,7 @@ void arrangeCanvas2D(TCanvas *canv,TH2F* meanmaps[100],TH2F* widthmaps[100],Int_
     pt3[i]->SetTextColor(kBlue);
     pt3[i]->SetTextFont(61);
     pt3[i]->SetTextAlign(22);
-    // TText *text2 = pt2->AddText("run: "+theDate);
+    // TText *text2 = pt2->AddText("#bf{run: "+theDate+"}");
     TText *text3 = pt3[i]->AddText(LegLabels[i]);
     text3->SetTextSize(0.05); 
 
@@ -1118,13 +1120,14 @@ void arrangeFitCanvas(TCanvas *canv,TH1F* meanplots[100],Int_t nFiles, TString L
 
   TPaveText *ptDate =new TPaveText(0.78,0.20,0.93,0.30,"blNDC");
   ptDate->SetFillColor(10);
-  //ptDate->SetLineColor(kBlue);
+  ptDate->SetLineColor(kBlue);
   ptDate->SetBorderSize(0);
   ptDate->SetLineWidth(0);
   ptDate->SetTextFont(42);
-  //ptDate->SetTextColor(kBlue);
-  // ptDate->SetTextAlign(22);
-  TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
+  ptDate->SetTextColor(kBlue);
+  //ptDate->SetTextAlign(22);
+  //TText *textDate = ptDate->AddText("Alignment: cosmic rays + 3.8T collisions");
+  TText *textDate = ptDate->AddText("#bf{run: "+theDate+"}");
   textDate->SetTextSize(0.04);//*extraOverCmsTextSize);
 
   TF1 *fleft[nFiles]; 
@@ -2298,8 +2301,8 @@ std::pair<Double_t,Double_t> getTheRangeUser(TH1F* thePlot)
   Double_t w_dzPhiMax  = 150;
   Double_t w_dxyEtaMax = 150;
   Double_t w_dzEtaMax  = 1000;
-  Double_t w_dxyPtMax  = 150;
-  Double_t w_dzPtMax   = 150;
+  Double_t w_dxyPtMax  = 350;
+  Double_t w_dzPtMax   = 350;
 
   Double_t w_dxyPhiNormMax = 1.8;
   Double_t w_dzPhiNormMax  = 1.8;
