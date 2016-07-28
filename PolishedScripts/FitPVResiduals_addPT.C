@@ -77,6 +77,8 @@ Double_t fULine(Double_t *x, Double_t *par);
 Double_t fDLine(Double_t *x, Double_t *par);
 void FitULine(TH1 *hist);
 void FitDLine(TH1 *hist);
+std::pair<Double_t,Double_t> getTheRangeUser(TH1F* thePlot);
+
 
 void setStyle();
 
@@ -731,6 +733,11 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
       if(i==0){
 	//dBiasTrend[i]->GetYaxis()->SetRangeUser(absmin-safeDelta/2.,absmax+safeDelta);
 	//std::cout<<"name is: "<< dBiasTrend[k][i]->GetName() <<std::endl;
+
+	std::pair<Double_t,Double_t> range = getTheRangeUser(dBiasTrend[k][i]);
+	dBiasTrend[k][i]->GetYaxis()->SetRangeUser(range.first,range.second);
+      
+	/*
 	TString theTitle = dBiasTrend[k][i]->GetName();
 	if( theTitle.Contains("Norm")){
 	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin[k]-safeDelta/2.),std::max(0.48,absmax[k]+safeDelta/2.));
@@ -739,6 +746,9 @@ void arrangeBiasCanvas(TCanvas *canv,TH1F* dxyPhiMeanTrend[100],TH1F* dzPhiMeanT
 	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-theExtreme-(safeDelta/2.),theExtreme+(safeDelta/2.));
 	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-theExtreme,theExtreme);
 	} 
+	*/
+
+
 	dBiasTrend[k][i]->Draw("e1");
 	makeNewXAxis(dBiasTrend[k][i]);
 	Int_t nbins =  dBiasTrend[k][i]->GetNbinsX();
@@ -907,6 +917,11 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
     if(i==0){
       //meanplots[i]->GetYaxis()->SetRangeUser(absmin-safeDelta/2.,absmax+safeDelta);
       //std::cout<<"name is: "<< meanplots[i]->GetName() << " absmin:" <<absmin<<" absmax: "<<absmax<<" safeDelta: "<<safeDelta<<std::endl;
+
+      std::pair<Double_t,Double_t> range = getTheRangeUser(meanplots[i]);
+      meanplots[i]->GetYaxis()->SetRangeUser(range.first,range.second);
+
+      /*
       TString theTitle = meanplots[i]->GetName();
       if( theTitle.Contains("Norm")){
 	meanplots[i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin-safeDelta),std::max(0.48,absmax+safeDelta));
@@ -917,7 +932,8 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
 	  meanplots[i]->GetYaxis()->SetRangeUser(-theExtreme-(TMath::Abs(absmin)/10.),theExtreme+(TMath::Abs(absmax/10.)));
 	}
 	//meanplots[i]->GetYaxis()->SetRangeUser(-theExtreme,theExtreme);
-      } 
+      }
+      */ 
       meanplots[i]->Draw("e1");
       makeNewXAxis(meanplots[i]); 
 
@@ -961,8 +977,12 @@ void arrangeCanvas(TCanvas *canv,TH1F* meanplots[100],TH1F* widthplots[100],Int_
       widthplots[i]->GetXaxis()->SetTickLength(0);
       
       if(i==0){ 
-	widthplots[i]->SetMinimum(0.5);
-	widthplots[i]->SetMaximum(absmax2+safeDelta2);
+	//widthplots[i]->SetMinimum(0.5);
+	//widthplots[i]->SetMaximum(absmax2+safeDelta2);
+
+	std::pair<Double_t,Double_t> range = getTheRangeUser(widthplots[i]);
+	widthplots[i]->GetYaxis()->SetRangeUser(range.first,range.second);
+	
 	widthplots[i]->Draw("e1");
 	makeNewXAxis(widthplots[i]);
       } else widthplots[i]->Draw("e1sames");
@@ -2250,4 +2270,125 @@ void MakeNiceTF1Style(TF1 *f1,Int_t color)
   f1->SetLineColor(color);
   f1->SetLineWidth(3);
   f1->SetLineStyle(2);
+}
+
+/*--------------------------------------------------------------------*/
+std::pair<Double_t,Double_t> getTheRangeUser(TH1F* thePlot)
+/*--------------------------------------------------------------------*/
+{
+  TString theTitle = thePlot->GetName();
+  theTitle.ToLower();
+  
+  
+  Double_t m_dxyPhiMax = 40;
+  Double_t m_dzPhiMax  = 40;
+  Double_t m_dxyEtaMax = 40;
+  Double_t m_dzEtaMax  = 40;
+  Double_t m_dxyPtMax  = 40;
+  Double_t m_dzPtMax   = 40;
+  
+  Double_t m_dxyPhiNormMax = 0.5;
+  Double_t m_dzPhiNormMax  = 0.5;
+  Double_t m_dxyEtaNormMax = 0.5;
+  Double_t m_dzEtaNormMax  = 0.5;
+  Double_t m_dxyPtNormMax  = 0.5;
+  Double_t m_dzPtNormMax   = 0.5;
+
+  Double_t w_dxyPhiMax = 150;
+  Double_t w_dzPhiMax  = 150;
+  Double_t w_dxyEtaMax = 150;
+  Double_t w_dzEtaMax  = 1000;
+  Double_t w_dxyPtMax  = 150;
+  Double_t w_dzPtMax   = 150;
+
+  Double_t w_dxyPhiNormMax = 1.8;
+  Double_t w_dzPhiNormMax  = 1.8;
+  Double_t w_dxyEtaNormMax = 1.8;
+  Double_t w_dzEtaNormMax  = 1.8;
+  Double_t w_dxyPtNormMax  = 1.8;
+  Double_t w_dzPtNormMax   = 1.8;
+
+
+  std::pair<Double_t,Double_t> result;
+  
+  if (theTitle.Contains("norm")){
+    if (theTitle.Contains("means")){
+      if(theTitle.Contains("dxy")){
+	if(theTitle.Contains("phi")){
+	  result = std::make_pair(-m_dxyPhiNormMax,m_dxyPhiNormMax);
+	} else if (theTitle.Contains("eta")){
+	  result = std::make_pair(-m_dxyEtaNormMax,m_dxyEtaNormMax);
+	} else if (theTitle.Contains("pt")){
+	  result = std::make_pair(-m_dxyPtNormMax,m_dxyPtNormMax);
+	}
+      } else if(theTitle.Contains("dz")){
+	if(theTitle.Contains("phi")){
+	  result = std::make_pair(-m_dzPhiNormMax,m_dzPhiNormMax);
+	} else if (theTitle.Contains("eta")){
+	  result = std::make_pair(-m_dzEtaNormMax,m_dzEtaNormMax);
+	} else if (theTitle.Contains("pt")){
+	  result = std::make_pair(-m_dzPtNormMax,m_dzPtNormMax);
+	}
+      }
+    } else if (theTitle.Contains("widths")){
+      if(theTitle.Contains("dxy")){
+	if(theTitle.Contains("phi")){
+	  result = std::make_pair(w_dxyPhiNormMax-1,w_dxyPhiNormMax);
+	} else if (theTitle.Contains("eta")){
+	  result = std::make_pair(w_dxyEtaNormMax-1,w_dxyEtaNormMax);
+	} else if (theTitle.Contains("pt")){
+	  result = std::make_pair(w_dxyPtNormMax-1,w_dxyPtNormMax);
+	}
+      } else if(theTitle.Contains("dz")){	
+	if(theTitle.Contains("phi")){
+	  result = std::make_pair(w_dzPhiNormMax-1,w_dzPhiNormMax);
+	} else if (theTitle.Contains("eta")){
+	  result = std::make_pair(w_dzEtaNormMax-1,w_dzEtaNormMax);
+	} else if (theTitle.Contains("pt")){
+	  result = std::make_pair(w_dzPtNormMax-1,w_dzPtNormMax);
+	}
+      }
+    } 
+  } else {
+    if (theTitle.Contains("means")){
+      if(theTitle.Contains("dxy")){
+	if(theTitle.Contains("phi")){
+	  result = std::make_pair(-m_dxyPhiMax,m_dxyPhiMax);
+	} else if (theTitle.Contains("eta")){
+	  result = std::make_pair(-m_dxyEtaMax,m_dxyEtaMax);
+	} else if (theTitle.Contains("pt")){
+	  result = std::make_pair(-m_dxyPtMax,m_dxyPtMax);
+	}
+      } else if(theTitle.Contains("dz")){
+	if(theTitle.Contains("phi")){
+	  result = std::make_pair(-m_dzPhiMax,m_dzPhiMax);
+	} else if (theTitle.Contains("eta")){
+	  result = std::make_pair(-m_dzEtaMax,m_dzEtaMax);
+	} else if (theTitle.Contains("pt")){
+	  result = std::make_pair(-m_dzPtMax,m_dzPtMax);
+	}
+      }
+    } else if (theTitle.Contains("widths")){
+      if(theTitle.Contains("dxy")){
+	if(theTitle.Contains("phi")){
+	  result = std::make_pair(0.,w_dxyPhiMax);
+	} else if (theTitle.Contains("eta")){
+	  result = std::make_pair(0.,w_dxyEtaMax);
+	} else if (theTitle.Contains("pt")){
+	  result = std::make_pair(0.,w_dxyPtMax);
+	}
+      } else if(theTitle.Contains("dz")){	
+	if(theTitle.Contains("phi")){
+	  result = std::make_pair(0.,w_dzPhiMax);
+	} else if (theTitle.Contains("eta")){
+	  result = std::make_pair(0.,w_dzEtaMax);
+	} else if (theTitle.Contains("pt")){
+	  result = std::make_pair(0.,w_dzPtMax);
+	}
+      }
+    }
+  }
+
+  return result;
+  
 }

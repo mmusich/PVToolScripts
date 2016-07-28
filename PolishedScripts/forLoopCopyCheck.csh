@@ -8,7 +8,8 @@
 
 #set myDirs = (test_2016_05_27_11_48_20_DATA_Prompt_May2016_v2 test_2016_06_03_17_22_42_DATA_Prompt_May2016-v2 test_2016_06_14_12_28_31_DATA_Prompt_May2016_fullML)
 
-set myDirs = (test_2016_07_12_12_40_35_DATA_Prompt_Run2016B-v2)
+#set myDirs = (test_2016_07_26_12_08_00_DATA_Prompt_Run2016C-v2)
+set myDirs = (test_2016_07_26_12_08_00_DATA_Prompt_Run2016C-v2 test_2016_07_26_13_10_12_DATA_Prompt_Run2016D-v2)
 
 touch report.txt
 set COUNT=0

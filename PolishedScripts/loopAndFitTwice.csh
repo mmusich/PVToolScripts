@@ -107,10 +107,10 @@ mv dxyEtaTrend*      ./${TargetOutName}/dxyVsEta
 mv dzEtaTrend*       ./${TargetOutName}/dzVsEta
 mv dxyPhiTrend*      ./${TargetOutName}/dxyVsPhi
 mv dzPhiTrend*       ./${TargetOutName}/dzVsPhi
-mv dxyPtTrend*       ./${TargetOutName}/dxyVsPt
-mv dzPtTrend*        ./${TargetOutName}/dzVsPt
 mv dxyPtTrendNorm*   ./${TargetOutName}/dxyVsPtNorm
 mv dzPtTrendNorm*    ./${TargetOutName}/dzVsPtNorm
+mv dxyPtTrend*       ./${TargetOutName}/dxyVsPt
+mv dzPtTrend*        ./${TargetOutName}/dzVsPt
 
 cp index.php ./${TargetOutName}/Biases/
 cp index.php ./${TargetOutName}/Biases/dzPhi
