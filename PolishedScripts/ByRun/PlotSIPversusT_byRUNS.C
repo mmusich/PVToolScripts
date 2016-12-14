@@ -59,12 +59,12 @@ void PlotSIPversusT_byRUNS(string tag="PromptGT"){
   t->SetBranchAddress("lanWidth"        , &lanWidth    );                                                                         
   t->SetBranchAddress("lanMPV"          , &lanMPV      );                                                                         
   t->SetBranchAddress("area"            , &area        );                                                                         
-  t->SetBranchAddress("GWitdh"          , &GWidth      );                                                                         
+  t->SetBranchAddress("GWidth"          , &GWidth      );                                                                         
                                                                                                                         
   t->SetBranchAddress("err_lanWidth"    , &err_lanWidth);                                                                         
-  t->SetBranchAddress("err_lanMPV	", &err_lanMPV  );                                                                         
+  t->SetBranchAddress("err_lanMPV"      , &err_lanMPV  );                                                                         
   t->SetBranchAddress("err_area"        , &err_area    );                                                                         
-  t->SetBranchAddress("err_GWitdh"      , &err_GWidth  );                                                                         
+  t->SetBranchAddress("err_GWidth"      , &err_GWidth  );                                                                         
   t->SetBranchAddress("fitChisqNdof"    , &fitChisqNdof);  
 
   //-----------------------------------------------
