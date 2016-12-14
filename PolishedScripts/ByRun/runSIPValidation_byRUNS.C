@@ -17,14 +17,17 @@
 
 struct Bands {
   int run;
+  double fitChi2ndof;
   vector<double> centrals;
   vector<double> errors;
   void init(){
+    fitChi2ndof = -999.;
     run = 0; 
     centrals.clear();
     errors.clear();
   }
   void set(){
+    fitChi2ndof = - 999.;
     run = 0;
     for(Int_t i=0;i<4;i++){
       centrals.push_back(-999.);
@@ -213,7 +216,7 @@ Bands* langaus(TString file,TCanvas& dummyC)
   pt->SetTextFont(42);
   pt->SetTextAlign(11);
   TText *text1 = pt->AddText(Alignment);
-  TText *text2 = pt->AddText("\n Run: "+Run);
+  TText *text2 = pt->AddText("\nRun: "+Run);
   text1->SetTextSize(0.04);
   text1->SetTextColor(4);
   text2->SetTextSize(0.04);
@@ -223,6 +226,7 @@ Bands* langaus(TString file,TCanvas& dummyC)
   dummyC.Print("fits.pdf");
 
   if(fitsnr){
+    result->fitChi2ndof = chisqr/ndf;
     result->centrals.push_back(fitsnr->GetParameter(0));
     result->centrals.push_back(fitsnr->GetParameter(1));
     result->centrals.push_back(fitsnr->GetParameter(2));
@@ -264,6 +268,7 @@ void runSIPValidation_byRUNS(string tag="PromptGT")
 
   double lanWidth,lanMPV,area,GWidth;
   double err_lanWidth,err_lanMPV,err_area,err_GWidth;
+  double fitChisqNdof;
 
   int run; 
 
@@ -272,12 +277,13 @@ void runSIPValidation_byRUNS(string tag="PromptGT")
   t->Branch("lanWidth"        , &lanWidth    );
   t->Branch("lanMPV"          , &lanMPV      ); 
   t->Branch("area"            , &area        );
-  t->Branch("GWitdh"          , &GWidth      );
+  t->Branch("GWidth"          , &GWidth      );
 
   t->Branch("err_lanWidth"    , &err_lanWidth);
-  t->Branch("err_lanMPV	"     , &err_lanMPV  );
+  t->Branch("err_lanMPV"      , &err_lanMPV  );
   t->Branch("err_area"        , &err_area    );
-  t->Branch("err_GWitdh"      , &err_GWidth  );
+  t->Branch("err_GWidth"      , &err_GWidth  );
+  t->Branch("fitChisqNdof"    , &fitChisqNdof);
 
   //-----END user set variables ----
 
@@ -344,6 +350,7 @@ void runSIPValidation_byRUNS(string tag="PromptGT")
 	  cout << "checkpoint: RETURN VALUE EXISTS" << endl;
 	
 	run             = startRun;
+	fitChisqNdof    = fitParams->fitChi2ndof;
 	lanWidth        = fitParams->centrals[0];
 	lanMPV          = fitParams->centrals[1];
 	area            = fitParams->centrals[2];
@@ -361,6 +368,7 @@ void runSIPValidation_byRUNS(string tag="PromptGT")
       cout << "ERROR: the file for this run does not appear to exist..." << endl;
       run              = startRun;
 
+      fitChisqNdof     = -999.9;
       lanWidth         = -999.9; 
       lanMPV           = -999.9;
       area             = -999.9;
