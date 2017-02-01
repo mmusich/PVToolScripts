@@ -7,6 +7,9 @@ set myObjects = (PromptGT Sept2016ReReco EOYReReco EOYReRecoSingleIOVAPE)
 
 foreach i (`seq $#myObjects`) 
     echo $myObjects[$i]
+    if (! -d /$myObjects[$i] ) then
+	rm -fr ./$myObjects[$i]
+    endif
     mkdir ./$myObjects[$i]
     foreach folder (`cmsLs /store/group/alca_trackeralign/musich/test_out | grep EOY2016Final`)
     	foreach inputfile (`cmsLs /store/group/alca_trackeralign/musich/test_out/${folder} | grep root`)
