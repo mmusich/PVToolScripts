@@ -7,6 +7,7 @@
 #include "TAxis.h"
 #include "TLegend.h"
 #include "TGaxis.h"
+#include "TPaveText.h"
 #include "TPad.h"
 #include "TLatex.h"
 #include "TStyle.h"
@@ -21,12 +22,13 @@
 
 // forward declarations
 void arrangeOutCanvas(TCanvas *canv,
-		       TH1F* m_11Trend[100],
-		       TH1F* m_12Trend[100],
-		       TH1F* m_21Trend[100],
-		       TH1F* m_22Trend[100],
-		       Int_t nFiles, 
-		       TString LegLabels[10]);
+		      TH1F* m_11Trend[100],
+		      TH1F* m_12Trend[100],
+		      TH1F* m_21Trend[100],
+		      TH1F* m_22Trend[100],
+		      Int_t nFiles, 
+		      TString LegLabels[10],
+		      unsigned int theRun);
 
 std::vector<int> list_files(const char *dirname=".", const char *ext=".root");
 void MakeNiceTrendPlotStyle(TH1 *hist,Int_t color);
@@ -95,8 +97,8 @@ void RunAndPlotPVValidation(TString namesandlabels){
 
   // loop over the runs in the intersection
   for(unsigned int n=0; n<intersection.size();n++){
-    // in case of debug, use only 2 
-    //  for(unsigned int n=0; n<2;n++){
+  // in case of debug, use only 2 
+  //  for(unsigned int n=0; n<2;n++){
     std::cout << n << " "<<intersection.at(n) << std::endl;
     
     TFile *fins[nDirs_];
@@ -115,13 +117,30 @@ void RunAndPlotPVValidation(TString namesandlabels){
     TH1F* dxyNormEtaWidthTrend[nDirs_]; 
     TH1F* dzNormPhiWidthTrend[nDirs_]; 
     TH1F* dzNormEtaWidthTrend[nDirs_]; 
-    
+
+    TH1F* dxyNormPtWidthTrend[nDirs_];     
+    TH1F* dzNormPtWidthTrend[nDirs_];      
+    TH1F* dxyPtWidthTrend[nDirs_];
+    TH1F* dzPtWidthTrend[nDirs_]; 
+
+    bool areAllFilesOK = true;
+    Int_t lastOpen = 0;
+
     // loop over the objects
     for(Int_t j=0; j < nDirs_; j++) {
       fins[j] = TFile::Open(Form("%s/PVValidation_%s_%i.root",dirs[j],dirs[j],intersection[n]));
       std::cout<< Form("%s/PVValidation_%s_%i.root",dirs[j],dirs[j],intersection[n]) 
 	       << " has size: "<<fins[j]->GetSize() << " b ";
       
+      // sanity check
+      TH1F* h_tracks = (TH1F*)fins[j]->Get("PVValidation/EventFeatures/h_nTracks");
+      Double_t numEvents = h_tracks->GetEntries();
+      if(numEvents<1000){
+	areAllFilesOK = false;
+	lastOpen=j;
+	break;
+      }
+
       dxyPhiMeanTrend[j]  = (TH1F*)fins[j]->Get("PVValidation/MeanTrends/means_dxy_phi");
       dxyPhiWidthTrend[j] = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/widths_dxy_phi");
       dzPhiMeanTrend[j]   = (TH1F*)fins[j]->Get("PVValidation/MeanTrends/means_dz_phi");
@@ -136,6 +155,11 @@ void RunAndPlotPVValidation(TString namesandlabels){
       dxyNormEtaWidthTrend[j] = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/norm_widths_dxy_eta");
       dzNormPhiWidthTrend[j]  = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/norm_widths_dz_phi");
       dzNormEtaWidthTrend[j]  = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/norm_widths_dz_eta");
+
+      dxyNormPtWidthTrend[j] = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/norm_widths_dxy_pTCentral");
+      dzNormPtWidthTrend[j]  = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/norm_widths_dz_pTCentral");
+      dxyPtWidthTrend[j]     = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/widths_dxy_pTCentral");
+      dzPtWidthTrend[j]      = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/widths_dz_pTCentral");
 
       MakeNiceTrendPlotStyle(dxyPhiMeanTrend[j],j);
       MakeNiceTrendPlotStyle(dxyPhiWidthTrend[j],j);
@@ -152,12 +176,30 @@ void RunAndPlotPVValidation(TString namesandlabels){
       MakeNiceTrendPlotStyle(dzNormPhiWidthTrend[j],j);
       MakeNiceTrendPlotStyle(dzNormEtaWidthTrend[j],j);
 
+      MakeNiceTrendPlotStyle(dxyNormPtWidthTrend[j],j);
+      MakeNiceTrendPlotStyle(dzNormPtWidthTrend[j],j);
+      MakeNiceTrendPlotStyle(dxyPtWidthTrend[j],j);
+      MakeNiceTrendPlotStyle(dzPtWidthTrend[j],j);
+
     }
+
+    if(!areAllFilesOK){
+       
+      // do all the necessary deletions
+      std::cout<<"\n====> not all files are OK"<<std::endl;
+
+      for(int i=0;i<lastOpen;i++){
+	fins[i]->Close();
+      }
+      continue;
+    }
+
+    std::cout<<"I am still here"<<std::endl;
 
     // Bias plots
 
     TCanvas *BiasesCanvas = new TCanvas(Form("Biases_%i",intersection.at(n)),"Biases",1200,1200);
-    arrangeOutCanvas(BiasesCanvas,dxyPhiMeanTrend,dzPhiMeanTrend,dxyEtaMeanTrend,dzEtaMeanTrend,nDirs_,LegLabels);
+    arrangeOutCanvas(BiasesCanvas,dxyPhiMeanTrend,dzPhiMeanTrend,dxyEtaMeanTrend,dzEtaMeanTrend,nDirs_,LegLabels,intersection.at(n));
 
     BiasesCanvas->SaveAs(Form("Biases_%i.pdf",intersection.at(n)));
     BiasesCanvas->SaveAs(Form("Biases_%i.png",intersection.at(n)));
@@ -165,7 +207,7 @@ void RunAndPlotPVValidation(TString namesandlabels){
     // Resolution plots
 
     TCanvas *ResolutionsCanvas = new TCanvas(Form("Resolutions_%i",intersection.at(n)),"Resolutions",1200,1200);
-    arrangeOutCanvas(ResolutionsCanvas,dxyPhiWidthTrend,dzPhiWidthTrend,dxyEtaWidthTrend,dzEtaWidthTrend,nDirs_,LegLabels);
+    arrangeOutCanvas(ResolutionsCanvas,dxyPhiWidthTrend,dzPhiWidthTrend,dxyEtaWidthTrend,dzEtaWidthTrend,nDirs_,LegLabels,intersection.at(n));
 
     ResolutionsCanvas->SaveAs(Form("Resolutions_%i.pdf",intersection.at(n)));
     ResolutionsCanvas->SaveAs(Form("Resolutions_%i.png",intersection.at(n)));
@@ -173,10 +215,18 @@ void RunAndPlotPVValidation(TString namesandlabels){
      // Pull plots
 
     TCanvas *PullsCanvas = new TCanvas(Form("Pulls_%i",intersection.at(n)),"Pulls",1200,1200);
-    arrangeOutCanvas(PullsCanvas,dxyNormPhiWidthTrend,dzNormPhiWidthTrend,dxyNormEtaWidthTrend,dzNormEtaWidthTrend,nDirs_,LegLabels);
+    arrangeOutCanvas(PullsCanvas,dxyNormPhiWidthTrend,dzNormPhiWidthTrend,dxyNormEtaWidthTrend,dzNormEtaWidthTrend,nDirs_,LegLabels,intersection.at(n));
 
     PullsCanvas->SaveAs(Form("Pulls_%i.pdf",intersection.at(n)));
     PullsCanvas->SaveAs(Form("Pulls_%i.png",intersection.at(n)));
+
+    // pT plots
+
+    TCanvas *ResolutionsVsPt = new TCanvas(Form("ResolutionsVsPT_%i",intersection.at(n)),"ResolutionsVsPt",1200,1200);
+    arrangeOutCanvas(ResolutionsVsPt,dxyPtWidthTrend,dzPtWidthTrend,dxyNormPtWidthTrend,dzNormPtWidthTrend,nDirs_,LegLabels,intersection.at(n));
+
+    ResolutionsVsPt->SaveAs(Form("ResolutionsVsPt_%i.pdf",intersection.at(n)));
+    ResolutionsVsPt->SaveAs(Form("ResolutionsVsPt_%i.png",intersection.at(n)));
 
     // do all the necessary deletions
 
@@ -196,6 +246,11 @@ void RunAndPlotPVValidation(TString namesandlabels){
       delete dxyNormEtaWidthTrend[i];
       delete dzNormPhiWidthTrend[i];
       delete dzNormEtaWidthTrend[i];
+
+      delete dxyNormPtWidthTrend[i]; 
+      delete dzNormPtWidthTrend[i];  
+      delete dxyPtWidthTrend[i];
+      delete dzPtWidthTrend[i]; 
 
       fins[i]->Close();
     }
@@ -233,7 +288,7 @@ std::vector<int> list_files(const char *dirname, const char *ext)
 }
 
 //*************************************************************
-void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],TH1F* m_21Trend[100],TH1F* m_22Trend[100],Int_t nDirs, TString LegLabels[10]){
+void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],TH1F* m_21Trend[100],TH1F* m_22Trend[100],Int_t nDirs, TString LegLabels[10],unsigned int theRun){
 //*************************************************************
 
   TLegend *lego = new TLegend(0.19,0.80,0.79,0.93);
@@ -244,6 +299,18 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
   lego->SetFillColor(10);
   lego->SetLineColor(10);
   lego->SetShadowColor(10);
+  
+  TPaveText *ptDate =new TPaveText(0.19,0.95,0.45,0.99,"blNDC");
+  ptDate->SetFillColor(kYellow);
+  //ptDate->SetFillColor(10);
+  ptDate->SetBorderSize(1);
+  ptDate->SetLineColor(kBlue);
+  ptDate->SetLineWidth(1);
+  ptDate->SetTextFont(42);
+  TText *textDate = ptDate->AddText(Form("Run: %i",theRun));
+  textDate->SetTextSize(0.04);
+  textDate->SetTextColor(kBlue);
+  textDate->SetTextAlign(22);
 
   canv->SetFillColor(10);  
   canv->Divide(2,2);
@@ -282,15 +349,15 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 
 	TString theTitle = dBiasTrend[k][i]->GetName();
 	if(theTitle.Contains("norm")){
-	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin[k]-safeDelta/2.),std::max(0.48,absmax[k]+safeDelta/2.));
+	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin[k]-safeDelta/2.),std::max(0.48,absmax[k]+safeDelta/2.));
+	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,1.8);
 	} else {
-	  
 	  if(!theTitle.Contains("width")){
 	    //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-theExtreme-(safeDelta/2.),theExtreme+(safeDelta/2.));
 	    dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-40.,40.);
 	  } else {
 	    // dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,theExtreme+(safeDelta/2.));
-	    dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,500.);
+	    dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,300.);
 	  }
 	} 
 	dBiasTrend[k][i]->Draw("Le1");
@@ -301,7 +368,8 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
       }
       TPad *current_pad = static_cast<TPad*>(canv->GetPad(k+1));
       cmsPrel(current_pad);
-
+      ptDate->Draw("same");
+      
       if(k==0){
 	lego->AddEntry(dBiasTrend[k][i],LegLabels[i]);
       } 
@@ -363,7 +431,11 @@ void makeNewXAxis (TH1 *h)
     axmin = -TMath::Pi();
     axmax = TMath::Pi();
     ndiv = 510;
-  } else  {
+  } else if (myTitle.Contains("pT")) {
+    axmin = 0;
+    axmax = 19.99;
+    ndiv = 510;
+  } else {
     std::cout<<"unrecognized variable"<<std::endl;
   }
   
