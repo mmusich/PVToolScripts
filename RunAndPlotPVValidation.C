@@ -30,6 +30,7 @@ void arrangeOutCanvas(TCanvas *canv,
 		      TString LegLabels[10],
 		      unsigned int theRun);
 
+TH1F* DrawConstant(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int_t iter,Double_t theConst);
 std::vector<int> list_files(const char *dirname=".", const char *ext=".root");
 void MakeNiceTrendPlotStyle(TH1 *hist,Int_t color);
 void cmsPrel(TPad* pad);
@@ -96,9 +97,9 @@ void RunAndPlotPVValidation(TString namesandlabels){
   
 
   // loop over the runs in the intersection
-  for(unsigned int n=0; n<intersection.size();n++){
+  //for(unsigned int n=0; n<intersection.size();n++){
   // in case of debug, use only 2 
-  //  for(unsigned int n=0; n<2;n++){
+  for(unsigned int n=0; n<2;n++){
     std::cout << n << " "<<intersection.at(n) << std::endl;
     
     TFile *fins[nDirs_];
@@ -348,6 +349,10 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
       if(i==0){
 
 	TString theTitle = dBiasTrend[k][i]->GetName();
+	Int_t nbins =  dBiasTrend[k][i]->GetNbinsX();
+	Double_t lowedge  = dBiasTrend[k][i]->GetBinLowEdge(1);
+	Double_t highedge = dBiasTrend[k][i]->GetBinLowEdge(nbins+1);
+	
 	if(theTitle.Contains("norm")){
 	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin[k]-safeDelta/2.),std::max(0.48,absmax[k]+safeDelta/2.));
 	  dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,1.8);
@@ -362,6 +367,22 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 	} 
 	dBiasTrend[k][i]->Draw("Le1");
 	makeNewXAxis(dBiasTrend[k][i]);
+      
+	Double_t theC = -1.;
+	
+	if(theTitle.Contains("width")){ 
+	  if(theTitle.Contains("norm") ){
+	    theC = 1.;
+	  } else {
+	    theC = -1.;
+	  }
+	} else {
+	  theC = 0.;
+	}
+	
+	TH1F* theConst = DrawConstant(dBiasTrend[k][i],nbins,lowedge,highedge,1,theC);
+	theConst->Draw("PLsame");
+
       } else { 
 	dBiasTrend[k][i]->Draw("Le1sames");
 	makeNewXAxis(dBiasTrend[k][i]);
@@ -369,7 +390,7 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
       TPad *current_pad = static_cast<TPad*>(canv->GetPad(k+1));
       cmsPrel(current_pad);
       ptDate->Draw("same");
-      
+
       if(k==0){
 	lego->AddEntry(dBiasTrend[k][i],LegLabels[i]);
       } 
@@ -538,4 +559,21 @@ void cmsPrel(TPad* pad) {
   latex->SetTextAlign(33);
   latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
   
+}
+
+/*--------------------------------------------------------------------*/
+TH1F* DrawConstant(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int_t iter,Double_t theConst)
+/*--------------------------------------------------------------------*/
+{ 
+
+  TH1F *hzero = new TH1F(Form("hconst_%s_%i",hist->GetName(),iter),Form("hconst_%s_%i",hist->GetName(),iter),nbins,lowedge,highedge);
+  for (Int_t i=0;i<=hzero->GetNbinsX();i++){
+    hzero->SetBinContent(i,theConst);
+    hzero->SetBinError(i,0.);
+  }
+  hzero->SetLineWidth(2);
+  hzero->SetLineStyle(9);
+  hzero->SetLineColor(kMagenta);
+  
+  return hzero;
 }
