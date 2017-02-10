@@ -83,6 +83,22 @@ double landaufun(double *x,double *par){
 }
 
 //*************************************************************
+double maxwellfun(double *x,double *par){
+//*************************************************************
+  double t;
+  t=par[0]*x[0]*TMath::Exp(-par[1]*x[0]*x[0]);
+  return t;
+}
+
+//*************************************************************
+double dualmaxwellfun(double *x, double *par){
+//*************************************************************
+  double t;
+  t=par[0]*x[0]*TMath::Exp(-par[1]*x[0]*x[0]) + par[2]*x[0]*TMath::Exp(-par[3]*x[0]*x[0]);
+  return t;
+}
+
+//*************************************************************
 Double_t moyfun(Double_t *x, Double_t *par) {
 //*************************************************************
   /* Moyal distribution, i.e. "approximate Landau function" (1955)
@@ -140,7 +156,7 @@ Double_t moygaufun(Double_t *x, Double_t *par) {
 }
 
 //*************************************************************
-Bands* myFit(TString file,TCanvas& dummyC) 
+Bands* myFit(TString file,TCanvas& dummyC,TString theCut) 
 //*************************************************************
 {
 
@@ -153,7 +169,8 @@ Bands* myFit(TString file,TCanvas& dummyC)
     return result;
   }
 
-  TH1F *hSNR =  (TH1F*)f->Get("PVValidation/ProbeTrackFeatures/h_probeRefitVSig3D");
+  //TH1F *hSNR =  (TH1F*)f->Get("PVValidation/ProbeTrackFeatures/h_probeRefitVSig3D");
+  TH1F *hSNR =  (TH1F*)f->Get(Form("PVValidation/ProbeTrackFeatures/h_probeRefitVSig3D%s",theCut.Data()));
   // Fitting SNR histo
   printf("Fitting...\n");
   
@@ -175,8 +192,8 @@ Bands* myFit(TString file,TCanvas& dummyC)
 
   // Setting fit range and start values
   Double_t fr[2];
-  fr[0] = 0.15;
-  fr[1] = 2.5;
+  fr[0] = 0.0;
+  fr[1] = 3.5; // was 3.0;
 
   /*
 
@@ -238,23 +255,50 @@ Bands* myFit(TString file,TCanvas& dummyC)
     }
   */
 
-  Double_t sv[4], pllo[4], plhi[4];
-  pllo[0]=0.1;        
-  pllo[1]=0.1;         
-  pllo[2]=10000;         
-  pllo[3]=0.1;         
-  
-  plhi[0]=10.0;   
-  plhi[1]=5.0;         
-  plhi[2]=999999999;        
-  plhi[3]=10.0;        
-  
-  sv[0]=1.0;       
-  sv[1]=1.0; 	       
-  sv[2]=50000.0;           
-  sv[3]=1.0;           
-  
-  TF1 *fitsnr = new TF1("fitsnr",moygaufun,fr[0],fr[1],4);  
+  /*
+    // for moyal-gaussian fit
+
+    Double_t sv[4], pllo[4], plhi[4];
+    pllo[0]=0.1;        
+    pllo[1]=0.1;         
+    pllo[2]=10000;         
+    pllo[3]=0.1;         
+    
+    plhi[0]=10.0;   
+    plhi[1]=5.0;         
+    plhi[2]=999999999;        
+    plhi[3]=10.0;        
+    
+    sv[0]=1.0;       
+    sv[1]=1.0; 	       
+    sv[2]=50000.0;           
+    sv[3]=1.0;           
+    
+    
+    TF1 *fitsnr = new TF1("fitsnr",moygaufun,fr[0],fr[1],4);  
+    fitsnr->SetParameters(sv);
+    for(int i=0;i<4;i++){
+    fitsnr->SetParLimits(i,pllo[i],plhi[i]);
+    }
+  */
+
+  Double_t sv[4],pllo[4],plhi[4];
+  pllo[0]=10;
+  pllo[1]=0.001;
+  pllo[2]=10;
+  pllo[3]=0.001;
+
+  plhi[0]=99999.;
+  plhi[1]=10;
+  plhi[2]=99999.;
+  plhi[3]=10;
+ 
+  sv[0]=100.;
+  sv[1]=0.3;
+  sv[2]=100.;
+  sv[3]=1.;
+    
+  TF1 *fitsnr = new TF1("fitsnr",dualmaxwellfun,fr[0],fr[1],4);  
   fitsnr->SetParameters(sv);
   for(int i=0;i<4;i++){
     fitsnr->SetParLimits(i,pllo[i],plhi[i]);
@@ -279,15 +323,32 @@ Bands* myFit(TString file,TCanvas& dummyC)
   hSNR->SetMarkerStyle(20);
   hSNR->SetMarkerSize(1);
   hSNR->Draw();
-  fitsnr->Draw("lsame");
+  
+  TF1 *maxFirst = new TF1("max1",maxwellfun,0.,5.,2);
+  maxFirst->SetParameter(0,fitsnr->GetParameter(0));
+  maxFirst->SetParameter(1,fitsnr->GetParameter(1));
 
-  TPaveText *pt = new TPaveText(0.2,0.75,0.5,0.87,"NDC");
+  TF1 *maxSecond = new TF1("max2",maxwellfun,0.,5.,2);
+  maxSecond->SetParameter(0,fitsnr->GetParameter(2));
+  maxSecond->SetParameter(1,fitsnr->GetParameter(3));
+
+  fitsnr->Draw("lsame");
+  maxFirst->SetLineColor(kBlue);
+  maxFirst->SetLineStyle(kDashed);
+
+  maxSecond->SetLineColor(kBlue);
+  maxSecond->SetLineStyle(kDashDotted);
+
+  maxFirst->Draw("lsame");
+  maxSecond->Draw("lsame");
+ 
+  TPaveText *pt = new TPaveText(0.4,0.75,0.6,0.87,"NDC");
   pt->SetFillColor(10);
   pt->SetTextColor(1);
   pt->SetTextFont(42);
   pt->SetTextAlign(11);
-  TText *text1 = pt->AddText(Alignment);
-  TText *text2 = pt->AddText("\nRun: "+Run);
+  TText *text1 = pt->AddText(Alignment.ReplaceAll("IOV",""));
+  TText *text2 = pt->AddText("\ninterval: "+Run);
   text1->SetTextSize(0.04);
   text1->SetTextColor(4);
   text2->SetTextSize(0.04);
@@ -431,7 +492,7 @@ TF1 *langaufit(TH1F *his, Double_t *fitrange, Double_t *startvalues, Double_t *p
 
 
 //*************************************************************
-Bands* langaus(TString file,TCanvas& dummyC) 
+Bands* langaus(TString file,TCanvas& dummyC, TString theCut) 
 //*************************************************************
 {
 
@@ -444,7 +505,8 @@ Bands* langaus(TString file,TCanvas& dummyC)
     return result;
   }
 
-  TH1F *hSNR =  (TH1F*)f->Get("PVValidation/ProbeTrackFeatures/h_probeRefitVSig3D");
+  //  TH1F *hSNR =  (TH1F*)f->Get("PVValidation/ProbeTrackFeatures/h_probeRefitVSig3D");
+  TH1F *hSNR =  (TH1F*)f->Get(Form("PVValidation/ProbeTrackFeatures/h_probeRefitVSig3D%s",theCut.Data()));
   // Fitting SNR histo
   printf("Fitting...\n");
   
@@ -458,8 +520,8 @@ Bands* langaus(TString file,TCanvas& dummyC)
   //fr[0]=0.01*hSNR->GetMean();
   //fr[1]=10.0*hSNR->GetMean();
   
-  fr[0] = 0.15;
-  fr[1] = 3.5;
+  fr[0] = 0.25;
+  fr[1] = 2.5;
 
   pllo[0]=0.1; 
   pllo[1]=0.1; 
@@ -468,7 +530,7 @@ Bands* langaus(TString file,TCanvas& dummyC)
   
   plhi[0]=10.0; 
   plhi[1]=10.0; 
-  plhi[2]=9999999.0; 
+  plhi[2]=99999999.0; 
   plhi[3]=10.0;
   
   sv[0]=0.5; 
@@ -495,6 +557,9 @@ Bands* langaus(TString file,TCanvas& dummyC)
   
   printf("Fitting done\nPlotting results...\n");
   
+  fitsnr->SetLineColor(kBlue);
+  fitsnr->SetLineWidth(2);
+
   // Global style settings
   gStyle->SetOptStat(1111);
   gStyle->SetOptFit(111);
@@ -502,16 +567,18 @@ Bands* langaus(TString file,TCanvas& dummyC)
   gStyle->SetLabelSize(0.03,"y");
   
   hSNR->GetXaxis()->SetRange(0,70);
+  hSNR->SetMarkerStyle(20);
+  hSNR->SetMarkerSize(1);
   hSNR->Draw();
   fitsnr->Draw("lsame");
 
-  TPaveText *pt = new TPaveText(0.2,0.75,0.5,0.87,"NDC");
+  TPaveText *pt = new TPaveText(0.4,0.75,0.6,0.87,"NDC");
   pt->SetFillColor(10);
   pt->SetTextColor(1);
   pt->SetTextFont(42);
   pt->SetTextAlign(11);
-  TText *text1 = pt->AddText(Alignment);
-  TText *text2 = pt->AddText("\nRun: "+Run);
+  TText *text1 = pt->AddText(Alignment.ReplaceAll("IOV",""));
+  TText *text2 = pt->AddText("\ninterval: "+Run);
   text1->SetTextSize(0.04);
   text1->SetTextColor(4);
   text2->SetTextSize(0.04);
@@ -549,9 +616,17 @@ Bands* langaus(TString file,TCanvas& dummyC)
 //
 
 //*************************************************************
-void runSIPValidation_byRUNS(string tag="PromptGT")
+void runSIPValidation_byRUNS(string tag="PromptGT",Int_t ptCut=0)
 //*************************************************************
 {
+ 
+  TString theCut;
+  if(ptCut!=0){
+    theCut = Form("ptCut_%d",ptCut);
+  } else {
+    theCut = "";   
+  }
+
   //-----User set variables---------
   string temp;
   string directory=".";
@@ -560,10 +635,12 @@ void runSIPValidation_byRUNS(string tag="PromptGT")
   string filename;
 
   int startRun = 272007;
-  //int startRun  = 274422;
   int endRun   = 284044;
 
-  temp="fit_"+tag+".root";
+  //int startRun = 1;
+  //int endRun   = 65;
+
+  temp="fit_"+theCut+"_"+tag+".root";
   TFile *fileOUT = new TFile(temp.c_str(),"RECREATE");
   TTree *t = new TTree("SIPValidationTree","tree w/ fit results");
 
@@ -575,7 +652,7 @@ void runSIPValidation_byRUNS(string tag="PromptGT")
   double err_lanWidth,err_lanMPV,err_area,err_GWidth;
   double fitChisqNdof;
 
-  TH1F* n_chiSq = new TH1F("fitChi2","fitChi2",1000,0.,1000.);
+  TH1F* n_chiSq = new TH1F("fitChi2","fitChi2",100,0.,10.);
 
   int run; 
 
@@ -655,10 +732,10 @@ void runSIPValidation_byRUNS(string tag="PromptGT")
 	cout << "checkpoint: RUNNING PLOTTER WITH FILENAME: " << filename << endl;
       
       // langaussian fit
-      // fitParams=langaus(filename,dummyC);
+      //fitParams=langaus(filename,dummyC,theCut);
       
       TFile *fIN = TFile::Open(filename.c_str(),"READ");
-      TH1F *hSNR =  (TH1F*)fIN->Get("PVValidation/ProbeTrackFeatures/h_probeRefitVSig3D");
+      TH1F *hSNR =  (TH1F*)fIN->Get(Form("PVValidation/ProbeTrackFeatures/h_probeRefitVSig3D%s",theCut.Data()));
       TH1F* myClone = (TH1F*)hSNR->Clone();
       myClone->SetName(Form("h_%s_%s",hSNR->GetName(),runStr.c_str()));
       myClone->SetDirectory(0);
@@ -666,7 +743,7 @@ void runSIPValidation_byRUNS(string tag="PromptGT")
       fIN->Close();
 
       // moyal function fit
-      fitParams=myFit(filename,dummyC);
+      fitParams=myFit(filename,dummyC,theCut);
       cout << "check fitParams size: " << fitParams->centrals.size() << endl;
        
       // fill the moments of the distribution
