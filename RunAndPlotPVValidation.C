@@ -11,16 +11,21 @@
 #include "TPad.h"
 #include "TLatex.h"
 #include "TStyle.h"
+#include "TSystem.h"
+#include "TROOT.h"
 #include "TH1F.h"
+#include "TGraph.h"
 #include "TCanvas.h"
 #include "TObjArray.h"
 #include "TObjString.h"
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <map>
 #include <iterator>
 
 // forward declarations
+void RunAndPlotPVValidation(TString namesandlabels="",bool lumi_axis_format=false);
 void arrangeOutCanvas(TCanvas *canv,
 		      TH1F* m_11Trend[100],
 		      TH1F* m_12Trend[100],
@@ -30,16 +35,21 @@ void arrangeOutCanvas(TCanvas *canv,
 		      TString LegLabels[10],
 		      unsigned int theRun);
 
+std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist);
 TH1F* DrawConstant(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int_t iter,Double_t theConst);
 std::vector<int> list_files(const char *dirname=".", const char *ext=".root");
 void MakeNiceTrendPlotStyle(TH1 *hist,Int_t color);
 void cmsPrel(TPad* pad);
 void makeNewXAxis (TH1 *h);
+void beautify(TGraph *g);
+void adjustmargins(TCanvas *canv);
 void setStyle();
+
+typedef std::map<TString, std::vector<double> > alignmentTrend; 
 
 // main function
 
-void RunAndPlotPVValidation(TString namesandlabels){
+void RunAndPlotPVValidation(TString namesandlabels,bool lumi_axis_format){
   
   setStyle();
 
@@ -65,7 +75,10 @@ void RunAndPlotPVValidation(TString namesandlabels){
   const char* dirs[10];
 
   std::vector<int> intersection;
- 
+  std::vector<double> runs;
+  std::vector<double> lumiByRun;
+  std::vector<double> x_ticks;
+
   for(Int_t j=0; j < nDirs_; j++) {
     
     // Retrieve labels
@@ -95,11 +108,38 @@ void RunAndPlotPVValidation(TString namesandlabels){
     tempSwap.clear();
   }
   
+  // debug only
+  for(UInt_t index=0;index<intersection.size();index++){
+    std::cout<<index<<" "<<intersection[index]<<std::endl;
+  }
+
+  // book the vectors of values
+  alignmentTrend dxyPhiMeans_;
+  alignmentTrend dxyPhiHi_;
+  alignmentTrend dxyPhiLo_;
+  
+  alignmentTrend dxyEtaMeans_;
+  alignmentTrend dxyEtaHi_;
+  alignmentTrend dxyEtaLo_;
+  
+  alignmentTrend dzPhiMeans_;
+  alignmentTrend dzPhiHi_;
+  alignmentTrend dzPhiLo_;
+  
+  alignmentTrend dzEtaMeans_;
+  alignmentTrend dzEtaHi_;
+  alignmentTrend dzEtaLo_;
+
+  double lumiSoFar=0.0;
 
   // loop over the runs in the intersection
-  //for(unsigned int n=0; n<intersection.size();n++){
-  // in case of debug, use only 2 
-  for(unsigned int n=0; n<2;n++){
+  for(unsigned int n=0; n<intersection.size();n++){
+  //in case of debug, use only 10
+  //for(unsigned int n=0; n<50;n++){
+
+    //if(intersection.at(n)!=283946) 
+    //  continue;
+
     std::cout << n << " "<<intersection.at(n) << std::endl;
     
     TFile *fins[nDirs_];
@@ -123,10 +163,10 @@ void RunAndPlotPVValidation(TString namesandlabels){
     TH1F* dzNormPtWidthTrend[nDirs_];      
     TH1F* dxyPtWidthTrend[nDirs_];
     TH1F* dzPtWidthTrend[nDirs_]; 
-
+    
     bool areAllFilesOK = true;
     Int_t lastOpen = 0;
-
+ 
     // loop over the objects
     for(Int_t j=0; j < nDirs_; j++) {
       fins[j] = TFile::Open(Form("%s/PVValidation_%s_%i.root",dirs[j],dirs[j],intersection[n]));
@@ -135,8 +175,16 @@ void RunAndPlotPVValidation(TString namesandlabels){
       
       // sanity check
       TH1F* h_tracks = (TH1F*)fins[j]->Get("PVValidation/EventFeatures/h_nTracks");
+      if(j==0){
+	TH1F* h_lumi   = (TH1F*)fins[j]->Get("PVValidation/EventFeatures/h_lumiFromConfig");
+	double lumi = h_lumi->GetBinContent(1);
+	lumiSoFar+=lumi;
+	//std::cout<<"lumi: "<<lumi<<
+	//	 <<" ,lumi so far: "<<lumiSoFar<<std::endl;
+      }
+
       Double_t numEvents = h_tracks->GetEntries();
-      if(numEvents<1000){
+      if(numEvents<10000){
 	areAllFilesOK = false;
 	lastOpen=j;
 	break;
@@ -161,6 +209,36 @@ void RunAndPlotPVValidation(TString namesandlabels){
       dzNormPtWidthTrend[j]  = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/norm_widths_dz_pTCentral");
       dxyPtWidthTrend[j]     = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/widths_dxy_pTCentral");
       dzPtWidthTrend[j]      = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/widths_dz_pTCentral");
+
+      // fill the vectors of biases
+      
+      auto dxyPhiBiases = getBiases(dxyPhiMeanTrend[j]);
+      
+      std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) mean: "<< dxyPhiBiases.second
+	       <<" dxy(phi) max: "<< dxyPhiBiases.first.first
+	       <<" dxy(phi) min: "<< dxyPhiBiases.first.second
+	       << std::endl;
+
+      dxyPhiMeans_[LegLabels[j]].push_back(dxyPhiBiases.second);
+      dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.first.first);
+      dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.first.second);
+
+      auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j]);
+      dxyEtaMeans_[LegLabels[j]].push_back(dxyEtaBiases.second);
+      dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.first.first);
+      dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.first.second);
+
+      auto dzPhiBiases = getBiases(dzPhiMeanTrend[j]);
+      dzPhiMeans_[LegLabels[j]].push_back(dzPhiBiases.second);
+      dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.first.first);
+      dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.first.second);
+
+      auto dzEtaBiases = getBiases(dzEtaMeanTrend[j]);
+      dzEtaMeans_[LegLabels[j]].push_back(dzEtaBiases.second);
+      dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.first.first);
+      dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.first.second);
+
+      // beautify the histograms
 
       MakeNiceTrendPlotStyle(dxyPhiMeanTrend[j],j);
       MakeNiceTrendPlotStyle(dxyPhiWidthTrend[j],j);
@@ -193,6 +271,10 @@ void RunAndPlotPVValidation(TString namesandlabels){
 	fins[i]->Close();
       }
       continue;
+    } else {
+      runs.push_back(intersection.at(n));
+      // push back the vector of lumi (in fb at this point)
+      lumiByRun.push_back(lumiSoFar/1000.);
     }
 
     std::cout<<"I am still here"<<std::endl;
@@ -257,7 +339,249 @@ void RunAndPlotPVValidation(TString namesandlabels){
     }
     
     std::cout<<std::endl;
-  }   
+  }
+
+  // do the trend-plotting!
+
+  TCanvas *dxy_phi_vs_run = new TCanvas("dxy_phi_vs_run","dxy(#phi) bias vs run number",1000,600);
+  TCanvas *dxy_eta_vs_run = new TCanvas("dxy_eta_vs_run","dxy(#eta) bias vs run number",1000,600);
+  TCanvas *dz_phi_vs_run  = new TCanvas("dz_phi_vs_run" ,"dz(#phi) bias vs run number" ,1000,600);
+  TCanvas *dz_eta_vs_run  = new TCanvas("dz_eta_vs_run" ,"dz(#eta) bias vs run number" ,1000,600);
+
+  TGraph *g_dxy_phi_vs_run[nDirs_];
+  TGraph *g_dxy_phi_hi_vs_run[nDirs_];
+  TGraph *g_dxy_phi_lo_vs_run[nDirs_];
+  
+  TGraph *g_dxy_eta_vs_run[nDirs_];
+  TGraph *g_dxy_eta_hi_vs_run[nDirs_];
+  TGraph *g_dxy_eta_lo_vs_run[nDirs_];
+
+  TGraph *g_dz_phi_vs_run[nDirs_];
+  TGraph *g_dz_phi_hi_vs_run[nDirs_];
+  TGraph *g_dz_phi_lo_vs_run[nDirs_];
+
+  TGraph *g_dz_eta_vs_run[nDirs_];
+  TGraph *g_dz_eta_hi_vs_run[nDirs_];
+  TGraph *g_dz_eta_lo_vs_run[nDirs_];
+
+  TString theType="";
+  TString theTypeLabel="";
+  if(lumi_axis_format){
+    theType="luminosity";
+    theTypeLabel="luminosity (fb^{-1})";
+    x_ticks = lumiByRun;
+  } else {
+    theType="run number";
+    theTypeLabel="run number";
+    x_ticks = runs;
+  }
+  
+  TLegend *my_lego = new TLegend(0.19,0.80,0.79,0.93);
+  //my_lego-> SetNColumns(2);
+  my_lego->SetFillColor(10);
+  my_lego->SetTextSize(0.042);
+  my_lego->SetTextFont(42);
+  my_lego->SetFillColor(10);
+  my_lego->SetLineColor(10);
+  my_lego->SetShadowColor(10);
+
+  for(Int_t j=0; j < nDirs_; j++) {
+
+    // check on the sanity
+    std::cout<<"x_ticks.size()= "<<x_ticks.size()<<"d xyPhiMeans_[LegLabels["<<j<<"]].size()="<<dxyPhiMeans_[LegLabels[j]].size()<<std::endl;
+
+    // *************************************
+    // dxy vs phi
+    // *************************************
+    
+    g_dxy_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiMeans_[LegLabels[j]])[0]));
+    g_dxy_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiHi_[LegLabels[j]])[0]));
+    g_dxy_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiLo_[LegLabels[j]])[0]));
+
+    adjustmargins(dxy_phi_vs_run);
+    dxy_phi_vs_run->cd();
+    g_dxy_phi_vs_run[j]->SetMarkerStyle(20);
+    g_dxy_phi_vs_run[j]->SetMarkerColor(j+1);
+    g_dxy_phi_hi_vs_run[j]->SetLineColor(j+1);
+    g_dxy_phi_lo_vs_run[j]->SetLineColor(j+1);
+
+    g_dxy_phi_vs_run[j]->SetName("g_bias_dxy_phi" );
+    g_dxy_phi_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#varphi) vs %s",theType.Data()));
+    g_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#phi) #GT");
+    g_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-20,20);
+    beautify(g_dxy_phi_vs_run[j]);
+
+    my_lego->AddEntry(g_dxy_phi_vs_run[j],LegLabels[j],"PL");
+
+    if(j==0){
+      g_dxy_phi_vs_run[j]->Draw("AP");
+    } else {
+      g_dxy_phi_vs_run[j]->Draw("Psame");
+    }
+    g_dxy_phi_hi_vs_run[j]->Draw("Lsame");
+    g_dxy_phi_lo_vs_run[j]->Draw("Lsame");
+
+    if(j==nDirs_-1) my_lego->Draw("same");
+
+    TPad *current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    // *************************************
+    // dxy vs eta
+    // *************************************
+    g_dxy_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaMeans_[LegLabels[j]])[0]));
+    g_dxy_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaHi_[LegLabels[j]])[0]));
+    g_dxy_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaLo_[LegLabels[j]])[0]));
+
+    adjustmargins(dxy_eta_vs_run);
+    dxy_eta_vs_run->cd();
+    g_dxy_eta_vs_run[j]->SetMarkerStyle(20);
+    g_dxy_eta_vs_run[j]->SetMarkerColor(j+1);
+    g_dxy_eta_hi_vs_run[j]->SetLineColor(j+1);
+    g_dxy_eta_lo_vs_run[j]->SetLineColor(j+1);
+    
+    g_dxy_eta_vs_run[j]->SetName("g_bias_dxy_eta" );
+    g_dxy_eta_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#eta) vs %s",theType.Data()));
+    g_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#eta) #GT");
+    beautify(g_dxy_eta_vs_run[j]);
+
+    g_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20,20);
+    if(j==0){
+      g_dxy_eta_vs_run[j]->Draw("AP");
+    } else {
+      g_dxy_eta_vs_run[j]->Draw("Psame");
+    }
+    g_dxy_eta_hi_vs_run[j]->Draw("Lsame");
+    g_dxy_eta_lo_vs_run[j]->Draw("Lsame");
+
+    if(j==nDirs_-1) my_lego->Draw("same");
+	
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    // *************************************
+    // dz vs phi
+    // *************************************
+    g_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiMeans_[LegLabels[j]])[0]));
+    g_dz_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiHi_[LegLabels[j]])[0]));
+    g_dz_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiLo_[LegLabels[j]])[0]));
+
+    adjustmargins(dz_phi_vs_run);
+    dz_phi_vs_run->cd();
+    g_dz_phi_vs_run[j]->SetMarkerStyle(20);
+    g_dz_phi_vs_run[j]->SetMarkerColor(j+1);
+    g_dz_phi_hi_vs_run[j]->SetLineColor(j+1);
+    g_dz_phi_lo_vs_run[j]->SetLineColor(j+1);
+    beautify(g_dz_phi_vs_run[j]);
+
+    g_dz_phi_vs_run[j]->SetName("g_bias_dz_phi" );
+    g_dz_phi_vs_run[j]->SetTitle(Form("Bias of d_{z}(#varphi) vs %s",theType.Data()));
+    g_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_dz_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#phi) #GT");
+    
+    g_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-20,20);
+    if(j==0){
+      g_dz_phi_vs_run[j]->Draw("AP");
+    } else {
+      g_dz_phi_vs_run[j]->Draw("Psame");
+    }
+    g_dz_phi_hi_vs_run[j]->Draw("Lsame");
+    g_dz_phi_lo_vs_run[j]->Draw("Lsame");
+
+    if(j==nDirs_-1) my_lego->Draw("same");
+
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    // *************************************
+    // dz vs eta
+    // *************************************
+    g_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaMeans_[LegLabels[j]])[0]));
+    g_dz_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaHi_[LegLabels[j]])[0]));
+    g_dz_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaLo_[LegLabels[j]])[0]));
+
+    adjustmargins(dz_eta_vs_run);
+    dz_eta_vs_run->cd();
+    g_dz_eta_vs_run[j]->SetMarkerStyle(20);
+    g_dz_eta_vs_run[j]->SetMarkerColor(j+1);
+    g_dz_eta_hi_vs_run[j]->SetLineColor(j+1);
+    g_dz_eta_lo_vs_run[j]->SetLineColor(j+1);
+    beautify(g_dz_eta_vs_run[j]);
+
+    g_dz_eta_vs_run[j]->SetName("g_bias_dz_eta" );
+    g_dz_eta_vs_run[j]->SetTitle(Form("Bias of d_{z}(#eta) vs %s",theType.Data()));
+    g_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_dz_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#eta) #GT");
+
+    g_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-100,100);
+    if(j==0){
+      g_dz_eta_vs_run[j]->Draw("AP");
+    } else {
+      g_dz_eta_vs_run[j]->Draw("Psame");
+    }
+    g_dz_eta_hi_vs_run[j]->Draw("Lsame");
+    g_dz_eta_lo_vs_run[j]->Draw("Lsame");
+
+    if(j==nDirs_-1) my_lego->Draw("same");
+	
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+  }
+  
+  dxy_phi_vs_run->SaveAs("dxy_phi_vs_run.pdf");
+  dxy_phi_vs_run->SaveAs("dxy_phi_vs_run.png");
+  dxy_phi_vs_run->SaveAs("dxy_phi_vs_run.root");
+
+  dxy_eta_vs_run->SaveAs("dxy_eta_vs_run.pdf");
+  dxy_eta_vs_run->SaveAs("dxy_eta_vs_run.png");
+  dxy_eta_vs_run->SaveAs("dxy_eta_vs_run.root");
+
+  dz_phi_vs_run->SaveAs("dz_phi_vs_run.pdf");
+  dz_phi_vs_run->SaveAs("dz_phi_vs_run.png");
+  dz_phi_vs_run->SaveAs("dz_phi_vs_run.root");
+
+  dz_eta_vs_run->SaveAs("dz_eta_vs_run.pdf");
+  dz_eta_vs_run->SaveAs("dz_eta_vs_run.png");
+  dz_eta_vs_run->SaveAs("dz_eta_vs_run.root");
+
+  // mv the run-by-run plots into the folders
+
+  gSystem->mkdir("Biases");
+  TString processline = ".! mv Bias*.p* ./Biases/";
+  std::cout<<"Executing: \n"
+	   <<processline<< "\n"<<std::endl;
+  gROOT->ProcessLine(processline.Data());
+  gSystem->Sleep(100);
+  processline.Clear();
+
+  gSystem->mkdir("ResolutionsVsPt");
+  processline = ".! mv ResolutionsVsPt*.p* ./ResolutionsVsPt/";
+  std::cout<<"Executing: \n"
+	   <<processline<< "\n"<<std::endl;
+  gROOT->ProcessLine(processline.Data());
+  gSystem->Sleep(100);
+  processline.Clear();
+
+  gSystem->mkdir("Resolutions");
+  processline = ".! mv Resolutions*.p* ./Resolutions/";
+  std::cout<<"Executing: \n"
+	   <<processline<< "\n"<<std::endl;
+  gROOT->ProcessLine(processline.Data());
+  gSystem->Sleep(100);
+  processline.Clear();
+
+  gSystem->mkdir("Pulls");
+  processline = ".! mv Pulls*.p* ./Pulls/";
+  std::cout<<"Executing: \n"
+	   <<processline<< "\n" <<std::endl;
+  gROOT->ProcessLine(processline.Data());
+  gSystem->Sleep(100);
+  processline.Clear();
+
+
 }
 
 /*--------------------------------------------------------------------*/
@@ -362,7 +686,7 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 	    dBiasTrend[k][i]->GetYaxis()->SetRangeUser(-40.,40.);
 	  } else {
 	    // dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,theExtreme+(safeDelta/2.));
-	    dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,300.);
+	    dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,200.);
 	  }
 	} 
 	dBiasTrend[k][i]->Draw("Le1");
@@ -496,6 +820,9 @@ void makeNewXAxis (TH1 *h)
 /*--------------------------------------------------------------------*/
 void setStyle(){
 /*--------------------------------------------------------------------*/
+
+  TGaxis::SetMaxDigits(6);
+  
   TH1::StatOverflows(kTRUE);
   gStyle->SetOptTitle(0);
   gStyle->SetOptStat("e");
@@ -576,4 +903,70 @@ TH1F* DrawConstant(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int
   hzero->SetLineColor(kMagenta);
   
   return hzero;
+}
+
+
+/*--------------------------------------------------------------------*/
+std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist)
+/*--------------------------------------------------------------------*/
+{
+  Double_t mean=0;
+  Double_t rms=0;
+
+  int nbins = hist->GetNbinsX();
+
+  //extract median from histogram
+  double *y = new double[nbins];
+  for (int j = 0; j < nbins; j++) {
+    y[j] = hist->GetBinContent(j+1);
+  }
+  mean = TMath::Mean(nbins,y);
+  rms =  TMath::RMS(nbins,y);
+
+  /*
+  for(Int_t i=1;i<=hist->GetNbinsX();i++){
+    mean+=hist->GetBinContent(i);
+  }
+
+  mean = mean/hist->GetNbinsX();
+  
+  Double_t max=hist->GetMaximum();
+  Double_t min=hist->GetMinimum();
+  //std::pair<Double_t,Double_t> resultBounds = std::make_pair(min,max);
+  */
+  
+  std::pair<std::pair<Double_t,Double_t>, Double_t> result;
+  std::pair<Double_t,Double_t> resultBounds = std::make_pair(mean-rms,mean+rms);
+
+  result = make_pair(resultBounds,mean);
+  
+  return result;
+   
+}
+
+/*--------------------------------------------------------------------*/
+void beautify(TGraph *g){
+/*--------------------------------------------------------------------*/
+  g->GetXaxis()->SetLabelFont(42);
+  g->GetYaxis()->SetLabelFont(42);
+  g->GetYaxis()->SetLabelSize(.055);
+  g->GetXaxis()->SetLabelSize(.055);
+  g->GetYaxis()->SetTitleSize(.055);
+  g->GetXaxis()->SetTitleSize(.055);
+  g->GetXaxis()->SetTitleOffset(1.1);
+  g->GetYaxis()->SetTitleOffset(0.9);
+  g->GetXaxis()->SetTitleFont(42);
+  g->GetYaxis()->SetTitleFont(42);
+  g->GetXaxis()->CenterTitle(true);
+  g->GetYaxis()->CenterTitle(true);
+  g->GetXaxis()->SetNdivisions(505);
+}
+
+/*--------------------------------------------------------------------*/
+void adjustmargins(TCanvas *canv){
+/*--------------------------------------------------------------------*/
+  canv->cd()->SetBottomMargin(0.14);
+  canv->cd()->SetLeftMargin(0.11);
+  canv->cd()->SetRightMargin(0.01);
+  canv->cd()->SetTopMargin(0.06);
 }
