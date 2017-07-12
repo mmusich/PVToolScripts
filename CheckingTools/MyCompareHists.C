@@ -44,10 +44,18 @@ void compareAll(TString file1,TString file2){
 	  TCanvas *c1 = new TCanvas(h->GetName(),h->GetName(),800,600);
 	  c1->cd();
 	  h->SetMarkerColor(kRed);
+	  h->SetLineColor(kRed);
 	  h->SetMarkerStyle(kOpenSquare);
 	  h->Draw();
 	  TH1 *h2 = (TH1*)f2->Get(fullpath.Data());
+
+	  if(h2==nullptr){
+	    std::cout<<"WARNING!!!!!! "<<fullpath<<" does NOT exist in second file!!!!!"<<std::endl;
+	    continue;
+	  }
+
 	  h2->SetMarkerColor(kBlue);
+	  h2->SetLineColor(kBlue);
 	  h2->SetMarkerStyle(kOpenCircle);
 	  h2->Draw("same");
 	  TString savename = fullpath.ReplaceAll("/","_");
@@ -59,7 +67,7 @@ void compareAll(TString file1,TString file2){
 	    ksPt.AddText(Form("P(KS)=%g, ered %g eblue %g",ksProb, h->GetEntries(), h2->GetEntries()));
 	    ksPt.Draw();
 	    c1->Print("diff.pdf");
-	    std::cout<<"histogram"<<j<<" "<<fullpath<<" |kolmogorov: "<<ksProb<<std::endl;
+	    std::cout<<"histogram # "<<j<<": "<<fullpath<<" |kolmogorov: "<<ksProb<<std::endl;
 	  }
 	  
 	  delete c1;
