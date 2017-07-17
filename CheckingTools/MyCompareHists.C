@@ -10,6 +10,8 @@
 #include <string>
 #include "TPaveText.h"
 
+#include <fstream>      // std::ofstream
+
 void compareAll(TString file1,TString file2){
 
   TFile *f1 = TFile::Open(file1);
@@ -22,6 +24,8 @@ void compareAll(TString file1,TString file2){
 
   TCanvas dummyC;
   dummyC.Print("diff.pdf[");
+
+  std::ofstream ofs ("check.txt", std::ofstream::out);
 
   TIter nextkey(gDirectory->GetListOfKeys());
   while (TKey* key = (TKey*)nextkey()) {
@@ -60,6 +64,26 @@ void compareAll(TString file1,TString file2){
 	  h2->Draw("same");
 	  TString savename = fullpath.ReplaceAll("/","_");
 	  double ksProb = 0;
+	  
+	  // avoid spurious false positive due to empty histogram
+	  if(h->GetEntries()==0 && h2->GetEntries()==0){
+	    ofs << "histogram # "<<j<<": "<<fullpath<<" |has zero entries in both files: "<<std::endl;
+	    delete c1;
+	    delete h;
+	    delete h2;
+	    continue;
+	  }
+	  // avoid doing k-test on histograms with different binning
+	  if(h->GetXaxis()->GetXmax()!=h2->GetXaxis()->GetXmax() ||
+	     h->GetXaxis()->GetXmin()!=h2->GetXaxis()->GetXmin()
+	     ) {
+	    ofs << "histogram # "<<j<<": "<<fullpath<<" |mismatched bins!!!!!!: "<<std::endl;
+	    delete c1;
+	    delete h;
+	    delete h2;
+	    continue;
+	  }
+
 	  ksProb = h->KolmogorovTest(h2);
 	  if(ksProb!=1.){
 	    //c1->SaveAs(savename+".pdf");
@@ -68,11 +92,13 @@ void compareAll(TString file1,TString file2){
 	    ksPt.Draw();
 	    c1->Print("diff.pdf");
 	    std::cout<<"histogram # "<<j<<": "<<fullpath<<" |kolmogorov: "<<ksProb<<std::endl;
+	    ofs << "histogram # "<<j<<": "<<fullpath<<" |kolmogorov: "<<ksProb<<std::endl;
 	  }
 	  
 	  delete c1;
 	  delete h;
 	  delete h2;
+
 	}                                                                                                                
       }
     }
@@ -80,4 +106,8 @@ void compareAll(TString file1,TString file2){
   f1->Close();
   f2->Close();
   dummyC.Print("diff.pdf]");
+    
+  ofs.close();
+
+
 }
