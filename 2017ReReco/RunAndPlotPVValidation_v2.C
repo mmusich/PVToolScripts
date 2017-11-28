@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <map>
 #include <iterator>
+#include <fstream>
 
 namespace pv{
   enum vista {
@@ -34,6 +35,11 @@ namespace pv{
     generic
   };
 }
+
+
+// all marker and style types
+Int_t markers[8] = {kFullSquare,kFullCircle,kOpenSquare,kOpenCircle,kFullTriangleDown,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
+Int_t colors[8]  = {kBlack,kBlue,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
 
 // forward declarations
 void RunAndPlotPVValidation_v2(TString namesandlabels="",bool lumi_axis_format=false);
@@ -64,6 +70,7 @@ typedef std::map<TString, std::vector<double> > alignmentTrend;
 
 void RunAndPlotPVValidation_v2(TString namesandlabels,bool lumi_axis_format){
   
+  std::ofstream outfile ("lumiByRun.txt"); 
   setStyle();
 
   TList *DirList   = new TList();
@@ -212,12 +219,17 @@ void RunAndPlotPVValidation_v2(TString namesandlabels,bool lumi_axis_format){
 	TH1F* h_lumi   = (TH1F*)fins[j]->Get("PVValidation/EventFeatures/h_lumiFromConfig");
 	double lumi = h_lumi->GetBinContent(1);
 	lumiSoFar+=lumi;
-	//std::cout<<"lumi: "<<lumi<<
-	//	 <<" ,lumi so far: "<<lumiSoFar<<std::endl;
+	//std::cout<<"lumi: "<<lumi
+	//		 <<" ,lumi so far: "<<lumiSoFar<<std::endl;
+
+	outfile<<"run "<<intersection[n]<<" lumi: "<<lumi
+	       <<" ,lumi so far: "<<lumiSoFar<<std::endl;
+
       }
 
       Double_t numEvents = h_tracks->GetEntries();
       if(numEvents<10000){
+	std::cout<<"excluding " << intersection[n] << "because it has less than 10k events" << std::endl;
 	areAllFilesOK = false;
 	lastOpen=j;
 	break;
@@ -437,7 +449,7 @@ void RunAndPlotPVValidation_v2(TString namesandlabels,bool lumi_axis_format){
   TString theTypeLabel="";
   if(lumi_axis_format){
     theType="luminosity";
-    theTypeLabel="luminosity (fb^{-1})";
+    theTypeLabel="processed luminosity (fb^{-1})";
     x_ticks = lumiByRun;
   } else {
     theType="run number";
@@ -469,16 +481,16 @@ void RunAndPlotPVValidation_v2(TString namesandlabels,bool lumi_axis_format){
 
     adjustmargins(dxy_phi_vs_run);
     dxy_phi_vs_run->cd();
-    g_dxy_phi_vs_run[j]->SetMarkerStyle(20);
-    g_dxy_phi_vs_run[j]->SetMarkerColor(j+1);
-    g_dxy_phi_hi_vs_run[j]->SetLineColor(j+1);
-    g_dxy_phi_lo_vs_run[j]->SetLineColor(j+1);
+    g_dxy_phi_vs_run[j]->SetMarkerStyle(markers[j]);
+    g_dxy_phi_vs_run[j]->SetMarkerColor(colors[j]);
+    g_dxy_phi_hi_vs_run[j]->SetLineColor(colors[j]);
+    g_dxy_phi_lo_vs_run[j]->SetLineColor(colors[j]);
 
     g_dxy_phi_vs_run[j]->SetName("g_bias_dxy_phi" );
     g_dxy_phi_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#varphi) vs %s",theType.Data()));
     g_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
     g_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#phi) #GT");
-    g_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-20,20);
+    g_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-50,50);
     beautify(g_dxy_phi_vs_run[j]);
 
     my_lego->AddEntry(g_dxy_phi_vs_run[j],LegLabels[j],"PL");
@@ -505,10 +517,10 @@ void RunAndPlotPVValidation_v2(TString namesandlabels,bool lumi_axis_format){
 
     adjustmargins(dxy_eta_vs_run);
     dxy_eta_vs_run->cd();
-    g_dxy_eta_vs_run[j]->SetMarkerStyle(20);
-    g_dxy_eta_vs_run[j]->SetMarkerColor(j+1);
-    g_dxy_eta_hi_vs_run[j]->SetLineColor(j+1);
-    g_dxy_eta_lo_vs_run[j]->SetLineColor(j+1);
+    g_dxy_eta_vs_run[j]->SetMarkerStyle(markers[j]);
+    g_dxy_eta_vs_run[j]->SetMarkerColor(colors[j]);
+    g_dxy_eta_hi_vs_run[j]->SetLineColor(colors[j]);
+    g_dxy_eta_lo_vs_run[j]->SetLineColor(colors[j]);
     
     g_dxy_eta_vs_run[j]->SetName("g_bias_dxy_eta" );
     g_dxy_eta_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#eta) vs %s",theType.Data()));
@@ -539,10 +551,10 @@ void RunAndPlotPVValidation_v2(TString namesandlabels,bool lumi_axis_format){
 
     adjustmargins(dz_phi_vs_run);
     dz_phi_vs_run->cd();
-    g_dz_phi_vs_run[j]->SetMarkerStyle(20);
-    g_dz_phi_vs_run[j]->SetMarkerColor(j+1);
-    g_dz_phi_hi_vs_run[j]->SetLineColor(j+1);
-    g_dz_phi_lo_vs_run[j]->SetLineColor(j+1);
+    g_dz_phi_vs_run[j]->SetMarkerStyle(markers[j]);
+    g_dz_phi_vs_run[j]->SetMarkerColor(colors[j]);
+    g_dz_phi_hi_vs_run[j]->SetLineColor(colors[j]);
+    g_dz_phi_lo_vs_run[j]->SetLineColor(colors[j]);
     beautify(g_dz_phi_vs_run[j]);
 
     g_dz_phi_vs_run[j]->SetName("g_bias_dz_phi" );
@@ -573,10 +585,10 @@ void RunAndPlotPVValidation_v2(TString namesandlabels,bool lumi_axis_format){
 
     adjustmargins(dz_eta_vs_run);
     dz_eta_vs_run->cd();
-    g_dz_eta_vs_run[j]->SetMarkerStyle(20);
-    g_dz_eta_vs_run[j]->SetMarkerColor(j+1);
-    g_dz_eta_hi_vs_run[j]->SetLineColor(j+1);
-    g_dz_eta_lo_vs_run[j]->SetLineColor(j+1);
+    g_dz_eta_vs_run[j]->SetMarkerStyle(markers[j]);
+    g_dz_eta_vs_run[j]->SetMarkerColor(colors[j]);
+    g_dz_eta_hi_vs_run[j]->SetLineColor(colors[j]);
+    g_dz_eta_lo_vs_run[j]->SetLineColor(colors[j]);
     beautify(g_dz_eta_vs_run[j]);
 
     g_dz_eta_vs_run[j]->SetName("g_bias_dz_eta" );
@@ -828,10 +840,6 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 void  MakeNiceTrendPlotStyle(TH1 *hist,Int_t color)
 /*--------------------------------------------------------------------*/
 { 
-
-  Int_t markers[8] = {kFullSquare,kFullCircle,kOpenSquare,kOpenCircle,kFullTriangleDown,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
-  Int_t colors[8]  = {kBlack,kBlue,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
-  
   hist->SetStats(kFALSE);  
   hist->SetLineWidth(2);
   hist->GetXaxis()->CenterTitle(true);
