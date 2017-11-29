@@ -612,21 +612,23 @@ void RunAndPlotPVValidation_v2(TString namesandlabels,bool lumi_axis_format){
 
   }
   
-  dxy_phi_vs_run->SaveAs("dxy_phi_vs_run.pdf");
-  dxy_phi_vs_run->SaveAs("dxy_phi_vs_run.png");
-  dxy_phi_vs_run->SaveAs("dxy_phi_vs_run.root");
+  TString append = lumi_axis_format ? "lumi" : "run";
 
-  dxy_eta_vs_run->SaveAs("dxy_eta_vs_run.pdf");
-  dxy_eta_vs_run->SaveAs("dxy_eta_vs_run.png");
-  dxy_eta_vs_run->SaveAs("dxy_eta_vs_run.root");
+  dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".pdf");
+  dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".png");
+  dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".root");
 
-  dz_phi_vs_run->SaveAs("dz_phi_vs_run.pdf");
-  dz_phi_vs_run->SaveAs("dz_phi_vs_run.png");
-  dz_phi_vs_run->SaveAs("dz_phi_vs_run.root");
+  dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".pdf");
+  dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".png");
+  dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".root");
 
-  dz_eta_vs_run->SaveAs("dz_eta_vs_run.pdf");
-  dz_eta_vs_run->SaveAs("dz_eta_vs_run.png");
-  dz_eta_vs_run->SaveAs("dz_eta_vs_run.root");
+  dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".pdf");
+  dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".png");
+  dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".root");
+
+  dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".pdf");
+  dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".png");
+  dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".root");
 
   // mv the run-by-run plots into the folders
 
