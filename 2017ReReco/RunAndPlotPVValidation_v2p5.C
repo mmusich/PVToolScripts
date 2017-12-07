@@ -43,7 +43,7 @@ Int_t markers[8] = {kFullSquare,kFullCircle,kOpenSquare,kOpenCircle,kFullTriangl
 Int_t colors[8]  = {kBlack,kBlue,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
 
 // forward declarations
-void RunAndPlotPVValidation_v2p5(TString namesandlabels="",bool lumi_axis_format=false,bool time_axis_format=false);
+void RunAndPlotPVValidation_v2p5(TString namesandlabels="",bool lumi_axis_format=false,bool time_axis_format=false,bool useRMS=true);
 void arrangeOutCanvas(TCanvas *canv,
 		      TH1F* m_11Trend[100],
 		      TH1F* m_12Trend[100],
@@ -53,8 +53,9 @@ void arrangeOutCanvas(TCanvas *canv,
 		      TString LegLabels[10],
 		      unsigned int theRun);
 
-std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist);
+std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist,bool useRMS_);
 TH1F* DrawConstant(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int_t iter,Double_t theConst);
+TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst);
 std::vector<int> list_files(const char *dirname=".", const char *ext=".root");
 TH1F* checkTH1AndReturn(TFile *f,TString address);
 void MakeNiceTrendPlotStyle(TH1 *hist,Int_t color);
@@ -84,7 +85,7 @@ std::vector<std::string> split(const std::string& s,char delimiter)
 
 // main function
 
-void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bool time_axis_format){
+void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bool time_axis_format,bool useRMS){
   
   // consistency check, we cannot do plot vs lumi if time_axis
   if(lumi_axis_format && time_axis_format){
@@ -341,7 +342,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
 
       // fill the vectors of biases
       
-      auto dxyPhiBiases = getBiases(dxyPhiMeanTrend[j]);
+      auto dxyPhiBiases = getBiases(dxyPhiMeanTrend[j],useRMS);
       
       std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) mean: "<< dxyPhiBiases.second
 	       <<" dxy(phi) max: "<< dxyPhiBiases.first.first
@@ -352,17 +353,17 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.first.first);
       dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.first.second);
 
-      auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j]);
+      auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j],useRMS);
       dxyEtaMeans_[LegLabels[j]].push_back(dxyEtaBiases.second);
       dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.first.first);
       dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.first.second);
 
-      auto dzPhiBiases = getBiases(dzPhiMeanTrend[j]);
+      auto dzPhiBiases = getBiases(dzPhiMeanTrend[j],useRMS);
       dzPhiMeans_[LegLabels[j]].push_back(dzPhiBiases.second);
       dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.first.first);
       dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.first.second);
 
-      auto dzEtaBiases = getBiases(dzEtaMeanTrend[j]);
+      auto dzEtaBiases = getBiases(dzEtaMeanTrend[j],useRMS);
       dzEtaMeans_[LegLabels[j]].push_back(dzEtaBiases.second);
       dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.first.first);
       dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.first.second);
@@ -591,7 +592,14 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       timify(g_dxy_phi_lo_vs_run[j]);
     }
 
-    if(j==nDirs_-1) my_lego->Draw("same");
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(g_dxy_phi_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
 
     TPad *current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
@@ -632,7 +640,11 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       timify(g_dxy_eta_lo_vs_run[j]);
     }
 
-    if(j==nDirs_-1) my_lego->Draw("same");
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+      TH1F* theZero = DrawConstantGraph(g_dxy_phi_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
 	
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
@@ -673,7 +685,11 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       timify(g_dz_phi_lo_vs_run[j]);
     }
 
-    if(j==nDirs_-1) my_lego->Draw("same");
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+      TH1F* theZero = DrawConstantGraph(g_dxy_phi_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
 
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
@@ -714,7 +730,11 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       timify(g_dz_eta_lo_vs_run[j]);
     }
 
-    if(j==nDirs_-1) my_lego->Draw("same");
+    if(j==nDirs_-1){ 
+      my_lego->Draw("same");
+      TH1F* theZero = DrawConstantGraph(g_dxy_phi_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
 	
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
@@ -1141,9 +1161,31 @@ TH1F* DrawConstant(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int
   return hzero;
 }
 
+/*--------------------------------------------------------------------*/
+TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst)
+/*--------------------------------------------------------------------*/
+{ 
+ 
+  Double_t xmin = graph->GetXaxis()->GetXmin(); //TMath::MinElement(graph->GetN(),graph->GetX());
+  Double_t xmax = graph->GetXaxis()->GetXmax(); //TMath::MaxElement(graph->GetN(),graph->GetX()); 
+
+   std::cout<<xmin<<" : "<<xmax<<std::endl;
+
+   TH1F *hzero = new TH1F(Form("hconst_%s_%i",graph->GetName(),iter),Form("hconst_%s_%i",graph->GetName(),iter),graph->GetN(),xmin,xmax);
+   for (Int_t i=0;i<=hzero->GetNbinsX();i++){
+     hzero->SetBinContent(i,theConst);
+     hzero->SetBinError(i,0.);
+   }
+
+  hzero->SetLineWidth(2);
+  hzero->SetLineStyle(9);
+  hzero->SetLineColor(kMagenta);
+  
+  return hzero;
+}
 
 /*--------------------------------------------------------------------*/
-std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist)
+std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist,bool useRMS_)
 /*--------------------------------------------------------------------*/
 {
   Double_t mean=0;
@@ -1159,6 +1201,9 @@ std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist)
   mean = TMath::Mean(nbins,y);
   rms =  TMath::RMS(nbins,y);
 
+  Double_t max=hist->GetMaximum();
+  Double_t min=hist->GetMinimum();
+
   /*
   for(Int_t i=1;i<=hist->GetNbinsX();i++){
     mean+=hist->GetBinContent(i);
@@ -1166,13 +1211,13 @@ std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist)
 
   mean = mean/hist->GetNbinsX();
   
-  Double_t max=hist->GetMaximum();
-  Double_t min=hist->GetMinimum();
   //std::pair<Double_t,Double_t> resultBounds = std::make_pair(min,max);
   */
   
   std::pair<std::pair<Double_t,Double_t>, Double_t> result;
-  std::pair<Double_t,Double_t> resultBounds = std::make_pair(mean-rms,mean+rms);
+  std::pair<Double_t,Double_t> resultBounds;
+
+  resultBounds = useRMS_ ? std::make_pair(mean-rms,mean+rms) :  std::make_pair(min,max)  ;
 
   result = make_pair(resultBounds,mean);
   
