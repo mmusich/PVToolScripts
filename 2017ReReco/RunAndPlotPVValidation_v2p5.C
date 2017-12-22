@@ -15,8 +15,8 @@
 #include "TROOT.h"
 #include "TH1F.h"
 #include "TGraph.h"
+#include "TArrow.h"
 #include "TCanvas.h"
-#include "TObjArray.h"
 #include "TObjString.h"
 #include <iostream>
 #include <vector>
@@ -25,6 +25,8 @@
 #include <iterator>
 #include <fstream>
 #include <sstream>
+
+#define DEBUG true
 
 namespace pv{
   enum vista {
@@ -35,8 +37,14 @@ namespace pv{
     pT,
     generic
   };
-}
 
+  // brief method to find first value that doesn not compare lett
+  int closest(std::vector<int> const& vec, int value) {
+    auto const it = std::lower_bound(vec.begin(), vec.end(), value);
+    if (it == vec.end()) { return -1; }
+    return *it;
+  }
+}
 
 // all marker and style types
 Int_t markers[8] = {kFullSquare,kFullCircle,kOpenSquare,kOpenCircle,kFullTriangleDown,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
@@ -66,8 +74,9 @@ void beautify(TH1 *h);
 void adjustmargins(TCanvas *canv);
 void setStyle();
 pv::vista checkTheVista(const TString &toCheck);
-void timify(TGraph *mgr);
+template<typename T> void timify(T *mgr);
 Double_t getMaximumFromArray(TObjArray *array);
+void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_format,const std::map<int,double> &lumiMapByRun,const std::map<int,TDatime>& timeMap);
 
 typedef std::map<TString, std::vector<double> > alignmentTrend; 
 
@@ -85,7 +94,11 @@ std::vector<std::string> split(const std::string& s,char delimiter)
   return tokens;
 }
 
-// main function
+///////////////////////////////////
+//
+//  Main function
+//
+///////////////////////////////////
 
 void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bool time_axis_format,bool useRMS){
   
@@ -166,6 +179,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
   std::vector<int> intersection;
   std::vector<double> runs;
   std::vector<double> lumiByRun;
+  std::map<int,double> lumiMapByRun;
   std::vector<double> x_ticks;
 
   std::vector<double> runtimes;
@@ -229,8 +243,10 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
   double lumiSoFar=0.0;
 
   // loop over the runs in the intersection
-  for(unsigned int n=0; n<intersection.size();n++){
-  //in case of debug, use only 10
+  unsigned int last = (DEBUG==true) ? 50 : intersection.size();
+
+  for(unsigned int n=0; n<last;n++){
+  //in case of debug, use only 50
   //for(unsigned int n=0; n<50;n++){
 
     //if(intersection.at(n)!=283946) 
@@ -416,6 +432,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       runs.push_back(intersection.at(n));
       // push back the vector of lumi (in fb at this point)
       lumiByRun.push_back(lumiSoFar/1000.);
+      lumiMapByRun[intersection.at(n)]=lumiSoFar/1000.;
     }
 
     std::cout<<"I am still here"<<std::endl;
@@ -537,7 +554,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
   TString theTypeLabel="";
   if(lumi_axis_format){
     theType="luminosity";
-    theTypeLabel="processed luminosity (fb^{-1})";
+    theTypeLabel="processed luminosity (1/fb)";
     x_ticks = lumiByRun;
   } else {
     if(!time_axis_format){
@@ -553,7 +570,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
     }
   }
   
-  TLegend *my_lego = new TLegend(0.19,0.80,0.59,0.93);
+  TLegend *my_lego = new TLegend(0.12,0.80,0.25,0.93);
   //my_lego-> SetNColumns(2);
   my_lego->SetFillColor(10);
   my_lego->SetTextSize(0.042);
@@ -561,6 +578,18 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
   my_lego->SetFillColor(10);
   my_lego->SetLineColor(10);
   my_lego->SetShadowColor(10);
+
+
+  // arrays for storing RMS histograms
+  TObjArray *arr_dxy_phi = new TObjArray();
+  TObjArray *arr_dz_phi  = new TObjArray();
+  TObjArray *arr_dxy_eta = new TObjArray();
+  TObjArray *arr_dz_eta  = new TObjArray();
+
+  arr_dxy_phi->Expand(nDirs_);
+  arr_dz_phi->Expand(nDirs_);
+  arr_dxy_eta->Expand(nDirs_);
+  arr_dz_eta->Expand(nDirs_);
 
   for(Int_t j=0; j < nDirs_; j++) {
 
@@ -618,35 +647,56 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
     TPad *current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
+    superImposeIOVBoundaries(dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
     // scatter or RMS TH1
 
-    h_RMS_dxy_phi_vs_run[j] = new TH1F(Form("h_RMS_dxy_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;maximum scatter of d_{xy}(#phi) [#mum]",theType.Data(),theType.Data()),x_ticks.size()-1,&(x_ticks[0]));
+    h_RMS_dxy_phi_vs_run[j] = new TH1F(Form("h_RMS_dxy_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;maximum scatter of d_{xy}(#phi) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dxy_phi_vs_run[j]->SetStats(kFALSE);
 
     int bincounter=0;
     for(const auto &tick : x_ticks ){
       bincounter++;
       h_RMS_dxy_phi_vs_run[j]->SetBinContent(bincounter,std::abs(dxyPhiHi_[LegLabels[j]][bincounter-1]-dxyPhiLo_[LegLabels[j]][bincounter-1]));
+      h_RMS_dxy_phi_vs_run[j]->SetBinError(bincounter,0.01);
     }
 
     h_RMS_dxy_phi_vs_run[j]->SetLineColor(colors[j]);
     h_RMS_dxy_phi_vs_run[j]->SetLineWidth(2);
+    h_RMS_dxy_phi_vs_run[j]->SetMarkerStyle(markers[j]);
+    h_RMS_dxy_phi_vs_run[j]->SetMarkerColor(colors[j]);
     adjustmargins(RMS_dxy_phi_vs_run);
     RMS_dxy_phi_vs_run->cd();
     beautify(h_RMS_dxy_phi_vs_run[j]);
 
-    if(j==0){
-      h_RMS_dxy_phi_vs_run[j]->Draw("L");
-    } else {
-      h_RMS_dxy_phi_vs_run[j]->Draw("Lsame");
+    if(time_axis_format){
+      timify(h_RMS_dxy_phi_vs_run[j]);
     }
 
+    arr_dxy_phi->Add(h_RMS_dxy_phi_vs_run[j]);
+
+    // at the last file re-loop
     if(j==nDirs_-1){
+
+      auto theMax = getMaximumFromArray(arr_dxy_phi);
+
+      for(Int_t k=0; k< nDirs_; k++){
+	h_RMS_dxy_phi_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.3);
+	if(k==0){
+	  h_RMS_dxy_phi_vs_run[k]->Draw("PE1");
+	} else {
+	  h_RMS_dxy_phi_vs_run[k]->Draw("PE1same");
+	}
+      }
+      
       my_lego->Draw("same");
+     
     }
 
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(RMS_dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
 
     // *************************************
     // dxy vs eta
@@ -686,42 +736,61 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
 
     if(j==nDirs_-1){
       my_lego->Draw("same");
-      TH1F* theZero = DrawConstantGraph(g_dxy_phi_vs_run[j],1,0.);
+      TH1F* theZero = DrawConstantGraph(g_dxy_eta_vs_run[j],1,0.);
       theZero->Draw("E1same");
     }
 	
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
+    superImposeIOVBoundaries(dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
     // scatter or RMS TH1
 
-    h_RMS_dxy_eta_vs_run[j] = new TH1F(Form("h_RMS_dxy_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;maximum scatter of d_{xy}(#eta) [#mum]",theType.Data(),theType.Data()),x_ticks.size()-1,&(x_ticks[0]));
+    h_RMS_dxy_eta_vs_run[j] = new TH1F(Form("h_RMS_dxy_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;maximum scatter of d_{xy}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dxy_eta_vs_run[j]->SetStats(kFALSE);
 
     bincounter=0;
     for(const auto &tick : x_ticks ){
       bincounter++;
       h_RMS_dxy_eta_vs_run[j]->SetBinContent(bincounter,std::abs(dxyEtaHi_[LegLabels[j]][bincounter-1]-dxyEtaLo_[LegLabels[j]][bincounter-1]));
+      h_RMS_dxy_eta_vs_run[j]->SetBinError(bincounter,0.01);
     }
 
     h_RMS_dxy_eta_vs_run[j]->SetLineColor(colors[j]);
     h_RMS_dxy_eta_vs_run[j]->SetLineWidth(2);
+    h_RMS_dxy_eta_vs_run[j]->SetMarkerStyle(markers[j]);
+    h_RMS_dxy_eta_vs_run[j]->SetMarkerColor(colors[j]);
     adjustmargins(RMS_dxy_eta_vs_run);
     RMS_dxy_eta_vs_run->cd();
     beautify(h_RMS_dxy_eta_vs_run[j]);
 
-    if(j==0){
-      h_RMS_dxy_eta_vs_run[j]->Draw("L");
-    } else {
-      h_RMS_dxy_eta_vs_run[j]->Draw("Lsame");
+    if(time_axis_format){
+      timify(h_RMS_dxy_eta_vs_run[j]);
     }
 
+    arr_dxy_eta->Add(h_RMS_dxy_eta_vs_run[j]);
+
+    // at the last file re-loop
     if(j==nDirs_-1){
+
+      auto theMax = getMaximumFromArray(arr_dxy_eta);
+
+      for(Int_t k=0; k< nDirs_; k++){
+	h_RMS_dxy_eta_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
+	if(k==0){
+	  h_RMS_dxy_eta_vs_run[k]->Draw("PE1");
+	} else {
+	  h_RMS_dxy_eta_vs_run[k]->Draw("PE1same");
+	}
+      }
       my_lego->Draw("same");
     }
 
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(RMS_dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
 
     // *************************************
     // dz vs phi
@@ -761,42 +830,61 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
 
     if(j==nDirs_-1){
       my_lego->Draw("same");
-      TH1F* theZero = DrawConstantGraph(g_dxy_phi_vs_run[j],1,0.);
+      TH1F* theZero = DrawConstantGraph(g_dz_phi_vs_run[j],1,0.);
       theZero->Draw("E1same");
     }
 
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
     
+    superImposeIOVBoundaries(dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
     // scatter or RMS TH1
 
-    h_RMS_dz_phi_vs_run[j] = new TH1F(Form("h_RMS_dz_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;maximum scatter of d_{z}(#phi) [#mum]",theType.Data(),theType.Data()),x_ticks.size()-1,&(x_ticks[0]));
+    h_RMS_dz_phi_vs_run[j] = new TH1F(Form("h_RMS_dz_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;maximum scatter of d_{z}(#phi) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dz_phi_vs_run[j]->SetStats(kFALSE);
 
     bincounter=0;
     for(const auto &tick : x_ticks ){
       bincounter++;
       h_RMS_dz_phi_vs_run[j]->SetBinContent(bincounter,std::abs(dzPhiHi_[LegLabels[j]][bincounter-1]-dzPhiLo_[LegLabels[j]][bincounter-1]));
+      h_RMS_dz_phi_vs_run[j]->SetBinError(bincounter,0.01);
     }
 
     h_RMS_dz_phi_vs_run[j]->SetLineColor(colors[j]);
     h_RMS_dz_phi_vs_run[j]->SetLineWidth(2);
+    h_RMS_dz_phi_vs_run[j]->SetMarkerStyle(markers[j]);
+    h_RMS_dz_phi_vs_run[j]->SetMarkerColor(colors[j]);
     adjustmargins(RMS_dz_phi_vs_run);
     RMS_dz_phi_vs_run->cd();
     beautify(h_RMS_dz_phi_vs_run[j]);
 
-    if(j==0){
-      h_RMS_dz_phi_vs_run[j]->Draw("L");
-    } else {
-      h_RMS_dz_phi_vs_run[j]->Draw("Lsame");
+    if(time_axis_format){
+      timify(h_RMS_dz_phi_vs_run[j]);
     }
 
+    arr_dz_phi->Add(h_RMS_dz_phi_vs_run[j]);
+
+    // at the last file re-loop
     if(j==nDirs_-1){
+
+      auto theMax = getMaximumFromArray(arr_dz_phi);
+      
+      for(Int_t k=0; k< nDirs_; k++){
+	h_RMS_dz_phi_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
+	if(k==0){
+	  h_RMS_dz_phi_vs_run[k]->Draw("PE1");
+	} else {
+	  h_RMS_dz_phi_vs_run[k]->Draw("PE1same");
+	}
+      }
       my_lego->Draw("same");
     }
 
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(RMS_dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
 
     // *************************************
     // dz vs eta
@@ -836,45 +924,70 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
 
     if(j==nDirs_-1){ 
       my_lego->Draw("same");
-      TH1F* theZero = DrawConstantGraph(g_dxy_phi_vs_run[j],1,0.);
+      TH1F* theZero = DrawConstantGraph(g_dz_eta_vs_run[j],1,0.);
       theZero->Draw("E1same");
     }
 	
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
+    superImposeIOVBoundaries(dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
     // scatter or RMS TH1
 
-    h_RMS_dz_eta_vs_run[j] = new TH1F(Form("h_RMS_dz_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;maximum scatter of d_{z}(#eta) [#mum]",theType.Data(),theType.Data()),x_ticks.size()-1,&(x_ticks[0]));
+    h_RMS_dz_eta_vs_run[j] = new TH1F(Form("h_RMS_dz_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;maximum scatter of d_{z}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dz_eta_vs_run[j]->SetStats(kFALSE);
 
     bincounter=0;
     for(const auto &tick : x_ticks ){
       bincounter++;
       h_RMS_dz_eta_vs_run[j]->SetBinContent(bincounter,std::abs(dzEtaHi_[LegLabels[j]][bincounter-1]-dzEtaLo_[LegLabels[j]][bincounter-1]));
+      h_RMS_dz_eta_vs_run[j]->SetBinError(bincounter,0.01);
     }
 
     h_RMS_dz_eta_vs_run[j]->SetLineColor(colors[j]);
     h_RMS_dz_eta_vs_run[j]->SetLineWidth(2);
+    h_RMS_dz_eta_vs_run[j]->SetMarkerStyle(markers[j]);
+    h_RMS_dz_eta_vs_run[j]->SetMarkerColor(colors[j]);
     adjustmargins(RMS_dz_eta_vs_run);
     RMS_dz_eta_vs_run->cd();
     beautify(h_RMS_dz_eta_vs_run[j]);
 
-    if(j==0){
-      h_RMS_dz_eta_vs_run[j]->Draw("L");
-    } else {
-      h_RMS_dz_eta_vs_run[j]->Draw("Lsame");
+    if(time_axis_format){
+      timify(h_RMS_dz_eta_vs_run[j]);
     }
 
+    arr_dz_eta->Add(h_RMS_dz_eta_vs_run[j]);
+
+    // at the last file re-loop
     if(j==nDirs_-1){
+
+      auto theMax = getMaximumFromArray(arr_dz_eta);
+
+      for(Int_t k=0; k< nDirs_; k++){
+	h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
+	if(k==0){
+	  h_RMS_dz_eta_vs_run[k]->Draw("PE1");
+	} else {
+	  h_RMS_dz_eta_vs_run[k]->Draw("PE1same");
+	}
+      }
       my_lego->Draw("same");
     }
 
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
+    superImposeIOVBoundaries(RMS_dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
   }
   
+  // delete the array for the maxima
+  delete arr_dxy_phi;
+  delete arr_dz_phi;
+  delete arr_dxy_eta;
+  delete arr_dz_eta;
+
   TString append;
   if(lumi_axis_format){ 
     append = "lumi";
@@ -1288,7 +1401,8 @@ void cmsPrel(TPad* pad) {
   float posY_ =  1-t + 0.05; /// - relPosY*(1-t-b);
 
   latex->SetTextAlign(33);
-  latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
+  //latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
+  latex->DrawLatex(posX_,posY_,"CMS 2017 Work in progress (13 TeV)");
   
 }
 
@@ -1317,14 +1431,14 @@ TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst)
   Double_t xmin = graph->GetXaxis()->GetXmin(); //TMath::MinElement(graph->GetN(),graph->GetX());
   Double_t xmax = graph->GetXaxis()->GetXmax(); //TMath::MaxElement(graph->GetN(),graph->GetX()); 
 
-   std::cout<<xmin<<" : "<<xmax<<std::endl;
+  //std::cout<<xmin<<" : "<<xmax<<std::endl;
 
-   TH1F *hzero = new TH1F(Form("hconst_%s_%i",graph->GetName(),iter),Form("hconst_%s_%i",graph->GetName(),iter),graph->GetN(),xmin,xmax);
-   for (Int_t i=0;i<=hzero->GetNbinsX();i++){
-     hzero->SetBinContent(i,theConst);
-     hzero->SetBinError(i,0.);
-   }
-
+  TH1F *hzero = new TH1F(Form("hconst_%s_%i",graph->GetName(),iter),Form("hconst_%s_%i",graph->GetName(),iter),graph->GetN(),xmin,xmax);
+  for (Int_t i=0;i<=hzero->GetNbinsX();i++){
+    hzero->SetBinContent(i,theConst);
+    hzero->SetBinError(i,0.);
+  }
+  
   hzero->SetLineWidth(2);
   hzero->SetLineStyle(9);
   hzero->SetLineColor(kMagenta);
@@ -1454,7 +1568,8 @@ pv::vista checkTheVista(const TString &toCheck){
 }
 
 /*--------------------------------------------------------------------*/
-void timify(TGraph *mgr)
+template<typename T>
+void timify(T *mgr)
 /*--------------------------------------------------------------------*/
 {
   mgr->GetXaxis()->SetTimeDisplay(1);
@@ -1477,4 +1592,123 @@ Double_t getMaximumFromArray(TObjArray *array)
     }
   }
   return theMaximum;
+}
+
+/*--------------------------------------------------------------------*/
+void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_format,const std::map<int,double> &lumiMapByRun,const std::map<int,TDatime>& timeMap)
+/*--------------------------------------------------------------------*/
+{
+ 
+  /*
+    1   296641       2017-11-07 12:31:49  bf4bdd66393bee0623b730e11f3db799674c4daf  Alignments   
+    2   297179       2017-11-07 12:31:49  a5858bccd2e2c031a12aa6cbe38e8adaeca19331  Alignments   
+    3   297281       2017-11-07 12:31:49  b423ed0f118c16d99cf92d12a1bd33bb1902f533  Alignments   
+    4   298653       2017-11-07 12:31:49  3e598e771471289c59d755ef4ebb993e6c4b7890  Alignments   
+    5   299277       2017-11-07 12:31:49  d8631cc034f3971131f7e7551610acf790192cd2  Alignments   
+    6   299443       2017-11-07 12:31:49  58961d0e9322c4d7064b31e73d9edfe9a861e1f8  Alignments   
+    7   300389       2017-11-07 12:31:49  7c0a2dcfa527e8e336ff6b8b198827a5fcb9c287  Alignments   
+    8   301046       2017-11-07 12:31:49  4bf6bfbd7f8a202e8a6bba5e8730b27b00e5142b  Alignments   
+    9   302131       2017-11-07 12:31:49  387e5f629f808464f5c69ab8bb7319576d81e768  Alignments   
+    10  303790       2017-11-07 12:31:49  21b79cc2a163df4fbc6c059eed8c96b86f8a07ff  Alignments   
+    11  304911       2017-11-07 12:31:49  44c7e1e991484d1490ac5ad6b734b6622f1e9d85  Alignments   
+    12  305898       2017-11-28 16:03:38  64aae34a7273b374738ed4b9b20c332abf503ab4  Alignments   
+  */
+ 
+  // get the vector of runs in the lumiMap
+  std::vector<int> vruns;
+  for(auto const& imap: lumiMapByRun){
+    vruns.push_back(imap.first);
+    //std::cout<<" run:" << imap.first << " lumi: "<< imap.second << std::endl;
+  }
+
+  //std::vector<vint> truns;
+  for(auto const& imap: timeMap){
+    std::cout<<" run:" << imap.first << " time: "<< imap.second.Convert() << std::endl;
+  }
+
+  static const int nIOVs=12; //     1      2      3      4      5      6      7      8      9     10     11     12      
+  int IOVboundaries[nIOVs]  = {296641,297179,297281,298653,299277,299443,300389,301046,302131,303790,304911,305898};
+  TArrow* IOV_lines[nIOVs];
+  c->cd();
+  c->Update();
+
+  TArrow* a_lines[nIOVs];
+  for(Int_t IOV=0;IOV<nIOVs;IOV++){
+
+    int closestrun = pv::closest(vruns,IOVboundaries[IOV]); 
+
+    if(lumi_axis_format){
+
+      if(closestrun<0) break;
+      //std::cout<< "natural boundary: " << IOVboundaries[IOV] << " closest:" << closestrun << std::endl;
+
+      a_lines[IOV] = new TArrow(lumiMapByRun.at(closestrun),(c->GetUymin()),lumiMapByRun.at(closestrun),0.65*c->GetUymax(),0.5,"|>");
+    } else if(time_axis_format){
+      
+      if(closestrun<0) break;
+      std::cout<< "natural boundary: " << IOVboundaries[IOV] << " closest:" << closestrun << std::endl;
+      a_lines[IOV] = new TArrow(timeMap.at(closestrun).Convert(),(c->GetUymin()),timeMap.at(closestrun).Convert(),0.65*c->GetUymax(),0.5,"|>");
+    } else {
+      a_lines[IOV] = new TArrow(IOVboundaries[IOV],(c->GetUymin()),IOVboundaries[IOV],0.65*c->GetUymax(),0.5,"|>"); //(c->GetUymin()+0.2*(c->GetUymax()-c->GetUymin()) ),0.5,"|>");
+    }
+    a_lines[IOV]->SetLineColor(kRed);
+    a_lines[IOV]->SetLineStyle(9);
+    a_lines[IOV]->SetLineWidth(1);
+    a_lines[IOV]->Draw("same");
+  }
+
+  TPaveText* runnumbers[nIOVs];
+  
+  for(Int_t IOV=0;IOV<nIOVs;IOV++){
+
+    int closestrun = pv::closest(vruns,IOVboundaries[IOV]);
+    
+    Int_t ix1;
+    Int_t ix2;
+    Int_t iw = gPad->GetWw();
+    Int_t ih = gPad->GetWh();
+    Double_t x1p,y1p,x2p,y2p;
+    gPad->GetPadPar(x1p,y1p,x2p,y2p);
+    ix1 = (Int_t)(iw*x1p);
+    ix2 = (Int_t)(iw*x2p);
+    Double_t wndc  = TMath::Min(1.,(Double_t)iw/(Double_t)ih);
+    Double_t rw    = wndc/(Double_t)iw;
+    Double_t x1ndc = (Double_t)ix1*rw;
+    Double_t x2ndc = (Double_t)ix2*rw;
+    Double_t rx1,ry1,rx2,ry2;
+    gPad->GetRange(rx1,ry1,rx2,ry2);
+    Double_t rx = (x2ndc-x1ndc)/(rx2-rx1);
+    Double_t _sx;
+    if(lumi_axis_format){
+      if(closestrun<0) break; 
+      _sx = rx*(lumiMapByRun.at(closestrun)-rx1)+x1ndc; //-0.05;
+    } else if(time_axis_format){
+      if(closestrun<0) break; 
+      _sx = rx*(timeMap.at(closestrun).Convert()-rx1)+x1ndc; //-0.05;
+    } else {
+      _sx = rx*(IOVboundaries[IOV]-rx1)+x1ndc; //-0.05
+    }
+    Double_t _dx = _sx+0.05;
+    
+    Int_t index;
+    if(IOV<5) 
+      index=IOV;
+    else{
+      index=IOV-5;
+    }
+    
+    runnumbers[IOV] = new TPaveText(_sx,0.14+(0.03*index),_dx,(0.17+0.03*index),"NDC");
+    //runnumbers[IOV]->SetTextAlign(11);
+    TText *textRun = runnumbers[IOV]->AddText(Form("%i",int(IOVboundaries[IOV])));
+    textRun->SetTextSize(0.028);
+    textRun->SetTextColor(kRed);
+    runnumbers[IOV]->SetFillColor(10);
+    runnumbers[IOV]->SetLineColor(kRed);
+    runnumbers[IOV]->SetLineWidth(2);
+    runnumbers[IOV]->SetTextColor(kRed);
+    runnumbers[IOV]->SetTextFont(42);
+    runnumbers[IOV]->Draw("same");
+  }
+
+
 }
