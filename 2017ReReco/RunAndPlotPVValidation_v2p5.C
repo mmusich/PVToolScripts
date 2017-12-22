@@ -26,7 +26,7 @@
 #include <fstream>
 #include <sstream>
 
-#define DEBUG true
+#define DEBUG false
 
 namespace pv{
   enum vista {
@@ -522,10 +522,10 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
   TCanvas *dz_phi_vs_run  = new TCanvas("dz_phi_vs_run" ,"dz(#phi) bias vs run number" ,1600,800);
   TCanvas *dz_eta_vs_run  = new TCanvas("dz_eta_vs_run" ,"dz(#eta) bias vs run number" ,1600,800);
 
-  TCanvas *RMS_dxy_phi_vs_run = new TCanvas("RM_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *RMS_dxy_eta_vs_run = new TCanvas("RM_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
-  TCanvas *RMS_dz_phi_vs_run = new TCanvas("RM_dz_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *RMS_dz_eta_vs_run = new TCanvas("RM_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+  TCanvas *RMS_dxy_phi_vs_run = new TCanvas("RMS_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
+  TCanvas *RMS_dxy_eta_vs_run = new TCanvas("RMS_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+  TCanvas *RMS_dz_phi_vs_run = new TCanvas("RMS_dz_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
+  TCanvas *RMS_dz_eta_vs_run = new TCanvas("RMS_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
 
   TGraph *g_dxy_phi_vs_run[nDirs_];
   TGraph *g_dxy_phi_hi_vs_run[nDirs_];
@@ -683,9 +683,9 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       for(Int_t k=0; k< nDirs_; k++){
 	h_RMS_dxy_phi_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.3);
 	if(k==0){
-	  h_RMS_dxy_phi_vs_run[k]->Draw("PE1");
+	  h_RMS_dxy_phi_vs_run[k]->Draw("L");
 	} else {
-	  h_RMS_dxy_phi_vs_run[k]->Draw("PE1same");
+	  h_RMS_dxy_phi_vs_run[k]->Draw("Lsame");
 	}
       }
       
@@ -779,9 +779,9 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       for(Int_t k=0; k< nDirs_; k++){
 	h_RMS_dxy_eta_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
 	if(k==0){
-	  h_RMS_dxy_eta_vs_run[k]->Draw("PE1");
+	  h_RMS_dxy_eta_vs_run[k]->Draw("L");
 	} else {
-	  h_RMS_dxy_eta_vs_run[k]->Draw("PE1same");
+	  h_RMS_dxy_eta_vs_run[k]->Draw("Lsame");
 	}
       }
       my_lego->Draw("same");
@@ -873,9 +873,9 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       for(Int_t k=0; k< nDirs_; k++){
 	h_RMS_dz_phi_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
 	if(k==0){
-	  h_RMS_dz_phi_vs_run[k]->Draw("PE1");
+	  h_RMS_dz_phi_vs_run[k]->Draw("L");
 	} else {
-	  h_RMS_dz_phi_vs_run[k]->Draw("PE1same");
+	  h_RMS_dz_phi_vs_run[k]->Draw("Lsame");
 	}
       }
       my_lego->Draw("same");
@@ -967,9 +967,9 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       for(Int_t k=0; k< nDirs_; k++){
 	h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
 	if(k==0){
-	  h_RMS_dz_eta_vs_run[k]->Draw("PE1");
+	  h_RMS_dz_eta_vs_run[k]->Draw("L");
 	} else {
-	  h_RMS_dz_eta_vs_run[k]->Draw("PE1same");
+	  h_RMS_dz_eta_vs_run[k]->Draw("Lsame");
 	}
       }
       my_lego->Draw("same");
@@ -1635,6 +1635,8 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
   TArrow* a_lines[nIOVs];
   for(Int_t IOV=0;IOV<nIOVs;IOV++){
 
+    // check we are not in the RMS histogram to avoid first line
+    if(IOVboundaries[IOV]<vruns.front() && ((TString)c->GetName()).Contains("RMS")) continue;
     int closestrun = pv::closest(vruns,IOVboundaries[IOV]); 
 
     if(lumi_axis_format){
@@ -1661,6 +1663,7 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
   
   for(Int_t IOV=0;IOV<nIOVs;IOV++){
 
+    if(IOVboundaries[IOV]<vruns.front() && ((TString)c->GetName()).Contains("RMS")) continue;
     int closestrun = pv::closest(vruns,IOVboundaries[IOV]);
     
     Int_t ix1;
@@ -1697,12 +1700,12 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
       index=IOV-5;
     }
     
-    runnumbers[IOV] = new TPaveText(_sx,0.14+(0.03*index),_dx,(0.17+0.03*index),"NDC");
+    runnumbers[IOV] = new TPaveText(_sx-0.01,0.14+(0.03*index),_dx,(0.17+0.03*index),"blNDC");
     //runnumbers[IOV]->SetTextAlign(11);
     TText *textRun = runnumbers[IOV]->AddText(Form("%i",int(IOVboundaries[IOV])));
     textRun->SetTextSize(0.028);
     textRun->SetTextColor(kRed);
-    runnumbers[IOV]->SetFillColor(10);
+    runnumbers[IOV]->SetFillColor(kYellow);
     runnumbers[IOV]->SetLineColor(kRed);
     runnumbers[IOV]->SetLineWidth(2);
     runnumbers[IOV]->SetTextColor(kRed);
