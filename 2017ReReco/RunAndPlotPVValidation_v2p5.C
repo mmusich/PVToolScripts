@@ -29,7 +29,7 @@
 #define DEBUG false
 
 namespace pv{
-  enum vista {
+  enum view {
     dxyphi,
     dzphi,
     dxyeta,
@@ -73,7 +73,7 @@ void beautify(TGraph *g);
 void beautify(TH1 *h);
 void adjustmargins(TCanvas *canv);
 void setStyle();
-pv::vista checkTheVista(const TString &toCheck);
+pv::view checkTheView(const TString &toCheck);
 template<typename T> void timify(T *mgr);
 Double_t getMaximumFromArray(TObjArray *array);
 void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_format,const std::map<int,double> &lumiMapByRun,const std::map<int,TDatime>& timeMap);
@@ -223,6 +223,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
     std::cout<<index<<" "<<intersection[index]<<std::endl;
   }
 
+
   // book the vectors of values
   alignmentTrend dxyPhiMeans_;
   alignmentTrend dxyPhiHi_;
@@ -285,7 +286,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
     TH1F* dzNormPtWidthTrend[nDirs_];      
     TH1F* dxyPtWidthTrend[nDirs_];
     TH1F* dzPtWidthTrend[nDirs_]; 
-    
+        
     bool areAllFilesOK = true;
     Int_t lastOpen = 0;
  
@@ -362,10 +363,10 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       
       auto dxyPhiBiases = getBiases(dxyPhiMeanTrend[j],useRMS);
       
-      std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) mean: "<< dxyPhiBiases.second
-	       <<" dxy(phi) max: "<< dxyPhiBiases.first.first
-	       <<" dxy(phi) min: "<< dxyPhiBiases.first.second
-	       << std::endl;
+      //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) mean: "<< dxyPhiBiases.second
+      //	       <<" dxy(phi) max: "<< dxyPhiBiases.first.first
+      //       <<" dxy(phi) min: "<< dxyPhiBiases.first.second
+      //       << std::endl;
 
       dxyPhiMeans_[LegLabels[j]].push_back(dxyPhiBiases.second);
       dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.first.first);
@@ -435,7 +436,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
       lumiMapByRun[intersection.at(n)]=lumiSoFar/1000.;
     }
 
-    std::cout<<"I am still here"<<std::endl;
+    //std::cout<<"I am still here"<<std::endl;
 
     // Bias plots
 
@@ -527,6 +528,8 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
   TCanvas *RMS_dz_phi_vs_run = new TCanvas("RMS_dz_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
   TCanvas *RMS_dz_eta_vs_run = new TCanvas("RMS_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
 
+  // bias on the mean
+
   TGraph *g_dxy_phi_vs_run[nDirs_];
   TGraph *g_dxy_phi_hi_vs_run[nDirs_];
   TGraph *g_dxy_phi_lo_vs_run[nDirs_];
@@ -548,7 +551,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
   TH1F *h_RMS_dxy_phi_vs_run[nDirs_];
   TH1F *h_RMS_dxy_eta_vs_run[nDirs_];
   TH1F *h_RMS_dz_phi_vs_run[nDirs_];
-  TH1F *h_RMS_dz_eta_vs_run[nDirs_];
+  TH1F *h_RMS_dz_eta_vs_run[nDirs_];   
 
   TString theType="";
   TString theTypeLabel="";
@@ -615,7 +618,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
     g_dxy_phi_vs_run[j]->SetName(Form("g_bias_dxy_phi_%s",LegLabels[j].Data()));
     g_dxy_phi_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#varphi) vs %s",theType.Data()));
     g_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#phi) #GT");
+    g_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#phi) #GT [#mum]");
     g_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-50,50);
     beautify(g_dxy_phi_vs_run[j]);
  
@@ -716,7 +719,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
     g_dxy_eta_vs_run[j]->SetName(Form("g_bias_dxy_eta_%s",LegLabels[j].Data()));
     g_dxy_eta_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#eta) vs %s",theType.Data()));
     g_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#eta) #GT");
+    g_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#eta) #GT [#mum]");
     beautify(g_dxy_eta_vs_run[j]);
 
     g_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20,20);
@@ -811,7 +814,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
     g_dz_phi_vs_run[j]->SetName(Form("g_bias_dz_phi_%s",LegLabels[j].Data()));
     g_dz_phi_vs_run[j]->SetTitle(Form("Bias of d_{z}(#varphi) vs %s",theType.Data()));
     g_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_dz_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#phi) #GT");
+    g_dz_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#phi) #GT [#mum]");
     
     g_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-20,20);
     if(j==0){
@@ -905,7 +908,7 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
     g_dz_eta_vs_run[j]->SetName(Form("g_bias_dz_eta_%s",LegLabels[j].Data()));
     g_dz_eta_vs_run[j]->SetTitle(Form("Bias of d_{z}(#eta) vs %s",theType.Data()));
     g_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_dz_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#eta) #GT");
+    g_dz_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#eta) #GT [#mum]");
 
     g_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-100,100);
     if(j==0){
@@ -1028,6 +1031,32 @@ void RunAndPlotPVValidation_v2p5(TString namesandlabels,bool lumi_axis_format,bo
   RMS_dz_eta_vs_run->SaveAs("RMS_dz_eta_vs_"+append+".pdf");
   RMS_dz_eta_vs_run->SaveAs("RMS_dz_eta_vs_"+append+".png");
 
+  // do all the deletes
+
+  for(int iDir=0;iDir<nDirs_;iDir++){
+
+   delete g_dxy_phi_vs_run[iDir];    
+   delete g_dxy_phi_hi_vs_run[iDir]; 
+   delete g_dxy_phi_lo_vs_run[iDir]; 
+                               
+   delete g_dxy_eta_vs_run[iDir];    
+   delete g_dxy_eta_hi_vs_run[iDir]; 
+   delete g_dxy_eta_lo_vs_run[iDir]; 
+                               
+   delete g_dz_phi_vs_run[iDir];     
+   delete g_dz_phi_hi_vs_run[iDir];  
+   delete g_dz_phi_lo_vs_run[iDir];  
+                               
+   delete g_dz_eta_vs_run[iDir];     
+   delete g_dz_eta_hi_vs_run[iDir];  
+   delete g_dz_eta_lo_vs_run[iDir];  
+                                                             
+   delete h_RMS_dxy_phi_vs_run[iDir];  
+   delete h_RMS_dxy_eta_vs_run[iDir];  
+   delete h_RMS_dz_phi_vs_run[iDir];   
+   delete h_RMS_dz_eta_vs_run[iDir];   
+
+  }
 
   // mv the run-by-run plots into the folders
 
@@ -1173,11 +1202,11 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 	    // } else {
 	    //   dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,200.);
 	    // }
-	    auto my_vista = checkTheVista(theTitle);
+	    auto my_view = checkTheView(theTitle);
 
-	    //std::cout<<" ----------------------------------> " << theTitle << " vista: " << my_vista <<  std::endl;
+	    //std::cout<<" ----------------------------------> " << theTitle << " view: " << my_view <<  std::endl;
 
-	    switch(my_vista){
+	    switch(my_view){
 	    case pv::dxyphi  : 
 	      dBiasTrend[k][i]->GetYaxis()->SetRangeUser(0.,200.); 
 	      break;
@@ -1544,7 +1573,7 @@ TH1F* checkTH1AndReturn(TFile *f,TString address){
 }
 
 /*--------------------------------------------------------------------*/
-pv::vista checkTheVista(const TString &toCheck){
+pv::view checkTheView(const TString &toCheck){
 /*--------------------------------------------------------------------*/
   if (toCheck.Contains("dxy")){
     if (toCheck.Contains("phi") || toCheck.Contains("ladder")){
@@ -1700,13 +1729,14 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
       index=IOV-5;
     }
     
-    runnumbers[IOV] = new TPaveText(_sx-0.01,0.14+(0.03*index),_dx,(0.17+0.03*index),"blNDC");
+    runnumbers[IOV] = new TPaveText(_sx+0.001,0.14+(0.03*index),_dx,(0.17+0.03*index),"blNDC");
     //runnumbers[IOV]->SetTextAlign(11);
     TText *textRun = runnumbers[IOV]->AddText(Form("%i",int(IOVboundaries[IOV])));
     textRun->SetTextSize(0.028);
     textRun->SetTextColor(kRed);
-    runnumbers[IOV]->SetFillColor(kYellow);
+    runnumbers[IOV]->SetFillColor(10);
     runnumbers[IOV]->SetLineColor(kRed);
+    runnumbers[IOV]->SetBorderSize(1);
     runnumbers[IOV]->SetLineWidth(2);
     runnumbers[IOV]->SetTextColor(kRed);
     runnumbers[IOV]->SetTextFont(42);
