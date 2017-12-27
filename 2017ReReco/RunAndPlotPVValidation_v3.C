@@ -28,7 +28,7 @@
 #include <fstream>
 #include <sstream>
 
-#define DEBUG true
+#define DEBUG false
 
 namespace pv{
   enum view {
@@ -79,11 +79,19 @@ struct unrolledHisto {
     return m_bincontents;
   }
 
+  double get_integral(){
+    double ret(0.);
+    for(const auto &binc: m_bincontents){
+      ret+=binc;
+    }
+    return ret;
+  }
+
 };
 
 
 // all marker and style types
-Int_t markers[8] = {kFullSquare,kFullCircle,kOpenSquare,kOpenCircle,kFullTriangleDown,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
+Int_t markers[8] = {kFullSquare,kFullCircle,kFullTriangleDown,kOpenSquare,kOpenCircle,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
 Int_t colors[8]  = {kBlack,kBlue,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
 
 // forward declarations
@@ -110,6 +118,7 @@ void makeNewXAxis (TH1 *h);
 void beautify(TGraph *g);
 void beautify(TH1 *h);
 void adjustmargins(TCanvas *canv);
+void adjustmargins(TVirtualPad*canv);
 void setStyle();
 pv::view checkTheView(const TString &toCheck);
 template<typename T> void timify(T *mgr);
@@ -341,15 +350,18 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
 
       //fins[j] = TFile::Open(Form("%s/PVValidation_%s_%i.root",dirs[j],dirs[j],intersection[n]));
 
-      fins[j] = new TFile(Form("%s/PVValidation_%s_%i.root",dirs[j],dirs[j],intersection[n]));
+      size_t position = std::string(dirs[j]).find("/");   
+      string stem = std::string(dirs[j]).substr(position+1);     // get from position to the end
+      
+      fins[j] = new TFile(Form("%s/PVValidation_%s_%i.root",dirs[j],stem.c_str(),intersection[n]));
       if(fins[j]->IsZombie()){
-	std::cout<< Form("%s/PVValidation_%s_%i.root",dirs[j],dirs[j],intersection[n]) << " is a Zombie! cannot combine" << std::endl;
+	std::cout<< Form("%s/PVValidation_%s_%i.root",dirs[j],stem.c_str(),intersection[n]) << " is a Zombie! cannot combine" << std::endl;
 	areAllFilesOK = false;
 	lastOpen=j;
 	break;
       }
 
-      std::cout<< Form("%s/PVValidation_%s_%i.root",dirs[j],dirs[j],intersection[n]) 
+      std::cout<< Form("%s/PVValidation_%s_%i.root",dirs[j],stem.c_str(),intersection[n]) 
 	       << " has size: "<<fins[j]->GetSize() << " b ";
       
       // sanity check
@@ -367,8 +379,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       }
 
       Double_t numEvents = h_tracks->GetEntries();
-      if(numEvents<10000){
-	std::cout<<"excluding " << intersection[n] << "because it has less than 10k events" << std::endl;
+      if(numEvents<2500){
+	std::cout<<"excluding " << intersection[n] << "because it has less than 2.5k events" << std::endl;
 	areAllFilesOK = false;
 	lastOpen=j;
 	break;
@@ -587,8 +599,10 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
   TCanvas *RMS_dz_eta_vs_run = new TCanvas("RMS_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
 
   TCanvas *Scatter_dxy_vs_run = new TCanvas("Scatter_dxy_vs_run","dxy bias vs run number",1600,800);
+  Scatter_dxy_vs_run->Divide(1,nDirs_);
   TCanvas *Scatter_dz_vs_run  = new TCanvas("Scatter_dz_vs_run","dxy bias vs run number",1600,800);
-    
+  Scatter_dz_vs_run->Divide(1,nDirs_);    
+
   // bias on the mean
 
   TGraph *g_dxy_phi_vs_run[nDirs_];
@@ -1056,15 +1070,15 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     // *************************************
 
     h2_scatter_dxy_vs_run[j] = new TH2F(Form("h2_scatter_dxy_%s",LegLabels[j].Data()),Form("scatter of d_{xy} vs %s;%s;d_{xy} [cm]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]),dxyVect[LegLabels[j]][0].get_n_bins(),dxyVect[LegLabels[j]][0].get_y_min(),dxyVect[LegLabels[j]][0].get_y_max());
-    
+    h2_scatter_dxy_vs_run[j]->SetStats(kFALSE);
+
     for(unsigned int runindex=0;runindex<x_ticks.size();runindex++){
       for(unsigned int binindex=0;binindex<dxyVect[LegLabels[j]][runindex].get_n_bins();binindex++){
-	h2_scatter_dxy_vs_run[j]->SetBinContent(runindex+1,binindex+1,dxyVect[LegLabels[j]][runindex].get_bin_contents().at(binindex));
+	h2_scatter_dxy_vs_run[j]->SetBinContent(runindex+1,binindex+1,dxyVect[LegLabels[j]][runindex].get_bin_contents().at(binindex)/dxyVect[LegLabels[j]][runindex].get_integral());
       }
     }
   
-    Scatter_dxy_vs_run->cd();
-    adjustmargins(Scatter_dxy_vs_run);
+    //Scatter_dxy_vs_run->cd();
     h2_scatter_dxy_vs_run[j]->SetFillColorAlpha(colors[j],0.3);
     h2_scatter_dxy_vs_run[j]->SetMarkerColor(colors[j]);
     h2_scatter_dxy_vs_run[j]->SetLineColor(colors[j]);
@@ -1076,62 +1090,58 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     h_dxypfx_tmp->SetMarkerColor(colors[j]);
     h_dxypfx_tmp->SetLineColor(colors[j]);
     h_dxypfx_tmp->SetLineWidth(2); 
-    h_dxypfx_tmp->SetMarkerSize(2); 
+    h_dxypfx_tmp->SetMarkerSize(1); 
     h_dxypfx_tmp->SetMarkerStyle(markers[j]);
 
     beautify(h2_scatter_dxy_vs_run[j]);
     beautify(h_dxypfx_tmp);
 
-    if(j==0){
-      h_dxypfx_tmp->GetYaxis()->SetRangeUser(-0.01,0.01);
-      h_dxypfx_tmp->Draw();
-      //h2_scatter_dxy_vs_run[j]->Draw("candle3");  
-    } else {
-      h_dxypfx_tmp->Draw("same");
-      //h2_scatter_dxy_vs_run[j]->Draw("candle3same");  
-    }
+    Scatter_dxy_vs_run->cd(j+1);
+    adjustmargins(Scatter_dxy_vs_run->cd(j+1));
+    //h_dxypfx_tmp->GetYaxis()->SetRangeUser(-0.01,0.01);
+    //h2_scatter_dxy_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,0.5);
+    h2_scatter_dxy_vs_run[j]->Draw("colz");  
+    h_dxypfx_tmp->Draw("same");
 
     // *************************************
     // Integrated bias dz scatter plots
     // *************************************
 
     h2_scatter_dz_vs_run[j] = new TH2F(Form("h2_scatter_dz_%s",LegLabels[j].Data()),Form("scatter of d_{z} vs %s;%s;d_{z} [cm]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]),dzVect[LegLabels[j]][0].get_n_bins(),dzVect[LegLabels[j]][0].get_y_min(),dzVect[LegLabels[j]][0].get_y_max());
-    
+    h2_scatter_dz_vs_run[j]->SetStats(kFALSE);
+
     for(unsigned int runindex=0;runindex<x_ticks.size();runindex++){
       for(unsigned int binindex=0;binindex<dzVect[LegLabels[j]][runindex].get_n_bins();binindex++){
-	h2_scatter_dz_vs_run[j]->SetBinContent(runindex+1,binindex+1,dzVect[LegLabels[j]][runindex].get_bin_contents().at(binindex));
+	h2_scatter_dz_vs_run[j]->SetBinContent(runindex+1,binindex+1,dzVect[LegLabels[j]][runindex].get_bin_contents().at(binindex)/dzVect[LegLabels[j]][runindex].get_integral());
       }
     }
     
+    //Scatter_dz_vs_run->cd();
+    h2_scatter_dz_vs_run[j]->SetFillColorAlpha(colors[j],0.3);
+    h2_scatter_dz_vs_run[j]->SetMarkerColor(colors[j]);
+    h2_scatter_dz_vs_run[j]->SetLineColor(colors[j]);
+    h2_scatter_dz_vs_run[j]->SetMarkerStyle(markers[j]);
+
     auto h_dzpfx_tmp = (TProfile*)(((TH2F*)h2_scatter_dz_vs_run[j])->ProfileX(Form("_apfx_%i",j),1,-1,"o"));
     h_dzpfx_tmp->SetName(TString(h2_scatter_dz_vs_run[j]->GetName())+"_pfx");
     h_dzpfx_tmp->SetStats(kFALSE);
     h_dzpfx_tmp->SetMarkerColor(colors[j]);
     h_dzpfx_tmp->SetLineColor(colors[j]);
     h_dzpfx_tmp->SetLineWidth(2); 
-    h_dzpfx_tmp->SetMarkerSize(2); 
+    h_dzpfx_tmp->SetMarkerSize(1); 
     h_dzpfx_tmp->SetMarkerStyle(markers[j]);
-    h_dzpfx_tmp->GetYaxis()->SetRangeUser(-0.01,0.01);
-
-    Scatter_dz_vs_run->cd();
-    adjustmargins(Scatter_dz_vs_run);
-    h2_scatter_dz_vs_run[j]->SetFillColorAlpha(colors[j],0.3);
-    h2_scatter_dz_vs_run[j]->SetMarkerColor(colors[j]);
-    h2_scatter_dz_vs_run[j]->SetLineColor(colors[j]);
-    h2_scatter_dz_vs_run[j]->SetMarkerStyle(markers[j]);
 
     beautify(h2_scatter_dz_vs_run[j]);
     beautify(h_dzpfx_tmp);
 
-    if(j==0){
-      h_dzpfx_tmp->GetYaxis()->SetRangeUser(-0.01,0.01);
-      h_dzpfx_tmp->Draw();
-      //h2_scatter_dz_vs_run[j]->Draw("candle3");  
-    } else {
-      h_dzpfx_tmp->Draw("same");
-      //h2_scatter_dz_vs_run[j]->Draw("candle3same");  
-    }
+    Scatter_dz_vs_run->cd(j+1);
+    adjustmargins(Scatter_dz_vs_run->cd(j+1));
+    //h_dzpfx_tmp->GetYaxis()->SetRangeUser(-0.01,0.01);
+    //h2_scatter_dz_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,0.5); 
+    h2_scatter_dz_vs_run[j]->Draw("colz");  
+    h_dzpfx_tmp->Draw("same");
 
+ 
   }
   
   // delete the array for the maxima
@@ -1550,13 +1560,23 @@ void setStyle(){
   gStyle->SetOptFit(1);
   gStyle->SetNdivisions(510);
 
+  //gStyle->SetPalette(kInvertedDarkBodyRadiator);
+
   const Int_t NRGBs = 5;
   const Int_t NCont = 255;
-  
+
+  /*
   Double_t stops[NRGBs] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
   Double_t red[NRGBs]   = { 0.00, 0.00, 0.87, 1.00, 0.51 };
   Double_t green[NRGBs] = { 0.00, 0.81, 1.00, 0.20, 0.00 };
   Double_t blue[NRGBs]  = { 0.51, 1.00, 0.12, 0.00, 0.00 };
+  */
+
+  Double_t stops[NRGBs] = {0.00, 0.01, 0.05, 0.09, 0.1};
+  Double_t red[NRGBs]   = {1.00, 0.84, 0.61, 0.34, 0.00};
+  Double_t green[NRGBs] = {1.00, 0.84, 0.61, 0.34, 0.00};
+  Double_t blue[NRGBs]  = {1.00, 0.84, 0.61, 0.34, 0.00};
+
   TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
   gStyle->SetNumberContours(NCont);
 
@@ -1579,14 +1599,17 @@ void cmsPrel(TPad* pad) {
   TLatex *latex = new TLatex();
   latex->SetNDC();
   latex->SetTextSize(0.045);
-  latex->SetTextFont(42); //22
 
   float posX_ =  1-r - relPosX*(1-l-r);
   float posY_ =  1-t + 0.05; /// - relPosY*(1-t-b);
 
   latex->SetTextAlign(33);
+  latex->SetTextFont(61);
+  latex->DrawLatex(posX_-0.15,posY_,"CMS");
+  latex->SetTextFont(42); //22
+  latex->DrawLatex(posX_,posY_,"Internal (13 TeV)");
   //latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
-  latex->DrawLatex(posX_,posY_,"CMS 2017 Work in progress (13 TeV)");
+  //latex->DrawLatex(posX_,posY_,"CMS 2017 Work in progress (13 TeV)");
   
 }
 
@@ -1635,13 +1658,18 @@ TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst)
 unrolledHisto getUnrolledHisto(TH1F* hist)
 /*--------------------------------------------------------------------*/
 {
+  
+  /*
+    Double_t y_min = hist->GetBinLowEdge(1);
+    Double_t y_max = hist->GetBinLowEdge(hist->GetNbinsX()+1);
+  */    
 
-  Double_t y_min = hist->GetBinLowEdge(1);
-  Double_t y_max = hist->GetBinLowEdge(hist->GetNbinsX()+1);
-    
+  Double_t y_min = -0.1;
+  Double_t y_max = 0.1;
+
   std::vector<Double_t> contents;
   for (int j = 0; j < hist->GetNbinsX(); j++) {
-    contents.push_back(hist->GetBinContent(j+1));
+    if(std::abs(hist->GetXaxis()->GetBinCenter(j))<=0.1) contents.push_back(hist->GetBinContent(j+1));
   }
   
   auto ret = unrolledHisto(y_min,y_max,contents.size(),contents);
@@ -1734,6 +1762,15 @@ void adjustmargins(TCanvas *canv){
   canv->cd()->SetLeftMargin(0.11);
   canv->cd()->SetRightMargin(0.01);
   canv->cd()->SetTopMargin(0.06);
+}
+
+/*--------------------------------------------------------------------*/
+void adjustmargins(TVirtualPad *canv){
+/*--------------------------------------------------------------------*/
+  canv->SetBottomMargin(0.14);
+  canv->SetLeftMargin(0.08);
+  canv->SetRightMargin(0.08);
+  canv->SetTopMargin(0.06);
 }
 
 /*--------------------------------------------------------------------*/
