@@ -766,7 +766,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       auto theMax = getMaximumFromArray(arr_dxy_phi);
 
       for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dxy_phi_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.3);
+	h_RMS_dxy_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.3,theMax*1.3);
 	if(k==0){
 	  h_RMS_dxy_phi_vs_run[k]->Draw("L");
 	} else {
@@ -775,7 +775,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       }
       
       my_lego->Draw("same");
-     
+      TH1F* theConst = DrawConstant(h_RMS_dxy_phi_vs_run[j],h_RMS_dxy_phi_vs_run[j]->GetNbinsX(),h_RMS_dxy_phi_vs_run[j]->GetBinLowEdge(1),h_RMS_dxy_phi_vs_run[j]->GetBinLowEdge(h_RMS_dxy_phi_vs_run[j]->GetNbinsX()+1),1,0.);
+      theConst->Draw("same");
     }
 
     current_pad = static_cast<TPad*>(gPad);
@@ -862,7 +863,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       auto theMax = getMaximumFromArray(arr_dxy_eta);
 
       for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dxy_eta_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
+	h_RMS_dxy_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.3,theMax*1.30);
 	if(k==0){
 	  h_RMS_dxy_eta_vs_run[k]->Draw("L");
 	} else {
@@ -870,6 +871,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
 	}
       }
       my_lego->Draw("same");
+      TH1F* theConst = DrawConstant(h_RMS_dxy_eta_vs_run[j],h_RMS_dxy_eta_vs_run[j]->GetNbinsX(),h_RMS_dxy_eta_vs_run[j]->GetBinLowEdge(1),h_RMS_dxy_eta_vs_run[j]->GetBinLowEdge(h_RMS_dxy_eta_vs_run[j]->GetNbinsX()+1),1,0.);
+      theConst->Draw("same");
     }
 
     current_pad = static_cast<TPad*>(gPad);
@@ -956,7 +959,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       auto theMax = getMaximumFromArray(arr_dz_phi);
       
       for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dz_phi_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
+	h_RMS_dz_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.3,theMax*1.30);
 	if(k==0){
 	  h_RMS_dz_phi_vs_run[k]->Draw("L");
 	} else {
@@ -964,6 +967,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
 	}
       }
       my_lego->Draw("same");
+      TH1F* theConst = DrawConstant(h_RMS_dz_phi_vs_run[j],h_RMS_dz_phi_vs_run[j]->GetNbinsX(),h_RMS_dz_phi_vs_run[j]->GetBinLowEdge(1),h_RMS_dz_phi_vs_run[j]->GetBinLowEdge(h_RMS_dz_phi_vs_run[j]->GetNbinsX()+1),1,0.);
+      theConst->Draw("same");
     }
 
     current_pad = static_cast<TPad*>(gPad);
@@ -1050,7 +1055,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       auto theMax = getMaximumFromArray(arr_dz_eta);
 
       for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(0.,theMax*1.30);
+	h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.3,theMax*1.30);
 	if(k==0){
 	  h_RMS_dz_eta_vs_run[k]->Draw("L");
 	} else {
@@ -1058,6 +1063,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
 	}
       }
       my_lego->Draw("same");
+      TH1F* theConst = DrawConstant(h_RMS_dz_eta_vs_run[j],h_RMS_dz_eta_vs_run[j]->GetNbinsX(),h_RMS_dz_eta_vs_run[j]->GetBinLowEdge(1),h_RMS_dz_eta_vs_run[j]->GetBinLowEdge(h_RMS_dz_eta_vs_run[j]->GetNbinsX()+1),1,0.);
+      theConst->Draw("same");
     }
 
     current_pad = static_cast<TPad*>(gPad);
@@ -1605,7 +1612,7 @@ void cmsPrel(TPad* pad) {
 
   latex->SetTextAlign(33);
   latex->SetTextFont(61);
-  latex->DrawLatex(posX_-0.15,posY_,"CMS");
+  latex->DrawLatex(posX_-0.155,posY_,"CMS");
   latex->SetTextFont(42); //22
   latex->DrawLatex(posX_,posY_,"Internal (13 TeV)");
   //latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
