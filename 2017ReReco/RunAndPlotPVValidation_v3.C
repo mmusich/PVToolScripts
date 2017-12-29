@@ -16,6 +16,7 @@
 #include "TProfile.h"
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TF1.h"
 #include "TGraph.h"
 #include "TArrow.h"
 #include "TCanvas.h"
@@ -579,24 +580,36 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       delete dzNormPtWidthTrend[i];  
       delete dxyPtWidthTrend[i];
       delete dzPtWidthTrend[i]; 
-
+    
       fins[i]->Close();
     }
     
+    delete BiasesCanvas;
+    delete BiasesL1Canvas;
+    delete ResolutionsCanvas; 
+    delete ResolutionsL1Canvas;
+    delete PullsCanvas;
+    delete ResolutionsVsPt;
+
     std::cout<<std::endl;
   }
 
   // do the trend-plotting!
 
-  TCanvas *dxy_phi_vs_run = new TCanvas("dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *dxy_eta_vs_run = new TCanvas("dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
-  TCanvas *dz_phi_vs_run  = new TCanvas("dz_phi_vs_run" ,"dz(#phi) bias vs run number" ,1600,800);
-  TCanvas *dz_eta_vs_run  = new TCanvas("dz_eta_vs_run" ,"dz(#eta) bias vs run number" ,1600,800);
+  TCanvas *c_dxy_phi_vs_run = new TCanvas("c_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
+  TCanvas *c_dxy_eta_vs_run = new TCanvas("c_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+  TCanvas *c_dz_phi_vs_run  = new TCanvas("c_dz_phi_vs_run" ,"dz(#phi) bias vs run number" ,1600,800);
+  TCanvas *c_dz_eta_vs_run  = new TCanvas("c_dz_eta_vs_run" ,"dz(#eta) bias vs run number" ,1600,800);
 
-  TCanvas *RMS_dxy_phi_vs_run = new TCanvas("RMS_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *RMS_dxy_eta_vs_run = new TCanvas("RMS_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
-  TCanvas *RMS_dz_phi_vs_run = new TCanvas("RMS_dz_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *RMS_dz_eta_vs_run = new TCanvas("RMS_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+  TCanvas *c_RMS_dxy_phi_vs_run = new TCanvas("c_RMS_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
+  TCanvas *c_RMS_dxy_eta_vs_run = new TCanvas("c_RMS_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+  TCanvas *c_RMS_dz_phi_vs_run  = new TCanvas("c_RMS_dz_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
+  TCanvas *c_RMS_dz_eta_vs_run  = new TCanvas("c_RMS_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+
+  TCanvas *c_mean_dxy_phi_vs_run = new TCanvas("c_mean_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
+  TCanvas *c_mean_dxy_eta_vs_run = new TCanvas("c_mean_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+  TCanvas *c_mean_dz_phi_vs_run  = new TCanvas("c_mean_dz_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
+  TCanvas *c_mean_dz_eta_vs_run  = new TCanvas("c_mean_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
 
   TCanvas *Scatter_dxy_vs_run = new TCanvas("Scatter_dxy_vs_run","dxy bias vs run number",1600,800);
   Scatter_dxy_vs_run->Divide(1,nDirs_);
@@ -606,18 +619,22 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
   // bias on the mean
 
   TGraph *g_dxy_phi_vs_run[nDirs_];
+  TGraph *gprime_dxy_phi_vs_run[nDirs_];  
   TGraph *g_dxy_phi_hi_vs_run[nDirs_];
   TGraph *g_dxy_phi_lo_vs_run[nDirs_];
   
   TGraph *g_dxy_eta_vs_run[nDirs_];
+  TGraph *gprime_dxy_eta_vs_run[nDirs_];
   TGraph *g_dxy_eta_hi_vs_run[nDirs_];
   TGraph *g_dxy_eta_lo_vs_run[nDirs_];
 
   TGraph *g_dz_phi_vs_run[nDirs_];
+  TGraph *gprime_dz_phi_vs_run[nDirs_];
   TGraph *g_dz_phi_hi_vs_run[nDirs_];
   TGraph *g_dz_phi_lo_vs_run[nDirs_];
 
   TGraph *g_dz_eta_vs_run[nDirs_];
+  TGraph *gprime_dz_eta_vs_run[nDirs_];
   TGraph *g_dz_eta_hi_vs_run[nDirs_];
   TGraph *g_dz_eta_lo_vs_run[nDirs_];
 
@@ -664,7 +681,6 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
   my_lego->SetLineColor(10);
   my_lego->SetShadowColor(10);
 
-
   // arrays for storing RMS histograms
   TObjArray *arr_dxy_phi = new TObjArray();
   TObjArray *arr_dz_phi  = new TObjArray();
@@ -689,8 +705,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_dxy_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiHi_[LegLabels[j]])[0]));
     g_dxy_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiLo_[LegLabels[j]])[0]));
 
-    adjustmargins(dxy_phi_vs_run);
-    dxy_phi_vs_run->cd();
+    adjustmargins(c_dxy_phi_vs_run);
+    c_dxy_phi_vs_run->cd();
     g_dxy_phi_vs_run[j]->SetMarkerStyle(markers[j]);
     g_dxy_phi_vs_run[j]->SetMarkerColor(colors[j]);
     g_dxy_phi_vs_run[j]->SetLineColor(colors[j]);
@@ -732,7 +748,32 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     TPad *current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
-    superImposeIOVBoundaries(dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    superImposeIOVBoundaries(c_dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // mean only
+    adjustmargins(c_mean_dxy_phi_vs_run);
+    c_mean_dxy_phi_vs_run->cd();
+    gprime_dxy_phi_vs_run[j] =  (TGraph*)g_dxy_phi_vs_run[j]->Clone();
+    if(j==0){
+      gprime_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
+      gprime_dxy_phi_vs_run[j]->Draw("APL");
+    } else {
+      gprime_dxy_phi_vs_run[j]->Draw("PLsame");
+    }
+    
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(gprime_dxy_phi_vs_run[j],2,0.);
+      theZero->Draw("E1same");
+
+      current_pad = static_cast<TPad*>(gPad);
+      cmsPrel(current_pad);
+
+      superImposeIOVBoundaries(c_mean_dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    }
 
     // scatter or RMS TH1
 
@@ -750,8 +791,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     h_RMS_dxy_phi_vs_run[j]->SetLineWidth(2);
     h_RMS_dxy_phi_vs_run[j]->SetMarkerStyle(markers[j]);
     h_RMS_dxy_phi_vs_run[j]->SetMarkerColor(colors[j]);
-    adjustmargins(RMS_dxy_phi_vs_run);
-    RMS_dxy_phi_vs_run->cd();
+    adjustmargins(c_RMS_dxy_phi_vs_run);
+    c_RMS_dxy_phi_vs_run->cd();
     beautify(h_RMS_dxy_phi_vs_run[j]);
 
     if(time_axis_format){
@@ -766,7 +807,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       auto theMax = getMaximumFromArray(arr_dxy_phi);
 
       for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dxy_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.3,theMax*1.3);
+	h_RMS_dxy_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.3);
 	if(k==0){
 	  h_RMS_dxy_phi_vs_run[k]->Draw("L");
 	} else {
@@ -782,7 +823,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
-    superImposeIOVBoundaries(RMS_dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    superImposeIOVBoundaries(c_RMS_dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
 
     // *************************************
     // dxy vs eta
@@ -791,8 +832,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_dxy_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaHi_[LegLabels[j]])[0]));
     g_dxy_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaLo_[LegLabels[j]])[0]));
 
-    adjustmargins(dxy_eta_vs_run);
-    dxy_eta_vs_run->cd();
+    adjustmargins(c_dxy_eta_vs_run);
+    c_dxy_eta_vs_run->cd();
     g_dxy_eta_vs_run[j]->SetMarkerStyle(markers[j]);
     g_dxy_eta_vs_run[j]->SetMarkerColor(colors[j]);
     g_dxy_eta_vs_run[j]->SetLineColor(colors[j]);
@@ -829,7 +870,32 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
-    superImposeIOVBoundaries(dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    superImposeIOVBoundaries(c_dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // mean only
+    adjustmargins(c_mean_dxy_eta_vs_run);
+    c_mean_dxy_eta_vs_run->cd();
+    gprime_dxy_eta_vs_run[j] =  (TGraph*)g_dxy_eta_vs_run[j]->Clone();
+    if(j==0){
+      gprime_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
+      gprime_dxy_eta_vs_run[j]->Draw("APL");
+    } else {
+      gprime_dxy_eta_vs_run[j]->Draw("PLsame");
+    }
+    
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(gprime_dxy_eta_vs_run[j],2,0.);
+      theZero->Draw("E1same");
+
+      current_pad = static_cast<TPad*>(gPad);
+      cmsPrel(current_pad);
+
+      superImposeIOVBoundaries(c_mean_dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    }
 
     // scatter or RMS TH1
 
@@ -847,8 +913,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     h_RMS_dxy_eta_vs_run[j]->SetLineWidth(2);
     h_RMS_dxy_eta_vs_run[j]->SetMarkerStyle(markers[j]);
     h_RMS_dxy_eta_vs_run[j]->SetMarkerColor(colors[j]);
-    adjustmargins(RMS_dxy_eta_vs_run);
-    RMS_dxy_eta_vs_run->cd();
+    adjustmargins(c_RMS_dxy_eta_vs_run);
+    c_RMS_dxy_eta_vs_run->cd();
     beautify(h_RMS_dxy_eta_vs_run[j]);
 
     if(time_axis_format){
@@ -863,7 +929,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       auto theMax = getMaximumFromArray(arr_dxy_eta);
 
       for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dxy_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.3,theMax*1.30);
+	h_RMS_dxy_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.30);
 	if(k==0){
 	  h_RMS_dxy_eta_vs_run[k]->Draw("L");
 	} else {
@@ -878,7 +944,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
-    superImposeIOVBoundaries(RMS_dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    superImposeIOVBoundaries(c_RMS_dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
 
     // *************************************
     // dz vs phi
@@ -887,8 +953,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_dz_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiHi_[LegLabels[j]])[0]));
     g_dz_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiLo_[LegLabels[j]])[0]));
 
-    adjustmargins(dz_phi_vs_run);
-    dz_phi_vs_run->cd();
+    adjustmargins(c_dz_phi_vs_run);
+    c_dz_phi_vs_run->cd();
     g_dz_phi_vs_run[j]->SetMarkerStyle(markers[j]);
     g_dz_phi_vs_run[j]->SetMarkerColor(colors[j]);
     g_dz_phi_vs_run[j]->SetLineColor(colors[j]);
@@ -925,7 +991,32 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
     
-    superImposeIOVBoundaries(dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    superImposeIOVBoundaries(c_dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // mean only
+    adjustmargins(c_mean_dz_phi_vs_run);
+    c_mean_dz_phi_vs_run->cd();
+    gprime_dz_phi_vs_run[j] =  (TGraph*)g_dz_phi_vs_run[j]->Clone();
+    if(j==0){
+      gprime_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
+      gprime_dz_phi_vs_run[j]->Draw("APL");
+    } else {
+      gprime_dz_phi_vs_run[j]->Draw("PLsame");
+    }
+    
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(gprime_dz_phi_vs_run[j],2,0.);
+      theZero->Draw("E1same");
+
+      current_pad = static_cast<TPad*>(gPad);
+      cmsPrel(current_pad);
+
+      superImposeIOVBoundaries(c_mean_dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    }
 
     // scatter or RMS TH1
 
@@ -943,8 +1034,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     h_RMS_dz_phi_vs_run[j]->SetLineWidth(2);
     h_RMS_dz_phi_vs_run[j]->SetMarkerStyle(markers[j]);
     h_RMS_dz_phi_vs_run[j]->SetMarkerColor(colors[j]);
-    adjustmargins(RMS_dz_phi_vs_run);
-    RMS_dz_phi_vs_run->cd();
+    adjustmargins(c_RMS_dz_phi_vs_run);
+    c_RMS_dz_phi_vs_run->cd();
     beautify(h_RMS_dz_phi_vs_run[j]);
 
     if(time_axis_format){
@@ -959,7 +1050,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       auto theMax = getMaximumFromArray(arr_dz_phi);
       
       for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dz_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.3,theMax*1.30);
+	h_RMS_dz_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.30);
 	if(k==0){
 	  h_RMS_dz_phi_vs_run[k]->Draw("L");
 	} else {
@@ -974,7 +1065,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
-    superImposeIOVBoundaries(RMS_dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    superImposeIOVBoundaries(c_RMS_dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
 
     // *************************************
     // dz vs eta
@@ -983,8 +1074,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_dz_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaHi_[LegLabels[j]])[0]));
     g_dz_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaLo_[LegLabels[j]])[0]));
 
-    adjustmargins(dz_eta_vs_run);
-    dz_eta_vs_run->cd();
+    adjustmargins(c_dz_eta_vs_run);
+    c_dz_eta_vs_run->cd();
     g_dz_eta_vs_run[j]->SetMarkerStyle(markers[j]);
     g_dz_eta_vs_run[j]->SetMarkerColor(colors[j]);
     g_dz_eta_vs_run[j]->SetLineColor(colors[j]);
@@ -1021,10 +1112,34 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
-    superImposeIOVBoundaries(dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    superImposeIOVBoundaries(c_dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // mean only
+    adjustmargins(c_mean_dz_eta_vs_run);
+    c_mean_dz_eta_vs_run->cd();
+    gprime_dz_eta_vs_run[j] =  (TGraph*)g_dz_eta_vs_run[j]->Clone();
+    if(j==0){
+      gprime_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20.,20.);
+      gprime_dz_eta_vs_run[j]->Draw("APL");
+    } else {
+      gprime_dz_eta_vs_run[j]->Draw("PLsame");
+    }
+    
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(gprime_dz_eta_vs_run[j],2,0.);
+      theZero->Draw("E1same");
+
+      current_pad = static_cast<TPad*>(gPad);
+      cmsPrel(current_pad);
+
+      superImposeIOVBoundaries(c_mean_dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    }
 
     // scatter or RMS TH1
-
     h_RMS_dz_eta_vs_run[j] = new TH1F(Form("h_RMS_dz_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;maximum scatter of d_{z}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dz_eta_vs_run[j]->SetStats(kFALSE);
 
@@ -1039,8 +1154,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     h_RMS_dz_eta_vs_run[j]->SetLineWidth(2);
     h_RMS_dz_eta_vs_run[j]->SetMarkerStyle(markers[j]);
     h_RMS_dz_eta_vs_run[j]->SetMarkerColor(colors[j]);
-    adjustmargins(RMS_dz_eta_vs_run);
-    RMS_dz_eta_vs_run->cd();
+    adjustmargins(c_RMS_dz_eta_vs_run);
+    c_RMS_dz_eta_vs_run->cd();
     beautify(h_RMS_dz_eta_vs_run[j]);
 
     if(time_axis_format){
@@ -1055,7 +1170,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       auto theMax = getMaximumFromArray(arr_dz_eta);
 
       for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.3,theMax*1.30);
+	h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.30);
 	if(k==0){
 	  h_RMS_dz_eta_vs_run[k]->Draw("L");
 	} else {
@@ -1070,7 +1185,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
 
-    superImposeIOVBoundaries(RMS_dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    superImposeIOVBoundaries(c_RMS_dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
     
     // *************************************
     // Integrated bias dxy scatter plots
@@ -1168,33 +1283,51 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     }
   }   
 
-  dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".pdf");
-  dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".png");
-  dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".root");
+  c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".pdf");
+  c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".png");
+  c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".root");
 
-  dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".pdf");
-  dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".png");
-  dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".root");
+  c_dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".pdf");
+  c_dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".png");
+  c_dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".root");
 
-  dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".pdf");
-  dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".png");
-  dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".root");
+  c_dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".pdf");
+  c_dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".png");
+  c_dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".root");
 
-  dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".pdf");
-  dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".png");
-  dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".root");
+  c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".pdf");
+  c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".png");
+  c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".root");
 
-  RMS_dxy_phi_vs_run->SaveAs("RMS_dxy_phi_vs_"+append+".pdf");
-  RMS_dxy_phi_vs_run->SaveAs("RMS_dxy_phi_vs_"+append+".png");
+  // mean
 
-  RMS_dxy_eta_vs_run->SaveAs("RMS_dxy_eta_vs_"+append+".pdf");
-  RMS_dxy_eta_vs_run->SaveAs("RMS_dxy_eta_vs_"+append+".png");
+  c_mean_dxy_phi_vs_run->SaveAs("mean_dxy_phi_vs_"+append+".pdf");
+  c_mean_dxy_phi_vs_run->SaveAs("mean_dxy_phi_vs_"+append+".png");
 
-  RMS_dz_phi_vs_run->SaveAs("RMS_dz_phi_vs_"+append+".pdf");
-  RMS_dz_phi_vs_run->SaveAs("RMS_dz_phi_vs_"+append+".png");
+  c_mean_dxy_eta_vs_run->SaveAs("mean_dxy_eta_vs_"+append+".pdf");
+  c_mean_dxy_eta_vs_run->SaveAs("mean_dxy_eta_vs_"+append+".png");
 
-  RMS_dz_eta_vs_run->SaveAs("RMS_dz_eta_vs_"+append+".pdf");
-  RMS_dz_eta_vs_run->SaveAs("RMS_dz_eta_vs_"+append+".png");
+  c_mean_dz_phi_vs_run->SaveAs("mean_dz_phi_vs_"+append+".pdf");
+  c_mean_dz_phi_vs_run->SaveAs("mean_dz_phi_vs_"+append+".png");
+
+  c_mean_dz_eta_vs_run->SaveAs("mean_dz_eta_vs_"+append+".pdf");
+  c_mean_dz_eta_vs_run->SaveAs("mean_dz_eta_vs_"+append+".png");
+
+  // RMS
+
+  c_RMS_dxy_phi_vs_run->SaveAs("RMS_dxy_phi_vs_"+append+".pdf");
+  c_RMS_dxy_phi_vs_run->SaveAs("RMS_dxy_phi_vs_"+append+".png");
+
+  c_RMS_dxy_eta_vs_run->SaveAs("RMS_dxy_eta_vs_"+append+".pdf");
+  c_RMS_dxy_eta_vs_run->SaveAs("RMS_dxy_eta_vs_"+append+".png");
+
+  c_RMS_dz_phi_vs_run->SaveAs("RMS_dz_phi_vs_"+append+".pdf");
+  c_RMS_dz_phi_vs_run->SaveAs("RMS_dz_phi_vs_"+append+".png");
+
+  c_RMS_dz_eta_vs_run->SaveAs("RMS_dz_eta_vs_"+append+".pdf");
+  c_RMS_dz_eta_vs_run->SaveAs("RMS_dz_eta_vs_"+append+".png");
+
+  // scatter
 
   Scatter_dxy_vs_run->SaveAs("Scatter_dxy_vs_"+append+".pdf");
   Scatter_dxy_vs_run->SaveAs("Scatter_dxy_vs_"+append+".png");
@@ -1208,18 +1341,22 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
   for(int iDir=0;iDir<nDirs_;iDir++){
 
    delete g_dxy_phi_vs_run[iDir];    
+   delete gprime_dxy_phi_vs_run[iDir];    
    delete g_dxy_phi_hi_vs_run[iDir]; 
    delete g_dxy_phi_lo_vs_run[iDir]; 
                                
    delete g_dxy_eta_vs_run[iDir];    
+   delete gprime_dxy_eta_vs_run[iDir];    
    delete g_dxy_eta_hi_vs_run[iDir]; 
    delete g_dxy_eta_lo_vs_run[iDir]; 
                                
    delete g_dz_phi_vs_run[iDir];     
+   delete gprime_dz_phi_vs_run[iDir];     
    delete g_dz_phi_hi_vs_run[iDir];  
    delete g_dz_phi_lo_vs_run[iDir];  
                                
    delete g_dz_eta_vs_run[iDir];     
+   delete gprime_dz_eta_vs_run[iDir];     
    delete g_dz_eta_hi_vs_run[iDir];  
    delete g_dz_eta_lo_vs_run[iDir];  
                                                              
@@ -1608,13 +1745,14 @@ void cmsPrel(TPad* pad) {
   latex->SetTextSize(0.045);
 
   float posX_ =  1-r - relPosX*(1-l-r);
+  //  float posXCMS_ = 1-r -15*relPosX*(1-l-r);
   float posY_ =  1-t + 0.05; /// - relPosY*(1-t-b);
 
   latex->SetTextAlign(33);
-  latex->SetTextFont(61);
-  latex->DrawLatex(posX_-0.155,posY_,"CMS");
+  //latex->SetTextFont(61);
+  //latex->DrawLatex(posXCMS_,posY_,"CMS");
   latex->SetTextFont(42); //22
-  latex->DrawLatex(posX_,posY_,"Internal (13 TeV)");
+  latex->DrawLatex(posX_,posY_,"CMS Internal (13 TeV)");
   //latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
   //latex->DrawLatex(posX_,posY_,"CMS 2017 Work in progress (13 TeV)");
   
@@ -1694,12 +1832,14 @@ std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist,bool useR
   int nbins = hist->GetNbinsX();
 
   //extract median from histogram
-  double *y = new double[nbins];
+  double *y   = new double[nbins];
+  double *err = new double[nbins];
   for (int j = 0; j < nbins; j++) {
-    y[j] = hist->GetBinContent(j+1);
+    y[j]   = hist->GetBinContent(j+1);
+    err[j] = hist->GetBinError(j+1);
   }
-  mean = TMath::Mean(nbins,y);
-  rms =  TMath::RMS(nbins,y);
+  mean = TMath::Mean(nbins,y,err);
+  rms =  TMath::RMS(nbins,y,err);
 
   Double_t max=hist->GetMaximum();
   Double_t min=hist->GetMinimum();
@@ -1714,6 +1854,15 @@ std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist,bool useR
   //std::pair<Double_t,Double_t> resultBounds = std::make_pair(min,max);
   */
   
+  /*
+    // in case one would like to use a pol0 fit
+    hist->Fit("pol0","Q0+");
+    TF1* f = (TF1*)hist->FindObject("pol0");
+    f->SetLineColor(hist->GetLineColor());
+    f->SetLineStyle(hist->GetLineStyle());
+    mean = f->GetParameter(0);
+  */
+
   std::pair<std::pair<Double_t,Double_t>, Double_t> result;
   std::pair<Double_t,Double_t> resultBounds;
 
