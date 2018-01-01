@@ -51,6 +51,10 @@ namespace pv{
     if (it == vec.end()) { return -1; }
     return *it;
   }
+
+  const Int_t markers[8] = {kFullSquare,kFullCircle,kFullTriangleDown,kOpenSquare,kOpenCircle,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
+  const Int_t colors[8]  = {kBlack,kBlue,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
+
 }
 
 // auxilliary struct to store
@@ -96,8 +100,6 @@ struct unrolledHisto {
 
 
 // all marker and style types
-Int_t markers[8] = {kFullSquare,kFullCircle,kFullTriangleDown,kOpenSquare,kOpenCircle,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
-Int_t colors[8]  = {kBlack,kBlue,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
 
 typedef std::map<TString, std::vector<double> > alignmentTrend; 
 
@@ -163,6 +165,10 @@ std::vector<std::string> split(const std::string& s,char delimiter)
 void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time_axis_format,bool useRMS){
   
   using namespace std::placeholders;  // for _1, _2, _3...
+  gROOT->ProcessLine("gErrorIgnoreLevel = kError;"); 	
+
+  ROOT::EnableThreadSafety();
+  TH1::AddDirectory(kFALSE);
 
   // consistency check, we cannot do plot vs lumi if time_axis
   if(lumi_axis_format && time_axis_format){
@@ -314,26 +320,31 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   
   //std::function<void()> f_doStuff = std::bind(doStuff,1,intersection,nDirs_,dirs,LegLabels,lumiSoFar,runs,lumiByRun,lumiMapByRun,useRMS,dxyPhiMeans_,dxyPhiHi_,dxyPhiLo_,dxyEtaMeans_,dxyEtaHi_,dxyEtaLo_,dzPhiMeans_,dzPhiHi_,dzPhiLo_,dzEtaMeans_,dzEtaHi_,dzEtaLo_,dxyVect,dzVect);
   
-  auto f_doStuff = std::bind(doStuff,_1,intersection,nDirs_,dirs,LegLabels,lumiSoFar,runs,lumiByRun,lumiMapByRun,useRMS,dxyPhiMeans_,dxyPhiHi_,dxyPhiLo_,dxyEtaMeans_,dxyEtaHi_,dxyEtaLo_,dzPhiMeans_,dzPhiHi_,dzPhiLo_,dzEtaMeans_,dzEtaHi_,dzEtaLo_,dxyVect,dzVect);
+  std::cout<<" pre do-stuff: " << runs.size() << std::endl;
   
+  //we should use std::bind to create a functor and then pass it to the procPool
+  auto f_doStuff = std::bind(doStuff,_1,intersection,nDirs_,dirs,LegLabels,std::ref(lumiSoFar),std::ref(runs),std::ref(lumiByRun),std::ref(lumiMapByRun),useRMS,std::ref(dxyPhiMeans_),std::ref(dxyPhiHi_),std::ref(dxyPhiLo_),std::ref(dxyEtaMeans_),std::ref(dxyEtaHi_),std::ref(dxyEtaLo_),std::ref(dzPhiMeans_),std::ref(dzPhiHi_),std::ref(dzPhiLo_),std::ref(dzEtaMeans_),std::ref(dzEtaHi_),std::ref(dzEtaLo_),std::ref(dxyVect),std::ref(dzVect));
+  
+  //f_doStuff(0);
+  //std::cout<<" post do-stuff: " <<  runs.size() << std::endl;
+
   TProcPool procPool(nWorkers);
-  //we should use std::bind to create a functor and then pass it ot the procPool
   std::vector<size_t> range(nWorkers);
   std::iota(range.begin(),range.end(),0);
   //procPool.Map([&f_doStuff](size_t a) { f_doStuff(a); },{1,2,3});
   procPool.Map(f_doStuff,range);
-  
-  /*
+ 
   // main function call
-  doStuff(last,intersection,nDirs_,dirs,LegLabels,lumiSoFar,runs,lumiByRun,lumiMapByRun,useRMS,
-	  dxyPhiMeans_,dxyPhiHi_,dxyPhiLo_,	 	                  
-	  dxyEtaMeans_,dxyEtaHi_,dxyEtaLo_,	 	                  
-	  dzPhiMeans_,dzPhiHi_,dzPhiLo_,	 	  
-	  dzEtaMeans_,dzEtaHi_,dzEtaLo_,       
-	  dxyVect,dzVect
-	  );
+  /*
+    doStuff(0,intersection,nDirs_,dirs,LegLabels,lumiSoFar,runs,lumiByRun,lumiMapByRun,useRMS,
+    dxyPhiMeans_,dxyPhiHi_,dxyPhiLo_,	 	                  
+    dxyEtaMeans_,dxyEtaHi_,dxyEtaLo_,	 	                  
+    dzPhiMeans_,dzPhiHi_,dzPhiLo_,	 	  
+    dzEtaMeans_,dzEtaHi_,dzEtaLo_,       
+    dxyVect,dzVect
+    );
   */
-
+  
   // do the trend-plotting!
 
   TCanvas *c_dxy_phi_vs_run = new TCanvas("c_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
@@ -432,6 +443,16 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   arr_dxy_eta->Expand(nDirs_);
   arr_dz_eta->Expand(nDirs_);
 
+  // int ccc;
+  // for(const auto &tick: x_ticks ){
+  //   std::cout<< tick << " ";
+  //   for(Int_t j=0; j < nDirs_; j++) {
+  //     std::cout << LegLabels[j] << " " << dxyPhiMeans_[LegLabels[j]][ccc];
+  //   }
+  //   ccc++;
+  // }
+  // std::cout <<  std::endl;
+  
   for(Int_t j=0; j < nDirs_; j++) {
 
     // check on the sanity
@@ -447,11 +468,11 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
     adjustmargins(c_dxy_phi_vs_run);
     c_dxy_phi_vs_run->cd();
-    g_dxy_phi_vs_run[j]->SetMarkerStyle(markers[j]);
-    g_dxy_phi_vs_run[j]->SetMarkerColor(colors[j]);
-    g_dxy_phi_vs_run[j]->SetLineColor(colors[j]);
-    g_dxy_phi_hi_vs_run[j]->SetLineColor(colors[j]);
-    g_dxy_phi_lo_vs_run[j]->SetLineColor(colors[j]);
+    g_dxy_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_dxy_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_dxy_phi_vs_run[j]->SetLineColor(pv::colors[j]);
+    g_dxy_phi_hi_vs_run[j]->SetLineColor(pv::colors[j]);
+    g_dxy_phi_lo_vs_run[j]->SetLineColor(pv::colors[j]);
 
     g_dxy_phi_vs_run[j]->SetName(Form("g_bias_dxy_phi_%s",LegLabels[j].Data()));
     g_dxy_phi_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#varphi) vs %s",theType.Data()));
@@ -527,10 +548,10 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
       h_RMS_dxy_phi_vs_run[j]->SetBinError(bincounter,0.01);
     }
 
-    h_RMS_dxy_phi_vs_run[j]->SetLineColor(colors[j]);
+    h_RMS_dxy_phi_vs_run[j]->SetLineColor(pv::colors[j]);
     h_RMS_dxy_phi_vs_run[j]->SetLineWidth(2);
-    h_RMS_dxy_phi_vs_run[j]->SetMarkerStyle(markers[j]);
-    h_RMS_dxy_phi_vs_run[j]->SetMarkerColor(colors[j]);
+    h_RMS_dxy_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    h_RMS_dxy_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
     adjustmargins(c_RMS_dxy_phi_vs_run);
     c_RMS_dxy_phi_vs_run->cd();
     beautify(h_RMS_dxy_phi_vs_run[j]);
@@ -574,11 +595,11 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
     adjustmargins(c_dxy_eta_vs_run);
     c_dxy_eta_vs_run->cd();
-    g_dxy_eta_vs_run[j]->SetMarkerStyle(markers[j]);
-    g_dxy_eta_vs_run[j]->SetMarkerColor(colors[j]);
-    g_dxy_eta_vs_run[j]->SetLineColor(colors[j]);
-    g_dxy_eta_hi_vs_run[j]->SetLineColor(colors[j]);
-    g_dxy_eta_lo_vs_run[j]->SetLineColor(colors[j]);
+    g_dxy_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_dxy_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_dxy_eta_vs_run[j]->SetLineColor(pv::colors[j]);
+    g_dxy_eta_hi_vs_run[j]->SetLineColor(pv::colors[j]);
+    g_dxy_eta_lo_vs_run[j]->SetLineColor(pv::colors[j]);
     
     g_dxy_eta_vs_run[j]->SetName(Form("g_bias_dxy_eta_%s",LegLabels[j].Data()));
     g_dxy_eta_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#eta) vs %s",theType.Data()));
@@ -649,10 +670,10 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
       h_RMS_dxy_eta_vs_run[j]->SetBinError(bincounter,0.01);
     }
 
-    h_RMS_dxy_eta_vs_run[j]->SetLineColor(colors[j]);
+    h_RMS_dxy_eta_vs_run[j]->SetLineColor(pv::colors[j]);
     h_RMS_dxy_eta_vs_run[j]->SetLineWidth(2);
-    h_RMS_dxy_eta_vs_run[j]->SetMarkerStyle(markers[j]);
-    h_RMS_dxy_eta_vs_run[j]->SetMarkerColor(colors[j]);
+    h_RMS_dxy_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    h_RMS_dxy_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
     adjustmargins(c_RMS_dxy_eta_vs_run);
     c_RMS_dxy_eta_vs_run->cd();
     beautify(h_RMS_dxy_eta_vs_run[j]);
@@ -695,11 +716,11 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
     adjustmargins(c_dz_phi_vs_run);
     c_dz_phi_vs_run->cd();
-    g_dz_phi_vs_run[j]->SetMarkerStyle(markers[j]);
-    g_dz_phi_vs_run[j]->SetMarkerColor(colors[j]);
-    g_dz_phi_vs_run[j]->SetLineColor(colors[j]);
-    g_dz_phi_hi_vs_run[j]->SetLineColor(colors[j]);
-    g_dz_phi_lo_vs_run[j]->SetLineColor(colors[j]);
+    g_dz_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_dz_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_dz_phi_vs_run[j]->SetLineColor(pv::colors[j]);
+    g_dz_phi_hi_vs_run[j]->SetLineColor(pv::colors[j]);
+    g_dz_phi_lo_vs_run[j]->SetLineColor(pv::colors[j]);
     beautify(g_dz_phi_vs_run[j]);
 
     g_dz_phi_vs_run[j]->SetName(Form("g_bias_dz_phi_%s",LegLabels[j].Data()));
@@ -770,10 +791,10 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
       h_RMS_dz_phi_vs_run[j]->SetBinError(bincounter,0.01);
     }
 
-    h_RMS_dz_phi_vs_run[j]->SetLineColor(colors[j]);
+    h_RMS_dz_phi_vs_run[j]->SetLineColor(pv::colors[j]);
     h_RMS_dz_phi_vs_run[j]->SetLineWidth(2);
-    h_RMS_dz_phi_vs_run[j]->SetMarkerStyle(markers[j]);
-    h_RMS_dz_phi_vs_run[j]->SetMarkerColor(colors[j]);
+    h_RMS_dz_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    h_RMS_dz_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
     adjustmargins(c_RMS_dz_phi_vs_run);
     c_RMS_dz_phi_vs_run->cd();
     beautify(h_RMS_dz_phi_vs_run[j]);
@@ -816,11 +837,11 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
     adjustmargins(c_dz_eta_vs_run);
     c_dz_eta_vs_run->cd();
-    g_dz_eta_vs_run[j]->SetMarkerStyle(markers[j]);
-    g_dz_eta_vs_run[j]->SetMarkerColor(colors[j]);
-    g_dz_eta_vs_run[j]->SetLineColor(colors[j]);
-    g_dz_eta_hi_vs_run[j]->SetLineColor(colors[j]);
-    g_dz_eta_lo_vs_run[j]->SetLineColor(colors[j]);
+    g_dz_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_dz_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_dz_eta_vs_run[j]->SetLineColor(pv::colors[j]);
+    g_dz_eta_hi_vs_run[j]->SetLineColor(pv::colors[j]);
+    g_dz_eta_lo_vs_run[j]->SetLineColor(pv::colors[j]);
     beautify(g_dz_eta_vs_run[j]);
 
     g_dz_eta_vs_run[j]->SetName(Form("g_bias_dz_eta_%s",LegLabels[j].Data()));
@@ -890,10 +911,10 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
       h_RMS_dz_eta_vs_run[j]->SetBinError(bincounter,0.01);
     }
 
-    h_RMS_dz_eta_vs_run[j]->SetLineColor(colors[j]);
+    h_RMS_dz_eta_vs_run[j]->SetLineColor(pv::colors[j]);
     h_RMS_dz_eta_vs_run[j]->SetLineWidth(2);
-    h_RMS_dz_eta_vs_run[j]->SetMarkerStyle(markers[j]);
-    h_RMS_dz_eta_vs_run[j]->SetMarkerColor(colors[j]);
+    h_RMS_dz_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    h_RMS_dz_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
     adjustmargins(c_RMS_dz_eta_vs_run);
     c_RMS_dz_eta_vs_run->cd();
     beautify(h_RMS_dz_eta_vs_run[j]);
@@ -941,19 +962,19 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     }
   
     //Scatter_dxy_vs_run->cd();
-    h2_scatter_dxy_vs_run[j]->SetFillColorAlpha(colors[j],0.3);
-    h2_scatter_dxy_vs_run[j]->SetMarkerColor(colors[j]);
-    h2_scatter_dxy_vs_run[j]->SetLineColor(colors[j]);
-    h2_scatter_dxy_vs_run[j]->SetMarkerStyle(markers[j]);
+    h2_scatter_dxy_vs_run[j]->SetFillColorAlpha(pv::colors[j],0.3);
+    h2_scatter_dxy_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    h2_scatter_dxy_vs_run[j]->SetLineColor(pv::colors[j]);
+    h2_scatter_dxy_vs_run[j]->SetMarkerStyle(pv::markers[j]);
 
     auto h_dxypfx_tmp = (TProfile*)(((TH2F*)h2_scatter_dxy_vs_run[j])->ProfileX(Form("_apfx_%i",j),1,-1,"o"));
     h_dxypfx_tmp->SetName(TString(h2_scatter_dxy_vs_run[j]->GetName())+"_pfx");
     h_dxypfx_tmp->SetStats(kFALSE);
-    h_dxypfx_tmp->SetMarkerColor(colors[j]);
-    h_dxypfx_tmp->SetLineColor(colors[j]);
+    h_dxypfx_tmp->SetMarkerColor(pv::colors[j]);
+    h_dxypfx_tmp->SetLineColor(pv::colors[j]);
     h_dxypfx_tmp->SetLineWidth(2); 
     h_dxypfx_tmp->SetMarkerSize(1); 
-    h_dxypfx_tmp->SetMarkerStyle(markers[j]);
+    h_dxypfx_tmp->SetMarkerStyle(pv::markers[j]);
 
     beautify(h2_scatter_dxy_vs_run[j]);
     beautify(h_dxypfx_tmp);
@@ -979,19 +1000,19 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     }
     
     //Scatter_dz_vs_run->cd();
-    h2_scatter_dz_vs_run[j]->SetFillColorAlpha(colors[j],0.3);
-    h2_scatter_dz_vs_run[j]->SetMarkerColor(colors[j]);
-    h2_scatter_dz_vs_run[j]->SetLineColor(colors[j]);
-    h2_scatter_dz_vs_run[j]->SetMarkerStyle(markers[j]);
+    h2_scatter_dz_vs_run[j]->SetFillColorAlpha(pv::colors[j],0.3);
+    h2_scatter_dz_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    h2_scatter_dz_vs_run[j]->SetLineColor(pv::colors[j]);
+    h2_scatter_dz_vs_run[j]->SetMarkerStyle(pv::markers[j]);
 
     auto h_dzpfx_tmp = (TProfile*)(((TH2F*)h2_scatter_dz_vs_run[j])->ProfileX(Form("_apfx_%i",j),1,-1,"o"));
     h_dzpfx_tmp->SetName(TString(h2_scatter_dz_vs_run[j]->GetName())+"_pfx");
     h_dzpfx_tmp->SetStats(kFALSE);
-    h_dzpfx_tmp->SetMarkerColor(colors[j]);
-    h_dzpfx_tmp->SetLineColor(colors[j]);
+    h_dzpfx_tmp->SetMarkerColor(pv::colors[j]);
+    h_dzpfx_tmp->SetLineColor(pv::colors[j]);
     h_dzpfx_tmp->SetLineWidth(2); 
     h_dzpfx_tmp->SetMarkerSize(1); 
-    h_dzpfx_tmp->SetMarkerStyle(markers[j]);
+    h_dzpfx_tmp->SetMarkerStyle(pv::markers[j]);
 
     beautify(h2_scatter_dz_vs_run[j]);
     beautify(h_dzpfx_tmp);
@@ -1340,9 +1361,9 @@ void  MakeNiceTrendPlotStyle(TH1 *hist,Int_t color)
     hist->SetLineWidth(3);
     hist->SetMarkerSize(0.0);    
   }
-  hist->SetMarkerStyle(markers[color]);
-  hist->SetLineColor(colors[color]);
-  hist->SetMarkerColor(colors[color]);
+  hist->SetMarkerStyle(pv::markers[color]);
+  hist->SetLineColor(pv::colors[color]);
+  hist->SetMarkerColor(pv::colors[color]);
 }
 
 
@@ -1940,7 +1961,7 @@ int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const c
 	double lumi = h_lumi->GetBinContent(1);
 	lumiSoFar+=lumi;
 	//std::cout<<"lumi: "<<lumi
-	//		 <<" ,lumi so far: "<<lumiSoFar<<std::endl;
+	//	 <<" ,lumi so far: "<<lumiSoFar<<std::endl;
 
 	//outfile<<"run "<<intersection[n]<<" lumi: "<<lumi
 	//     <<" ,lumi so far: "<<lumiSoFar<<std::endl;
@@ -1994,7 +2015,7 @@ int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const c
       auto dxyPhiBiases = getBiases(dxyPhiMeanTrend[j],useRMS);
       
       //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) mean: "<< dxyPhiBiases.second
-      //	       <<" dxy(phi) max: "<< dxyPhiBiases.first.first
+      //       <<" dxy(phi) max: "<< dxyPhiBiases.first.first
       //       <<" dxy(phi) min: "<< dxyPhiBiases.first.second
       //       << std::endl;
 
@@ -2021,10 +2042,10 @@ int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const c
       dxyVect[LegLabels[j]].push_back(getUnrolledHisto(dxyIntegralTrend[j]));
       dzVect[LegLabels[j]].push_back(getUnrolledHisto(dzIntegralTrend[j]));
       
-      std::cout<<std::endl;
-      std::cout<<" n. bins: "<< dxyVect[LegLabels[j]].back().get_n_bins() 
-	       <<" y-min:   "<< dxyVect[LegLabels[j]].back().get_y_min()
-	       <<" y-max:   "<< dxyVect[LegLabels[j]].back().get_y_max() << std::endl;
+      //std::cout<<std::endl;
+      //std::cout<<" n. bins: "<< dxyVect[LegLabels[j]].back().get_n_bins() 
+      //       <<" y-min:   "<< dxyVect[LegLabels[j]].back().get_y_min()
+      //       <<" y-max:   "<< dxyVect[LegLabels[j]].back().get_y_max() << std::endl;
 
       // beautify the histograms
       MakeNiceTrendPlotStyle(dxyPhiMeanTrend[j],j);
@@ -2075,7 +2096,7 @@ int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const c
       lumiMapByRun[intersection.at(n)]=lumiSoFar/1000.;
     }
 
-    //std::cout<<"I am still here"<<std::endl;
+    std::cout<<"I am still here - runs.size(): "<<runs.size()<<std::endl;
 
     // Bias plots
 
