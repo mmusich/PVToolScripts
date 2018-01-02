@@ -110,7 +110,7 @@ void arrangeOutCanvas(TCanvas *canv,
 std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist,bool useRMS_);
 unrolledHisto getUnrolledHisto(TH1F* hist);
 
-TH1F* DrawConstant(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int_t iter,Double_t theConst);
+TH1F* DrawConstant(TH1F *hist,Int_t iter,Double_t theConst);
 TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst);
 std::vector<int> list_files(const char *dirname=".", const char *ext=".root");
 TH1F* checkTH1AndReturn(TFile *f,TString address);
@@ -820,7 +820,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       }
       
       my_lego->Draw("same");
-      TH1F* theConst = DrawConstant(h_RMS_dxy_phi_vs_run[j],h_RMS_dxy_phi_vs_run[j]->GetNbinsX(),h_RMS_dxy_phi_vs_run[j]->GetBinLowEdge(1),h_RMS_dxy_phi_vs_run[j]->GetBinLowEdge(h_RMS_dxy_phi_vs_run[j]->GetNbinsX()+1),1,0.);
+      TH1F* theConst = DrawConstant(h_RMS_dxy_phi_vs_run[j],1,0.);
       theConst->Draw("same");
     }
 
@@ -941,7 +941,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
 	}
       }
       my_lego->Draw("same");
-      TH1F* theConst = DrawConstant(h_RMS_dxy_eta_vs_run[j],h_RMS_dxy_eta_vs_run[j]->GetNbinsX(),h_RMS_dxy_eta_vs_run[j]->GetBinLowEdge(1),h_RMS_dxy_eta_vs_run[j]->GetBinLowEdge(h_RMS_dxy_eta_vs_run[j]->GetNbinsX()+1),1,0.);
+      TH1F* theConst = DrawConstant(h_RMS_dxy_eta_vs_run[j],1,0.);
       theConst->Draw("same");
     }
 
@@ -1062,7 +1062,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
 	}
       }
       my_lego->Draw("same");
-      TH1F* theConst = DrawConstant(h_RMS_dz_phi_vs_run[j],h_RMS_dz_phi_vs_run[j]->GetNbinsX(),h_RMS_dz_phi_vs_run[j]->GetBinLowEdge(1),h_RMS_dz_phi_vs_run[j]->GetBinLowEdge(h_RMS_dz_phi_vs_run[j]->GetNbinsX()+1),1,0.);
+      TH1F* theConst = DrawConstant(h_RMS_dz_phi_vs_run[j],1,0.);
       theConst->Draw("same");
     }
 
@@ -1182,7 +1182,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
 	}
       }
       my_lego->Draw("same");
-      TH1F* theConst = DrawConstant(h_RMS_dz_eta_vs_run[j],h_RMS_dz_eta_vs_run[j]->GetNbinsX(),h_RMS_dz_eta_vs_run[j]->GetBinLowEdge(1),h_RMS_dz_eta_vs_run[j]->GetBinLowEdge(h_RMS_dz_eta_vs_run[j]->GetNbinsX()+1),1,0.);
+      TH1F* theConst = DrawConstant(h_RMS_dz_eta_vs_run[j],1,0.);
       theConst->Draw("same");
     }
 
@@ -1499,9 +1499,6 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
       if(i==0){
 
 	TString theTitle = dBiasTrend[k][i]->GetName();
-	Int_t nbins =  dBiasTrend[k][i]->GetNbinsX();
-	Double_t lowedge  = dBiasTrend[k][i]->GetBinLowEdge(1);
-	Double_t highedge = dBiasTrend[k][i]->GetBinLowEdge(nbins+1);
 	
 	if(theTitle.Contains("norm")){
 	  //dBiasTrend[k][i]->GetYaxis()->SetRangeUser(std::min(-0.48,absmin[k]-safeDelta/2.),std::max(0.48,absmax[k]+safeDelta/2.));
@@ -1561,7 +1558,7 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 	  theC = 0.;
 	}
 	
-	TH1F* theConst = DrawConstant(dBiasTrend[k][i],nbins,lowedge,highedge,1,theC);
+	TH1F* theConst = DrawConstant(dBiasTrend[k][i],1,theC);
 	theConst->Draw("PLsame");
 
       } else { 
@@ -1765,9 +1762,14 @@ void cmsPrel(TPad* pad) {
 }
 
 /*--------------------------------------------------------------------*/
-TH1F* DrawConstant(TH1F *hist,Int_t nbins,Double_t lowedge,Double_t highedge,Int_t iter,Double_t theConst)
+TH1F* DrawConstant(TH1F *hist,Int_t iter,Double_t theConst)
 /*--------------------------------------------------------------------*/
 { 
+
+  Int_t nbins       = hist->GetNbinsX();
+  Double_t lowedge  = hist->GetBinLowEdge(1);
+  Double_t highedge = hist->GetBinLowEdge(nbins+1);
+
 
   TH1F *hzero = new TH1F(Form("hconst_%s_%i",hist->GetName(),iter),Form("hconst_%s_%i",hist->GetName(),iter),nbins,lowedge,highedge);
   for (Int_t i=0;i<=hzero->GetNbinsX();i++){
