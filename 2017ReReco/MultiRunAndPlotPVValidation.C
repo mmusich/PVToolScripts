@@ -65,6 +65,13 @@ struct unrolledHisto {
   unsigned int m_n_bins;
   std::vector<double> m_bincontents;
 
+  unrolledHisto(){
+    m_y_min  =0.;
+    m_y_max  =0.;
+    m_n_bins =0;
+    m_bincontents.clear();
+  } // first constructor empty
+
   unrolledHisto(const double& y_min,const double& y_max, const unsigned int& n_bins, const std::vector<double>& bincontents){
     m_y_min  = y_min;
     m_y_max  = y_max;
@@ -98,20 +105,58 @@ struct unrolledHisto {
 
 };
 
-
-// all marker and style types
-
 typedef std::map<TString, std::vector<double> > alignmentTrend; 
+
+// auxilliary struct to be returned by the functor
+struct outTrends {
+
+  int m_index;
+  double m_lumiSoFar;
+  std::vector<double> m_runs;
+  std::vector<double> m_lumiByRun;
+  std::map<int,double> m_lumiMapByRun; 
+  alignmentTrend m_dxyPhiMeans;
+  alignmentTrend m_dxyPhiHi;
+  alignmentTrend m_dxyPhiLo;
+  alignmentTrend m_dxyEtaMeans;
+  alignmentTrend m_dxyEtaHi; 
+  alignmentTrend m_dxyEtaLo;
+  alignmentTrend m_dzPhiMeans;
+  alignmentTrend m_dzPhiHi; 
+  alignmentTrend m_dzPhiLo;	 	  
+  alignmentTrend m_dzEtaMeans;
+  alignmentTrend m_dzEtaHi; 
+  alignmentTrend m_dzEtaLo;       
+  std::map<TString,std::vector<unrolledHisto> > m_dxyVect;
+  std::map<TString,std::vector<unrolledHisto> > m_dzVect;
+
+  void init(){
+    m_index=-1;
+    m_lumiSoFar=0.;
+    m_runs.clear();
+    m_lumiByRun.clear();
+    m_lumiMapByRun.clear();
+    m_dxyPhiMeans.clear();
+    m_dxyPhiHi.clear();  
+    m_dxyPhiLo.clear();  
+    m_dxyEtaMeans.clear();
+    m_dxyEtaHi.clear();  
+    m_dxyEtaLo.clear();  
+    m_dzPhiMeans.clear();
+    m_dzPhiHi.clear();   
+    m_dzPhiLo.clear();   
+    m_dzEtaMeans.clear();
+    m_dzEtaHi.clear();
+    m_dzEtaLo.clear();   
+    m_dxyVect.clear();
+    m_dzVect.clear();
+  }
+};
+
 
 // forward declarations
 void MultiRunPVValidation(TString namesandlabels="",bool lumi_axis_format=false,bool time_axis_format=false,bool useRMS=true);
-int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const char* dirs[10], TString LegLabels[10], double lumiSoFar,std::vector<double>& runs, vector<double>& lumiByRun,std::map<int,double>& lumiMapByRun,bool useRMS,
-	    alignmentTrend& dxyPhiMeans_, alignmentTrend& dxyPhiHi_, alignmentTrend& dxyPhiLo_,
-	    alignmentTrend& dxyEtaMeans_, alignmentTrend& dxyEtaHi_, alignmentTrend& dxyEtaLo_,
-	    alignmentTrend& dzPhiMeans_ , alignmentTrend& dzPhiHi_ , alignmentTrend& dzPhiLo_,	 	  
-	    alignmentTrend& dzEtaMeans_ , alignmentTrend& dzEtaHi_ , alignmentTrend& dzEtaLo_,       
-	    std::map<TString,std::vector<unrolledHisto> >& dxyVect,  std::map<TString,std::vector<unrolledHisto> >& dzVect
-	    );
+outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const char* dirs[10], TString LegLabels[10], bool useRMS);
 
 void arrangeOutCanvas(TCanvas *canv,
 		      TH1F* m_11Trend[100],
@@ -323,7 +368,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   std::cout<<" pre do-stuff: " << runs.size() << std::endl;
   
   //we should use std::bind to create a functor and then pass it to the procPool
-  auto f_doStuff = std::bind(doStuff,_1,intersection,nDirs_,dirs,LegLabels,std::ref(lumiSoFar),std::ref(runs),std::ref(lumiByRun),std::ref(lumiMapByRun),useRMS,std::ref(dxyPhiMeans_),std::ref(dxyPhiHi_),std::ref(dxyPhiLo_),std::ref(dxyEtaMeans_),std::ref(dxyEtaHi_),std::ref(dxyEtaLo_),std::ref(dzPhiMeans_),std::ref(dzPhiHi_),std::ref(dzPhiLo_),std::ref(dzEtaMeans_),std::ref(dzEtaHi_),std::ref(dzEtaLo_),std::ref(dxyVect),std::ref(dzVect));
+  auto f_doStuff = std::bind(doStuff,_1,intersection,nDirs_,dirs,LegLabels,useRMS);
   
   //f_doStuff(0);
   //std::cout<<" post do-stuff: " <<  runs.size() << std::endl;
@@ -332,8 +377,53 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   std::vector<size_t> range(nWorkers);
   std::iota(range.begin(),range.end(),0);
   //procPool.Map([&f_doStuff](size_t a) { f_doStuff(a); },{1,2,3});
-  procPool.Map(f_doStuff,range);
+  auto extracts = procPool.Map(f_doStuff,range);
+  
+  // sort the extracts according to the global index
+  std::sort(extracts.begin(), extracts.end(), 
+	    [](const outTrends & a, const outTrends & b) -> bool
+	    { 
+	      return a.m_index < b.m_index; 
+	    });
+
+  // re-assemble everything together
+  for (auto extractedTrend : extracts){
+    std::cout << "lumiSoFar:" << extractedTrend.m_lumiSoFar << std::endl;
+
+    runs.insert(std::end(runs), std::begin(extractedTrend.m_runs), std::end(extractedTrend.m_runs));
+    lumiByRun.insert(std::end(lumiByRun), std::begin(extractedTrend.m_lumiByRun), std::end(extractedTrend.m_lumiByRun));
+
+    lumiMapByRun.insert(extractedTrend.m_lumiMapByRun.begin(),extractedTrend.m_lumiMapByRun.end());
+
+    for(const auto &label : LegLabels){
+
+      dxyPhiMeans_[label].insert(std::end(dxyPhiMeans_[label]), std::begin(extractedTrend.m_dxyPhiMeans[label]), std::end(extractedTrend.m_dxyPhiMeans[label]));
+      dxyPhiHi_[label].insert(std::end(dxyPhiHi_[label]), std::begin(extractedTrend.m_dxyPhiHi[label]), std::end(extractedTrend.m_dxyPhiHi[label]));
+      dxyPhiLo_[label].insert(std::end(dxyPhiLo_[label]), std::begin(extractedTrend.m_dxyPhiLo[label]), std::end(extractedTrend.m_dxyPhiLo[label]));
+
+      dzPhiMeans_[label].insert(std::end(dzPhiMeans_[label]), std::begin(extractedTrend.m_dzPhiMeans[label]), std::end(extractedTrend.m_dzPhiMeans[label]));
+      dzPhiHi_[label].insert(std::end(dzPhiHi_[label]), std::begin(extractedTrend.m_dzPhiHi[label]), std::end(extractedTrend.m_dzPhiHi[label]));
+      dzPhiLo_[label].insert(std::end(dzPhiLo_[label]), std::begin(extractedTrend.m_dzPhiLo[label]), std::end(extractedTrend.m_dzPhiLo[label]));
+
+      dxyEtaMeans_[label].insert(std::end(dxyEtaMeans_[label]), std::begin(extractedTrend.m_dxyEtaMeans[label]), std::end(extractedTrend.m_dxyEtaMeans[label]));
+      dxyEtaHi_[label].insert(std::end(dxyEtaHi_[label]), std::begin(extractedTrend.m_dxyEtaHi[label]), std::end(extractedTrend.m_dxyEtaHi[label]));
+      dxyEtaLo_[label].insert(std::end(dxyEtaLo_[label]), std::begin(extractedTrend.m_dxyEtaLo[label]), std::end(extractedTrend.m_dxyEtaLo[label]));
+
+      dzEtaMeans_[label].insert(std::end(dzEtaMeans_[label]), std::begin(extractedTrend.m_dzEtaMeans[label]), std::end(extractedTrend.m_dzEtaMeans[label]));
+      dzEtaHi_[label].insert(std::end(dzEtaHi_[label]), std::begin(extractedTrend.m_dzEtaHi[label]), std::end(extractedTrend.m_dzEtaHi[label]));
+      dzEtaLo_[label].insert(std::end(dzEtaLo_[label]), std::begin(extractedTrend.m_dzEtaLo[label]), std::end(extractedTrend.m_dzEtaLo[label]));
+     
+      dxyVect[label].insert(std::end(dxyVect[label]),std::begin(extractedTrend.m_dxyVect[label]),std::end(extractedTrend.m_dxyVect[label]));
+      dzVect[label].insert(std::end(dzVect[label]),std::begin(extractedTrend.m_dzVect[label]),std::end(extractedTrend.m_dzVect[label]));
+	 
+    }
+  }
  
+  // just check runs are ordered
+  for(const auto &run : runs){
+    std::cout<<" "<< run ;
+  }
+
   // main function call
   /*
     doStuff(0,intersection,nDirs_,dirs,LegLabels,lumiSoFar,runs,lumiByRun,lumiMapByRun,useRMS,
@@ -1873,20 +1963,20 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
 }
 
 /*--------------------------------------------------------------------*/
-int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const char* dirs[10], TString LegLabels[10],double lumiSoFar,std::vector<double>& runs,vector<double>& lumiByRun,std::map<int,double>& lumiMapByRun,bool useRMS,
-	    alignmentTrend& dxyPhiMeans_, alignmentTrend& dxyPhiHi_, alignmentTrend& dxyPhiLo_,
-	    alignmentTrend& dxyEtaMeans_, alignmentTrend& dxyEtaHi_, alignmentTrend& dxyEtaLo_,
-	    alignmentTrend& dzPhiMeans_ , alignmentTrend& dzPhiHi_ , alignmentTrend& dzPhiLo_,	 	  
-	    alignmentTrend& dzEtaMeans_ , alignmentTrend& dzEtaHi_ , alignmentTrend& dzEtaLo_,       
-	    std::map<TString,std::vector<unrolledHisto> >& dxyVect,  std::map<TString,std::vector<unrolledHisto> >& dzVect)
+outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const char* dirs[10], TString LegLabels[10],bool useRMS)
 /*--------------------------------------------------------------------*/
 {
+
+  outTrends ret;
+  ret.init();
 
   unsigned int pitch = std::ceil(intersection.size()/nWorkers);
   unsigned int first = iter*pitch;
   unsigned int last  = std::min((iter+1)*pitch-1,intersection.size());
 
   std::cout<< "pitch: " << pitch<< " first: "<< first << " last: "<< last<< std::endl;
+
+  ret.m_index=iter;
 
   for(unsigned int n=first; n<last;n++){
     //in case of debug, use only 50
@@ -1959,7 +2049,7 @@ int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const c
       if(j==0){
 	TH1F* h_lumi   = (TH1F*)fins[j]->Get("PVValidation/EventFeatures/h_lumiFromConfig");
 	double lumi = h_lumi->GetBinContent(1);
-	lumiSoFar+=lumi;
+	ret.m_lumiSoFar+=lumi;
 	//std::cout<<"lumi: "<<lumi
 	//	 <<" ,lumi so far: "<<lumiSoFar<<std::endl;
 
@@ -2019,28 +2109,28 @@ int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const c
       //       <<" dxy(phi) min: "<< dxyPhiBiases.first.second
       //       << std::endl;
 
-      dxyPhiMeans_[LegLabels[j]].push_back(dxyPhiBiases.second);
-      dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.first.first);
-      dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.first.second);
+      ret.m_dxyPhiMeans[LegLabels[j]].push_back(dxyPhiBiases.second);
+      ret.m_dxyPhiLo[LegLabels[j]].push_back(dxyPhiBiases.first.first);
+      ret.m_dxyPhiHi[LegLabels[j]].push_back(dxyPhiBiases.first.second);
 
       auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j],useRMS);
-      dxyEtaMeans_[LegLabels[j]].push_back(dxyEtaBiases.second);
-      dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.first.first);
-      dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.first.second);
+      ret.m_dxyEtaMeans[LegLabels[j]].push_back(dxyEtaBiases.second);
+      ret.m_dxyEtaLo[LegLabels[j]].push_back(dxyEtaBiases.first.first);
+      ret.m_dxyEtaHi[LegLabels[j]].push_back(dxyEtaBiases.first.second);
 
       auto dzPhiBiases = getBiases(dzPhiMeanTrend[j],useRMS);
-      dzPhiMeans_[LegLabels[j]].push_back(dzPhiBiases.second);
-      dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.first.first);
-      dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.first.second);
+      ret.m_dzPhiMeans[LegLabels[j]].push_back(dzPhiBiases.second);
+      ret.m_dzPhiLo[LegLabels[j]].push_back(dzPhiBiases.first.first);
+      ret.m_dzPhiHi[LegLabels[j]].push_back(dzPhiBiases.first.second);
 
       auto dzEtaBiases = getBiases(dzEtaMeanTrend[j],useRMS);
-      dzEtaMeans_[LegLabels[j]].push_back(dzEtaBiases.second);
-      dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.first.first);
-      dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.first.second);
+      ret.m_dzEtaMeans[LegLabels[j]].push_back(dzEtaBiases.second);
+      ret.m_dzEtaLo[LegLabels[j]].push_back(dzEtaBiases.first.first);
+      ret.m_dzEtaHi[LegLabels[j]].push_back(dzEtaBiases.first.second);
 
       // unrolled histograms
-      dxyVect[LegLabels[j]].push_back(getUnrolledHisto(dxyIntegralTrend[j]));
-      dzVect[LegLabels[j]].push_back(getUnrolledHisto(dzIntegralTrend[j]));
+      ret.m_dxyVect[LegLabels[j]].push_back(getUnrolledHisto(dxyIntegralTrend[j]));
+      ret.m_dzVect[LegLabels[j]].push_back(getUnrolledHisto(dzIntegralTrend[j]));
       
       //std::cout<<std::endl;
       //std::cout<<" n. bins: "<< dxyVect[LegLabels[j]].back().get_n_bins() 
@@ -2090,13 +2180,13 @@ int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const c
       }
       continue;
     } else {
-      runs.push_back(intersection.at(n));
+      ret.m_runs.push_back(intersection.at(n));
       // push back the vector of lumi (in fb at this point)
-      lumiByRun.push_back(lumiSoFar/1000.);
-      lumiMapByRun[intersection.at(n)]=lumiSoFar/1000.;
+      ret.m_lumiByRun.push_back(ret.m_lumiSoFar/1000.);
+      ret.m_lumiMapByRun[intersection.at(n)]=ret.m_lumiSoFar/1000.;
     }
 
-    std::cout<<"I am still here - runs.size(): "<<runs.size()<<std::endl;
+    std::cout<<"I am still here - runs.size(): "<<ret.m_runs.size()<<std::endl;
 
     // Bias plots
 
@@ -2183,6 +2273,6 @@ int doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,const c
     std::cout<<std::endl;
   }
   
-  return 0;
+  return ret;
 
 }
