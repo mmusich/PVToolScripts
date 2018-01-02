@@ -18,6 +18,7 @@
 #include "TH2F.h"
 #include "TF1.h"
 #include "TGraph.h"
+#include <TStopwatch.h>
 #include "TArrow.h"
 #include "TCanvas.h"
 #include "TObjString.h"
@@ -150,6 +151,9 @@ std::vector<std::string> split(const std::string& s,char delimiter)
 
 void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool time_axis_format,bool useRMS){
   
+  TStopwatch timer; 	 
+  timer.Start();
+
   // consistency check, we cannot do plot vs lumi if time_axis
   if(lumi_axis_format && time_axis_format){
     std::cout<<"##########################################################################################"<<std::endl;
@@ -1401,6 +1405,8 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
   gSystem->Sleep(100);
   processline.Clear();
 
+  timer.Stop(); 	 
+  timer.Print();
 
 }
 

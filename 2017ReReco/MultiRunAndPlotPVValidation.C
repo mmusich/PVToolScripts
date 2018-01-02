@@ -19,6 +19,7 @@
 #include "TH2F.h"
 #include "TF1.h"
 #include "TGraph.h"
+#include <TStopwatch.h>
 #include "TArrow.h"
 #include "TCanvas.h"
 #include "TObjString.h"
@@ -209,6 +210,9 @@ std::vector<std::string> split(const std::string& s,char delimiter)
 
 void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time_axis_format,bool useRMS){
   
+  TStopwatch timer; 	 
+  timer.Start();
+
   using namespace std::placeholders;  // for _1, _2, _3...
   gROOT->ProcessLine("gErrorIgnoreLevel = kError;"); 	
 
@@ -1252,6 +1256,8 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   gSystem->Sleep(100);
   processline.Clear();
 
+  timer.Stop(); 	 
+  timer.Print();
 
 }
 
