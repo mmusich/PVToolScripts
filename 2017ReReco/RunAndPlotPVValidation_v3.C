@@ -52,7 +52,7 @@ namespace pv{
   struct biases {
     
     // contructor
-    biases(double mean,double rms,double wmean,double wrms,double min,double max,double chi2,int ndf){
+    biases(double mean,double rms,double wmean,double wrms,double min,double max,double chi2,int ndf,double ks){
       m_mean=mean;
       m_rms=rms;
       m_w_mean=wmean;
@@ -61,6 +61,7 @@ namespace pv{
       m_max=max;
       m_chi2=chi2;
       m_ndf=ndf;
+      m_ks=ks;
     }
     
     biases(){
@@ -76,6 +77,7 @@ namespace pv{
       m_w_rms=0.;
       m_chi2=-1.;
       m_ndf=0.;
+      m_ks=9999.;
     }
 
     double getMean(){ return m_mean;}
@@ -88,6 +90,7 @@ namespace pv{
     double getNDF(){return m_ndf;}
     double getNormChi2(){ return double(m_chi2)/double(m_ndf);}
     double getChi2Prob(){ return TMath::Prob(m_chi2,m_ndf);}
+    double getKSScore(){ return m_ks;}
 
   private:
     double m_mean;
@@ -98,6 +101,7 @@ namespace pv{
     double m_w_rms;
     double m_chi2;
     int    m_ndf;
+    double m_ks;
   };
 
 }
@@ -163,6 +167,7 @@ pv::biases getBiases(TH1F* hist);
 unrolledHisto getUnrolledHisto(TH1F* hist);
 
 TH1F* DrawConstant(TH1F *hist,Int_t iter,Double_t theConst);
+TH1F* DrawConstantWithErr(TH1F *hist,Int_t iter,Double_t theConst);
 TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst);
 std::vector<int> list_files(const char *dirname=".", const char *ext=".root");
 TH1F* checkTH1AndReturn(TFile *f,TString address);
@@ -333,21 +338,25 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
   // book the vectors of values
   alignmentTrend dxyPhiMeans_;
   alignmentTrend dxyPhiChi2_;
+  alignmentTrend dxyPhiKS_;
   alignmentTrend dxyPhiHi_;
   alignmentTrend dxyPhiLo_;
  
   alignmentTrend dxyEtaMeans_;
   alignmentTrend dxyEtaChi2_;
+  alignmentTrend dxyEtaKS_;
   alignmentTrend dxyEtaHi_;
   alignmentTrend dxyEtaLo_;
   
   alignmentTrend dzPhiMeans_;
   alignmentTrend dzPhiChi2_;
+  alignmentTrend dzPhiKS_;
   alignmentTrend dzPhiHi_;
   alignmentTrend dzPhiLo_;
   
   alignmentTrend dzEtaMeans_;
   alignmentTrend dzEtaChi2_;
+  alignmentTrend dzEtaKS_;
   alignmentTrend dzEtaHi_;
   alignmentTrend dzEtaLo_;
 
@@ -494,24 +503,31 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
 
       dxyPhiMeans_[LegLabels[j]].push_back(dxyPhiBiases.getMean());
       dxyPhiChi2_[LegLabels[j]].push_back(TMath::Log10(dxyPhiBiases.getNormChi2()));
+      dxyPhiKS_[LegLabels[j]].push_back(dxyPhiBiases.getKSScore());
+
+      //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) ks score: "<< dxyPhiBiases.getKSScore() << std::endl;
+
       useRMS ? dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.getMean() - dxyPhiBiases.getRMS()) : dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.getMin());
       useRMS ? dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.getMean() + dxyPhiBiases.getRMS()) : dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.getMax());
 
       auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j]);
       dxyEtaMeans_[LegLabels[j]].push_back(dxyEtaBiases.getMean());
       dxyEtaChi2_[LegLabels[j]].push_back(TMath::Log10(dxyEtaBiases.getNormChi2()));
+      dxyEtaKS_[LegLabels[j]].push_back(dxyEtaBiases.getKSScore());
       useRMS ? dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.getMean() - dxyEtaBiases.getRMS()) : dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.getMin());
       useRMS ? dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.getMean() + dxyEtaBiases.getRMS()) : dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.getMax());
 
       auto dzPhiBiases = getBiases(dzPhiMeanTrend[j]);
       dzPhiMeans_[LegLabels[j]].push_back(dzPhiBiases.getMean());
       dzPhiChi2_[LegLabels[j]].push_back(TMath::Log10(dzPhiBiases.getNormChi2()));
+      dzPhiKS_[LegLabels[j]].push_back(dzPhiBiases.getKSScore());
       useRMS ? dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.getMean() - dzPhiBiases.getRMS()) : dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.getMin());
       useRMS ? dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.getMean() + dzPhiBiases.getRMS()) : dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.getMax());
 
       auto dzEtaBiases = getBiases(dzEtaMeanTrend[j]);
       dzEtaMeans_[LegLabels[j]].push_back(dzEtaBiases.getMean());
       dzEtaChi2_[LegLabels[j]].push_back(TMath::Log10(dzEtaBiases.getNormChi2()));
+      dzEtaKS_[LegLabels[j]].push_back(dzEtaBiases.getKSScore());
       useRMS ? dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.getMean() - dzEtaBiases.getRMS()) : dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.getMin());
       useRMS ? dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.getMean() + dzEtaBiases.getRMS()) : dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.getMax());
 
@@ -685,28 +701,35 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
   TCanvas *c_chisquare_vs_run = new TCanvas("c_chisquare_vs_run","chi2 of pol0 fit vs run number",1600,1000);
   c_chisquare_vs_run->Divide(2,2);
 
+  TCanvas *c_KSScore_vs_run = new TCanvas("c_KSScore_vs_run","KS score compatibility to 0 vs run number",1600,1000);
+  c_KSScore_vs_run->Divide(2,2);
+
   // bias on the mean
 
   TGraph *g_dxy_phi_vs_run[nDirs_];
   TGraph *g_chi2_dxy_phi_vs_run[nDirs_];
+  TGraph *g_KS_dxy_phi_vs_run[nDirs_];
   TGraph *gprime_dxy_phi_vs_run[nDirs_];  
   TGraph *g_dxy_phi_hi_vs_run[nDirs_];
   TGraph *g_dxy_phi_lo_vs_run[nDirs_];
   
   TGraph *g_dxy_eta_vs_run[nDirs_];
   TGraph *g_chi2_dxy_eta_vs_run[nDirs_];
+  TGraph *g_KS_dxy_eta_vs_run[nDirs_];
   TGraph *gprime_dxy_eta_vs_run[nDirs_];
   TGraph *g_dxy_eta_hi_vs_run[nDirs_];
   TGraph *g_dxy_eta_lo_vs_run[nDirs_];
 
   TGraph *g_dz_phi_vs_run[nDirs_];
   TGraph *g_chi2_dz_phi_vs_run[nDirs_];
+  TGraph *g_KS_dz_phi_vs_run[nDirs_];
   TGraph *gprime_dz_phi_vs_run[nDirs_];
   TGraph *g_dz_phi_hi_vs_run[nDirs_];
   TGraph *g_dz_phi_lo_vs_run[nDirs_];
 
   TGraph *g_dz_eta_vs_run[nDirs_];
   TGraph *g_chi2_dz_eta_vs_run[nDirs_];
+  TGraph *g_KS_dz_eta_vs_run[nDirs_];
   TGraph *gprime_dz_eta_vs_run[nDirs_];
   TGraph *g_dz_eta_hi_vs_run[nDirs_];
   TGraph *g_dz_eta_lo_vs_run[nDirs_];
@@ -776,6 +799,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     
     g_dxy_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiMeans_[LegLabels[j]])[0]));
     g_chi2_dxy_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiChi2_[LegLabels[j]])[0]));
+    g_KS_dxy_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiKS_[LegLabels[j]])[0]));
     g_dxy_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiHi_[LegLabels[j]])[0]));
     g_dxy_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiLo_[LegLabels[j]])[0]));
 
@@ -904,6 +928,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     // *************************************
     g_dxy_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaMeans_[LegLabels[j]])[0]));
     g_chi2_dxy_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaChi2_[LegLabels[j]])[0]));
+    g_KS_dxy_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaKS_[LegLabels[j]])[0]));
     g_dxy_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaHi_[LegLabels[j]])[0]));
     g_dxy_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaLo_[LegLabels[j]])[0]));
 
@@ -1026,6 +1051,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     // *************************************
     g_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiMeans_[LegLabels[j]])[0]));
     g_chi2_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiChi2_[LegLabels[j]])[0]));
+    g_KS_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiKS_[LegLabels[j]])[0]));
     g_dz_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiHi_[LegLabels[j]])[0]));
     g_dz_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiLo_[LegLabels[j]])[0]));
 
@@ -1148,6 +1174,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     // *************************************
     g_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaMeans_[LegLabels[j]])[0]));
     g_chi2_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaChi2_[LegLabels[j]])[0]));
+    g_KS_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaKS_[LegLabels[j]])[0]));
     g_dz_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaHi_[LegLabels[j]])[0]));
     g_dz_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaLo_[LegLabels[j]])[0]));
 
@@ -1461,6 +1488,127 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       my_lego->Draw("same");
     }
 
+
+    // **************************************** 
+    // Canvas for Kolmogorov-Smirnov test
+    // ****************************************
+
+    // 1st pad
+    c_KSScore_vs_run->cd(1);
+    adjustmargins(c_KSScore_vs_run->cd(1));
+    g_KS_dxy_phi_vs_run[j]->SetMarkerStyle(markers[j]);
+    g_KS_dxy_phi_vs_run[j]->SetMarkerColor(colors[j]);
+    g_KS_dxy_phi_vs_run[j]->SetLineColor(colors[j]);
+
+    g_KS_dxy_phi_vs_run[j]->SetName(Form("g_KS_dxy_phi_%s",LegLabels[j].Data()));
+    g_KS_dxy_phi_vs_run[j]->SetTitle(Form("KS-score of d_{xy}(#varphi) vs %s",theType.Data()));
+    g_KS_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("KS Score of d_{xy}(#phi) w.r.t 0");
+    g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-10.,1.);
+    beautify(g_KS_dxy_phi_vs_run[j]);
+    //g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_KS_dxy_phi_vs_run[j]->Draw("AP");
+    } else {
+      g_KS_dxy_phi_vs_run[j]->Draw("Psame");
+    }
+
+    if(time_axis_format){
+      timify(g_KS_dxy_phi_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    // 2nd pad
+    c_KSScore_vs_run->cd(2);
+    adjustmargins(c_KSScore_vs_run->cd(2));
+    g_KS_dxy_eta_vs_run[j]->SetMarkerStyle(markers[j]);
+    g_KS_dxy_eta_vs_run[j]->SetMarkerColor(colors[j]);
+    g_KS_dxy_eta_vs_run[j]->SetLineColor(colors[j]);
+
+    g_KS_dxy_eta_vs_run[j]->SetName(Form("g_KS_dxy_eta_%s",LegLabels[j].Data()));
+    g_KS_dxy_eta_vs_run[j]->SetTitle(Form("KS-score of d_{xy}(#eta) vs %s",theType.Data()));
+    g_KS_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("KS Score of d_{xy}(#eta) w.r.t 0");
+    g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,1.);
+    beautify(g_KS_dxy_eta_vs_run[j]);
+    //g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_KS_dxy_eta_vs_run[j]->Draw("AP");
+    } else {
+      g_KS_dxy_eta_vs_run[j]->Draw("Psame");
+    }
+
+    if(time_axis_format){
+      timify(g_KS_dxy_eta_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    //3d pad
+    c_KSScore_vs_run->cd(3);
+    adjustmargins(c_KSScore_vs_run->cd(3));
+    g_KS_dz_phi_vs_run[j]->SetMarkerStyle(markers[j]);
+    g_KS_dz_phi_vs_run[j]->SetMarkerColor(colors[j]);
+    g_KS_dz_phi_vs_run[j]->SetLineColor(colors[j]);
+
+    g_KS_dz_phi_vs_run[j]->SetName(Form("g_KS_dz_phi_%s",LegLabels[j].Data()));
+    g_KS_dz_phi_vs_run[j]->SetTitle(Form("KS-score of d_{z}(#varphi) vs %s",theType.Data()));
+    g_KS_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_KS_dz_phi_vs_run[j]->GetYaxis()->SetTitle("KS Score of d_{z}(#phi) w.r.t 0");
+    g_KS_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-10.,1.);
+    beautify(g_KS_dz_phi_vs_run[j]);
+    //g_KS_dz_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_KS_dz_phi_vs_run[j]->Draw("AP");
+    } else {
+      g_KS_dz_phi_vs_run[j]->Draw("Psame");
+    }
+
+    if(time_axis_format){
+      timify(g_KS_dz_phi_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    //4th pad
+    c_KSScore_vs_run->cd(4);
+    adjustmargins(c_KSScore_vs_run->cd(4));
+    g_KS_dz_eta_vs_run[j]->SetMarkerStyle(markers[j]);
+    g_KS_dz_eta_vs_run[j]->SetMarkerColor(colors[j]);
+    g_KS_dz_eta_vs_run[j]->SetLineColor(colors[j]);
+
+    g_KS_dz_eta_vs_run[j]->SetName(Form("g_KS_dz_eta_%s",LegLabels[j].Data()));
+    g_KS_dz_eta_vs_run[j]->SetTitle(Form("KS-score of d_{z}(#eta) vs %s",theType.Data()));
+    g_KS_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_KS_dz_eta_vs_run[j]->GetYaxis()->SetTitle("KS Score of d_{z}(#eta) w.r.t 0");
+    g_KS_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,1.);
+    beautify(g_KS_dz_eta_vs_run[j]);
+    //g_KS_dz_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_KS_dz_eta_vs_run[j]->Draw("AP");
+    } else {
+      g_KS_dz_eta_vs_run[j]->Draw("Psame");
+    }
+
+    if(time_axis_format){
+      timify(g_KS_dz_eta_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
   }
   
   // delete the array for the maxima
@@ -1537,30 +1685,39 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
   c_chisquare_vs_run->SaveAs("chi2pol0fit_vs_"+append+".pdf");
   c_chisquare_vs_run->SaveAs("chi2pol0fit_vs_"+append+".png");
 
+  // KS score
+  
+  c_KSScore_vs_run->SaveAs("KSScore_vs_"+append+".pdf");
+  c_KSScore_vs_run->SaveAs("KSScore_vs_"+append+".png");
+
   // do all the deletes
 
   for(int iDir=0;iDir<nDirs_;iDir++){
 
    delete g_dxy_phi_vs_run[iDir];    
    delete g_chi2_dxy_phi_vs_run[iDir];    
+   delete g_KS_dxy_phi_vs_run[iDir];    
    delete gprime_dxy_phi_vs_run[iDir];    
    delete g_dxy_phi_hi_vs_run[iDir]; 
    delete g_dxy_phi_lo_vs_run[iDir]; 
                                
    delete g_dxy_eta_vs_run[iDir];    
    delete g_chi2_dxy_eta_vs_run[iDir];    
+   delete g_KS_dxy_eta_vs_run[iDir];    
    delete gprime_dxy_eta_vs_run[iDir];    
    delete g_dxy_eta_hi_vs_run[iDir]; 
    delete g_dxy_eta_lo_vs_run[iDir]; 
                                
    delete g_dz_phi_vs_run[iDir];     
    delete g_chi2_dz_phi_vs_run[iDir];     
+   delete g_KS_dz_phi_vs_run[iDir];     
    delete gprime_dz_phi_vs_run[iDir];     
    delete g_dz_phi_hi_vs_run[iDir];  
    delete g_dz_phi_lo_vs_run[iDir];  
                                
    delete g_dz_eta_vs_run[iDir];     
    delete g_chi2_dz_eta_vs_run[iDir];     
+   delete g_KS_dz_eta_vs_run[iDir];       
    delete gprime_dz_eta_vs_run[iDir];     
    delete g_dz_eta_hi_vs_run[iDir];  
    delete g_dz_eta_lo_vs_run[iDir];  
@@ -1984,6 +2141,29 @@ TH1F* DrawConstant(TH1F *hist,Int_t iter,Double_t theConst)
   return hzero;
 }
 
+
+/*--------------------------------------------------------------------*/
+TH1F* DrawConstantWithErr(TH1F *hist,Int_t iter,Double_t theConst)
+/*--------------------------------------------------------------------*/
+{ 
+
+  Int_t nbins       = hist->GetNbinsX();
+  Double_t lowedge  = hist->GetBinLowEdge(1);
+  Double_t highedge = hist->GetBinLowEdge(nbins+1);
+
+
+  TH1F *hzero = new TH1F(Form("hconst_%s_%i",hist->GetName(),iter),Form("hconst_%s_%i",hist->GetName(),iter),nbins,lowedge,highedge);
+  for (Int_t i=0;i<=hzero->GetNbinsX();i++){
+    hzero->SetBinContent(i,theConst);
+    hzero->SetBinError(i,hist->GetBinError(i));
+  }
+  hzero->SetLineWidth(2);
+  hzero->SetLineStyle(9);
+  hzero->SetLineColor(kMagenta);
+  
+  return hzero;
+}
+
 /*--------------------------------------------------------------------*/
 TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst)
 /*--------------------------------------------------------------------*/
@@ -2041,9 +2221,12 @@ pv::biases getBiases(TH1F* hist)
   //extract median from histogram
   double *y   = new double[nbins];
   double *err = new double[nbins];
+
+  // remember for weight means <x> = sum_i (x_i* w_i) / sum_i w_i ; where w_i = 1/sigma^2_i
+
   for (int j = 0; j < nbins; j++) {
     y[j]   = hist->GetBinContent(j+1);
-    err[j] = hist->GetBinError(j+1);
+    err[j] = 1./(hist->GetBinError(j+1)*hist->GetBinError(j+1));
   }
 
   Double_t w_mean = TMath::Mean(nbins,y,err);
@@ -2063,6 +2246,12 @@ pv::biases getBiases(TH1F* hist)
   Double_t chi2 = f->GetChisquare();
   Int_t    ndf  = f->GetNDF();
 
+  TH1F* theZero = DrawConstantWithErr(hist,1,1.);
+  TH1F* displaced = (TH1F*)hist->Clone("displaced");
+  displaced->Add(theZero);
+  Double_t ksScore   = std::max(-10.,TMath::Log10(displaced->KolmogorovTest(theZero)));
+  Double_t chi2Score = displaced->Chi2Test(theZero);
+
   /*
     std::pair<std::pair<Double_t,Double_t>, Double_t> result;
     std::pair<Double_t,Double_t> resultBounds;
@@ -2070,7 +2259,10 @@ pv::biases getBiases(TH1F* hist)
     result = make_pair(resultBounds,mean);
   */
 
-  pv::biases result(mean,rms,w_mean,w_rms,min,max,chi2,ndf);
+  pv::biases result(mean,rms,w_mean,w_rms,min,max,chi2,ndf,ksScore);
+
+  delete theZero;
+  delete displaced;
   return result;
    
 }
