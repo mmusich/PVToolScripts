@@ -1704,12 +1704,15 @@ std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist,bool useR
 
   int nbins = hist->GetNbinsX();
 
+  // remember for weight means <x> = sum_i (x_i* w_i) / sum_i w_i ; where w_i = 1/sigma^2_i
+
   //extract median from histogram
   double *y   = new double[nbins];
   double *err = new double[nbins];
   for (int j = 0; j < nbins; j++) {
     y[j]   = hist->GetBinContent(j+1);
-    err[j] = hist->GetBinError(j+1);
+    //err[j] = hist->GetBinError(j+1);
+    err[j] = 1./(hist->GetBinError(j+1)*hist->GetBinError(j+1));
   }
   mean = TMath::Mean(nbins,y,err);
   rms =  TMath::RMS(nbins,y,err);
