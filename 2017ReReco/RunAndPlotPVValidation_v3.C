@@ -83,7 +83,7 @@ namespace pv{
     double getMean(){ return m_mean;}
     double getWeightedMean(){return m_w_mean;}
     double getRMS(){return m_rms;}
-    double getWeightRMS(){return m_w_rms;}
+    double getWeightedRMS(){return m_w_rms;}
     double getMin(){return m_min;}
     double getMax(){return m_max;}
     double getChi2(){return m_chi2;}
@@ -498,38 +498,38 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
       
       //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) mean: "<< dxyPhiBiases.getMean()
       //	       <<" dxy(phi) max: "<< dxyPhiBiases.getMax()
-      //       <<" dxy(phi) min: "<< dxyPhiBiases.getMin()
+      //       <<" dxy(phi) min: "<< dxyPhiBiases.getMin()()
       //       << std::endl;
 
-      dxyPhiMeans_[LegLabels[j]].push_back(dxyPhiBiases.getMean());
+      dxyPhiMeans_[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean());
       dxyPhiChi2_[LegLabels[j]].push_back(TMath::Log10(dxyPhiBiases.getNormChi2()));
       dxyPhiKS_[LegLabels[j]].push_back(dxyPhiBiases.getKSScore());
 
       //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) ks score: "<< dxyPhiBiases.getKSScore() << std::endl;
 
-      useRMS ? dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.getMean() - dxyPhiBiases.getRMS()) : dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.getMin());
-      useRMS ? dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.getMean() + dxyPhiBiases.getRMS()) : dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.getMax());
+      useRMS ? dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean() - dxyPhiBiases.getWeightedRMS()) : dxyPhiLo_[LegLabels[j]].push_back(dxyPhiBiases.getMin());
+      useRMS ? dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean() + dxyPhiBiases.getWeightedRMS()) : dxyPhiHi_[LegLabels[j]].push_back(dxyPhiBiases.getMax());
 
       auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j]);
-      dxyEtaMeans_[LegLabels[j]].push_back(dxyEtaBiases.getMean());
+      dxyEtaMeans_[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean());
       dxyEtaChi2_[LegLabels[j]].push_back(TMath::Log10(dxyEtaBiases.getNormChi2()));
       dxyEtaKS_[LegLabels[j]].push_back(dxyEtaBiases.getKSScore());
-      useRMS ? dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.getMean() - dxyEtaBiases.getRMS()) : dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.getMin());
-      useRMS ? dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.getMean() + dxyEtaBiases.getRMS()) : dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.getMax());
+      useRMS ? dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean() - dxyEtaBiases.getWeightedRMS()) : dxyEtaLo_[LegLabels[j]].push_back(dxyEtaBiases.getMin());
+      useRMS ? dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean() + dxyEtaBiases.getWeightedRMS()) : dxyEtaHi_[LegLabels[j]].push_back(dxyEtaBiases.getMax());
 
       auto dzPhiBiases = getBiases(dzPhiMeanTrend[j]);
-      dzPhiMeans_[LegLabels[j]].push_back(dzPhiBiases.getMean());
+      dzPhiMeans_[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean());
       dzPhiChi2_[LegLabels[j]].push_back(TMath::Log10(dzPhiBiases.getNormChi2()));
       dzPhiKS_[LegLabels[j]].push_back(dzPhiBiases.getKSScore());
-      useRMS ? dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.getMean() - dzPhiBiases.getRMS()) : dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.getMin());
-      useRMS ? dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.getMean() + dzPhiBiases.getRMS()) : dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.getMax());
+      useRMS ? dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean() - dzPhiBiases.getWeightedRMS()) : dzPhiLo_[LegLabels[j]].push_back(dzPhiBiases.getMin());
+      useRMS ? dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean() + dzPhiBiases.getWeightedRMS()) : dzPhiHi_[LegLabels[j]].push_back(dzPhiBiases.getMax());
 
       auto dzEtaBiases = getBiases(dzEtaMeanTrend[j]);
-      dzEtaMeans_[LegLabels[j]].push_back(dzEtaBiases.getMean());
+      dzEtaMeans_[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean());
       dzEtaChi2_[LegLabels[j]].push_back(TMath::Log10(dzEtaBiases.getNormChi2()));
       dzEtaKS_[LegLabels[j]].push_back(dzEtaBiases.getKSScore());
-      useRMS ? dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.getMean() - dzEtaBiases.getRMS()) : dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.getMin());
-      useRMS ? dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.getMean() + dzEtaBiases.getRMS()) : dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.getMax());
+      useRMS ? dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean() - dzEtaBiases.getWeightedRMS()) : dzEtaLo_[LegLabels[j]].push_back(dzEtaBiases.getMin());
+      useRMS ? dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean() + dzEtaBiases.getWeightedRMS()) : dzEtaHi_[LegLabels[j]].push_back(dzEtaBiases.getMax());
 
       // unrolled histograms
       dxyVect[LegLabels[j]].push_back(getUnrolledHisto(dxyIntegralTrend[j]));
@@ -1223,7 +1223,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     c_mean_dz_eta_vs_run->cd();
     gprime_dz_eta_vs_run[j] =  (TGraph*)g_dz_eta_vs_run[j]->Clone();
     if(j==0){
-      gprime_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20.,20.);
+      gprime_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
       gprime_dz_eta_vs_run[j]->Draw("APL");
     } else {
       gprime_dz_eta_vs_run[j]->Draw("PLsame");
@@ -1383,7 +1383,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_chi2_dxy_phi_vs_run[j]->SetTitle(Form("log_{10}(#chi2/ndf) of d_{xy}(#varphi) fit vs %s",theType.Data()));
     g_chi2_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
     g_chi2_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("log_{10}(#chi^{2}/ndf) of d_{xy}(#phi) pol0 fit");
-    g_chi2_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.);
+    g_chi2_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.5);
     beautify(g_chi2_dxy_phi_vs_run[j]);
     //g_chi2_dxy_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
 
@@ -1412,7 +1412,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_chi2_dxy_eta_vs_run[j]->SetTitle(Form("log_{10}(#chi2/ndf) of d_{xy}(#eta) fit vs %s",theType.Data()));
     g_chi2_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
     g_chi2_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("log_{10}(#chi^{2}/ndf) of d_{xy}(#eta) pol0 fit");
-    g_chi2_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.);
+    g_chi2_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.5);
     beautify(g_chi2_dxy_eta_vs_run[j]);
     //g_chi2_dxy_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
 
@@ -1441,7 +1441,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_chi2_dz_phi_vs_run[j]->SetTitle(Form("log_{10}(#chi2/ndf) of d_{z}(#varphi) fit vs %s",theType.Data()));
     g_chi2_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
     g_chi2_dz_phi_vs_run[j]->GetYaxis()->SetTitle("log_{10}(#chi^{2}/ndf) of d_{z}(#phi) pol0 fit");
-    g_chi2_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.);
+    g_chi2_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.5);
     beautify(g_chi2_dz_phi_vs_run[j]);
     //g_chi2_dz_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
 
@@ -1470,7 +1470,7 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_chi2_dz_eta_vs_run[j]->SetTitle(Form("log_{10}(#chi2/ndf) of d_{z}(#eta) fit vs %s",theType.Data()));
     g_chi2_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
     g_chi2_dz_eta_vs_run[j]->GetYaxis()->SetTitle("log_{10}(#chi^{2}/ndf) of d_{z}(#eta) pol0 fit");
-    g_chi2_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.);
+    g_chi2_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.5);
     beautify(g_chi2_dz_eta_vs_run[j]);
     //g_chi2_dz_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
 
@@ -1501,10 +1501,10 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_KS_dxy_phi_vs_run[j]->SetLineColor(colors[j]);
 
     g_KS_dxy_phi_vs_run[j]->SetName(Form("g_KS_dxy_phi_%s",LegLabels[j].Data()));
-    g_KS_dxy_phi_vs_run[j]->SetTitle(Form("KS-score of d_{xy}(#varphi) vs %s",theType.Data()));
+    g_KS_dxy_phi_vs_run[j]->SetTitle(Form("log_{10}(KS-score) of d_{xy}(#varphi) vs %s",theType.Data()));
     g_KS_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("KS Score of d_{xy}(#phi) w.r.t 0");
-    g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-10.,1.);
+    g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("log_{10}(KS-score) of d_{xy}(#phi) w.r.t 0");
+    g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-20.,1.);
     beautify(g_KS_dxy_phi_vs_run[j]);
     //g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
 
@@ -1530,10 +1530,10 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_KS_dxy_eta_vs_run[j]->SetLineColor(colors[j]);
 
     g_KS_dxy_eta_vs_run[j]->SetName(Form("g_KS_dxy_eta_%s",LegLabels[j].Data()));
-    g_KS_dxy_eta_vs_run[j]->SetTitle(Form("KS-score of d_{xy}(#eta) vs %s",theType.Data()));
+    g_KS_dxy_eta_vs_run[j]->SetTitle(Form("log_{10}(KS-score) of d_{xy}(#eta) vs %s",theType.Data()));
     g_KS_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("KS Score of d_{xy}(#eta) w.r.t 0");
-    g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,1.);
+    g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("log_{10}(KS-score) of d_{xy}(#eta) w.r.t 0");
+    g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20.,1.);
     beautify(g_KS_dxy_eta_vs_run[j]);
     //g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
 
@@ -1559,10 +1559,10 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_KS_dz_phi_vs_run[j]->SetLineColor(colors[j]);
 
     g_KS_dz_phi_vs_run[j]->SetName(Form("g_KS_dz_phi_%s",LegLabels[j].Data()));
-    g_KS_dz_phi_vs_run[j]->SetTitle(Form("KS-score of d_{z}(#varphi) vs %s",theType.Data()));
+    g_KS_dz_phi_vs_run[j]->SetTitle(Form("log_{10}(KS-score) of d_{z}(#varphi) vs %s",theType.Data()));
     g_KS_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_KS_dz_phi_vs_run[j]->GetYaxis()->SetTitle("KS Score of d_{z}(#phi) w.r.t 0");
-    g_KS_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-10.,1.);
+    g_KS_dz_phi_vs_run[j]->GetYaxis()->SetTitle("log_{10}(KS-score) of d_{z}(#phi) w.r.t 0");
+    g_KS_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-20.,1.);
     beautify(g_KS_dz_phi_vs_run[j]);
     //g_KS_dz_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
 
@@ -1588,10 +1588,10 @@ void RunAndPlotPVValidation_v3(TString namesandlabels,bool lumi_axis_format,bool
     g_KS_dz_eta_vs_run[j]->SetLineColor(colors[j]);
 
     g_KS_dz_eta_vs_run[j]->SetName(Form("g_KS_dz_eta_%s",LegLabels[j].Data()));
-    g_KS_dz_eta_vs_run[j]->SetTitle(Form("KS-score of d_{z}(#eta) vs %s",theType.Data()));
+    g_KS_dz_eta_vs_run[j]->SetTitle(Form("log_{10}(KS-score) of d_{z}(#eta) vs %s",theType.Data()));
     g_KS_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_KS_dz_eta_vs_run[j]->GetYaxis()->SetTitle("KS Score of d_{z}(#eta) w.r.t 0");
-    g_KS_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,1.);
+    g_KS_dz_eta_vs_run[j]->GetYaxis()->SetTitle("log_{10}(KS-score) of d_{z}(#eta) w.r.t 0");
+    g_KS_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20.,1.);
     beautify(g_KS_dz_eta_vs_run[j]);
     //g_KS_dz_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
 
@@ -2249,7 +2249,7 @@ pv::biases getBiases(TH1F* hist)
   TH1F* theZero = DrawConstantWithErr(hist,1,1.);
   TH1F* displaced = (TH1F*)hist->Clone("displaced");
   displaced->Add(theZero);
-  Double_t ksScore   = std::max(-10.,TMath::Log10(displaced->KolmogorovTest(theZero)));
+  Double_t ksScore   = std::max(-20.,TMath::Log10(displaced->KolmogorovTest(theZero)));
   Double_t chi2Score = displaced->Chi2Test(theZero);
 
   /*
@@ -2415,37 +2415,58 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
     std::cout<<" run:" << imap.first << " time: "<< imap.second.Convert() << std::endl;
   }
 
+  // info comes from: https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideAlignmentConstantsRun2017#TrackerAlignment_v21_offline_Tra
+
   static const int nIOVs=12; //     1      2      3      4      5      6      7      8      9     10     11     12      
   int IOVboundaries[nIOVs]  = {296641,297179,297281,298653,299277,299443,300389,301046,302131,303790,304911,305898};
-  TArrow* IOV_lines[nIOVs];
+  int benchmarkruns[nIOVs]  = {297057,297219,297503,299061,299368,300157,300560,301472,302472,304292,305108,305898};
+  //TArrow* IOV_lines[nIOVs];
   c->cd();
   c->Update();
 
   TArrow* a_lines[nIOVs];
+  TArrow* b_lines[nIOVs];
   for(Int_t IOV=0;IOV<nIOVs;IOV++){
 
     // check we are not in the RMS histogram to avoid first line
     if(IOVboundaries[IOV]<vruns.front() && ((TString)c->GetName()).Contains("RMS")) continue;
+
     int closestrun = pv::closest(vruns,IOVboundaries[IOV]); 
+    int closestbenchmark = pv::closest(vruns,benchmarkruns[IOV]);
 
     if(lumi_axis_format){
 
-      if(closestrun<0) break;
+      if(closestrun<0) continue;
       //std::cout<< "natural boundary: " << IOVboundaries[IOV] << " closest:" << closestrun << std::endl;
-
       a_lines[IOV] = new TArrow(lumiMapByRun.at(closestrun),(c->GetUymin()),lumiMapByRun.at(closestrun),0.65*c->GetUymax(),0.5,"|>");
+
+      if(closestbenchmark<0) continue;
+      b_lines[IOV] = new TArrow(lumiMapByRun.at(closestbenchmark),(c->GetUymin()),lumiMapByRun.at(closestbenchmark),0.65*c->GetUymax(),0.5,"|>");
+
     } else if(time_axis_format){
       
-      if(closestrun<0) break;
+      if(closestrun<0) continue;
       std::cout<< "natural boundary: " << IOVboundaries[IOV] << " closest:" << closestrun << std::endl;
       a_lines[IOV] = new TArrow(timeMap.at(closestrun).Convert(),(c->GetUymin()),timeMap.at(closestrun).Convert(),0.65*c->GetUymax(),0.5,"|>");
+      
+      if(closestbenchmark<0) continue;
+      b_lines[IOV] = new TArrow(timeMap.at(closestbenchmark).Convert(),(c->GetUymin()),timeMap.at(closestbenchmark).Convert(),0.65*c->GetUymax(),0.5,"|>");
+
     } else {
       a_lines[IOV] = new TArrow(IOVboundaries[IOV],(c->GetUymin()),IOVboundaries[IOV],0.65*c->GetUymax(),0.5,"|>"); //(c->GetUymin()+0.2*(c->GetUymax()-c->GetUymin()) ),0.5,"|>");
+      b_lines[IOV] = new TArrow(benchmarkruns[IOV],(c->GetUymin()),benchmarkruns[IOV],0.65*c->GetUymax(),0.5,"|>"); //(c->GetUymin()+0.2*(c->GetUymax()-c->GetUymin()) ),0.5,"|>");
     }
+
     a_lines[IOV]->SetLineColor(kRed);
     a_lines[IOV]->SetLineStyle(9);
     a_lines[IOV]->SetLineWidth(1);
     a_lines[IOV]->Draw("same");
+
+    b_lines[IOV]->SetLineColor(kGray);
+    b_lines[IOV]->SetLineStyle(1);
+    b_lines[IOV]->SetLineWidth(2);
+    b_lines[IOV]->Draw("same");
+
   }
 
   TPaveText* runnumbers[nIOVs];
