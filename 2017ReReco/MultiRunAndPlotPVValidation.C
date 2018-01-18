@@ -56,6 +56,62 @@ namespace pv{
   const Int_t markers[8] = {kFullSquare,kFullCircle,kFullTriangleDown,kOpenSquare,kOpenCircle,kFullTriangleUp,kOpenTriangleDown,kOpenTriangleUp};
   const Int_t colors[8]  = {kBlack,kBlue,kRed,kGreen+2,kOrange,kMagenta,kCyan,kViolet};
 
+  struct biases {
+    
+    // contructor
+    biases(double mean,double rms,double wmean,double wrms,double min,double max,double chi2,int ndf,double ks){
+      m_mean=mean;
+      m_rms=rms;
+      m_w_mean=wmean;
+      m_w_rms=wrms;
+      m_min=min;
+      m_max=max;
+      m_chi2=chi2;
+      m_ndf=ndf;
+      m_ks=ks;
+    }
+    
+    // empty constructor
+    biases(){
+      init();
+    }    
+
+    void init(){
+      m_mean=0;
+      m_rms=0.;
+      m_min=+999.;
+      m_max=-999.;
+      m_w_mean=0.;
+      m_w_rms=0.;
+      m_chi2=-1.;
+      m_ndf=0.;
+      m_ks=9999.;
+    }
+
+    double getMean(){ return m_mean;}
+    double getWeightedMean(){return m_w_mean;}
+    double getRMS(){return m_rms;}
+    double getWeightedRMS(){return m_w_rms;}
+    double getMin(){return m_min;}
+    double getMax(){return m_max;}
+    double getChi2(){return m_chi2;}
+    double getNDF(){return m_ndf;}
+    double getNormChi2(){ return double(m_chi2)/double(m_ndf);}
+    double getChi2Prob(){ return TMath::Prob(m_chi2,m_ndf);}
+    double getKSScore(){ return m_ks;}
+
+  private:
+    double m_mean;
+    double m_min;
+    double m_max;
+    double m_rms;
+    double m_w_mean;
+    double m_w_rms;
+    double m_chi2;
+    int    m_ndf;
+    double m_ks;
+  };
+
 }
 
 // auxilliary struct to store
@@ -117,15 +173,23 @@ struct outTrends {
   std::vector<double> m_lumiByRun;
   std::map<int,double> m_lumiMapByRun; 
   alignmentTrend m_dxyPhiMeans;
+  alignmentTrend m_dxyPhiChi2;
+  alignmentTrend m_dxyPhiKS;   
   alignmentTrend m_dxyPhiHi;
   alignmentTrend m_dxyPhiLo;
   alignmentTrend m_dxyEtaMeans;
+  alignmentTrend m_dxyEtaChi2;  
+  alignmentTrend m_dxyEtaKS;
   alignmentTrend m_dxyEtaHi; 
   alignmentTrend m_dxyEtaLo;
   alignmentTrend m_dzPhiMeans;
+  alignmentTrend m_dzPhiChi2; 
+  alignmentTrend m_dzPhiKS;
   alignmentTrend m_dzPhiHi; 
   alignmentTrend m_dzPhiLo;	 	  
   alignmentTrend m_dzEtaMeans;
+  alignmentTrend m_dzEtaChi2;  
+  alignmentTrend m_dzEtaKS;
   alignmentTrend m_dzEtaHi; 
   alignmentTrend m_dzEtaLo;       
   std::map<TString,std::vector<unrolledHisto> > m_dxyVect;
@@ -137,18 +201,31 @@ struct outTrends {
     m_runs.clear();
     m_lumiByRun.clear();
     m_lumiMapByRun.clear();
+
     m_dxyPhiMeans.clear();
+    m_dxyPhiChi2.clear(); 
+    m_dxyPhiKS.clear();   
     m_dxyPhiHi.clear();  
     m_dxyPhiLo.clear();  
+
     m_dxyEtaMeans.clear();
+    m_dxyEtaChi2.clear();
+    m_dxyEtaKS.clear();   
     m_dxyEtaHi.clear();  
     m_dxyEtaLo.clear();  
+
     m_dzPhiMeans.clear();
+    m_dzPhiChi2.clear();
+    m_dzPhiKS.clear();
     m_dzPhiHi.clear();   
     m_dzPhiLo.clear();   
+
     m_dzEtaMeans.clear();
+    m_dzEtaChi2.clear();
+    m_dzEtaKS.clear();
     m_dzEtaHi.clear();
     m_dzEtaLo.clear();   
+
     m_dxyVect.clear();
     m_dzVect.clear();
   }
@@ -168,10 +245,11 @@ void arrangeOutCanvas(TCanvas *canv,
 		      TString LegLabels[10],
 		      unsigned int theRun);
 
-std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist,bool useRMS_);
+pv::biases getBiases(TH1F* hist);
 unrolledHisto getUnrolledHisto(TH1F* hist);
 
 TH1F* DrawConstant(TH1F *hist,Int_t iter,Double_t theConst);
+TH1F* DrawConstantWithErr(TH1F *hist,Int_t iter,Double_t theConst);
 TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst);
 std::vector<int> list_files(const char *dirname=".", const char *ext=".root");
 TH1F* checkTH1AndReturn(TFile *f,TString address);
@@ -342,18 +420,26 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
   // book the vectors of values
   alignmentTrend dxyPhiMeans_;
+  alignmentTrend dxyPhiChi2_;
+  alignmentTrend dxyPhiKS_;
   alignmentTrend dxyPhiHi_;
   alignmentTrend dxyPhiLo_;
  
   alignmentTrend dxyEtaMeans_;
+  alignmentTrend dxyEtaChi2_;
+  alignmentTrend dxyEtaKS_;
   alignmentTrend dxyEtaHi_;
   alignmentTrend dxyEtaLo_;
   
   alignmentTrend dzPhiMeans_;
+  alignmentTrend dzPhiChi2_;
+  alignmentTrend dzPhiKS_;
   alignmentTrend dzPhiHi_;
   alignmentTrend dzPhiLo_;
   
   alignmentTrend dzEtaMeans_;
+  alignmentTrend dzEtaChi2_;
+  alignmentTrend dzEtaKS_;
   alignmentTrend dzEtaHi_;
   alignmentTrend dzEtaLo_;       
 
@@ -416,22 +502,39 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
     for(const auto &label : LegLabels){
 
+      //******************************//
       dxyPhiMeans_[label].insert(std::end(dxyPhiMeans_[label]), std::begin(extractedTrend.m_dxyPhiMeans[label]), std::end(extractedTrend.m_dxyPhiMeans[label]));
+      dxyPhiChi2_[label].insert(std::end(dxyPhiChi2_[label]), std::begin(extractedTrend.m_dxyPhiChi2[label]), std::end(extractedTrend.m_dxyPhiChi2[label]));
+      dxyPhiKS_[label].insert(std::end(dxyPhiKS_[label]), std::begin(extractedTrend.m_dxyPhiKS[label]), std::end(extractedTrend.m_dxyPhiKS[label]));
+
       dxyPhiHi_[label].insert(std::end(dxyPhiHi_[label]), std::begin(extractedTrend.m_dxyPhiHi[label]), std::end(extractedTrend.m_dxyPhiHi[label]));
       dxyPhiLo_[label].insert(std::end(dxyPhiLo_[label]), std::begin(extractedTrend.m_dxyPhiLo[label]), std::end(extractedTrend.m_dxyPhiLo[label]));
 
+      //******************************//
       dzPhiMeans_[label].insert(std::end(dzPhiMeans_[label]), std::begin(extractedTrend.m_dzPhiMeans[label]), std::end(extractedTrend.m_dzPhiMeans[label]));
+      dzPhiChi2_[label].insert(std::end(dzPhiChi2_[label]), std::begin(extractedTrend.m_dzPhiChi2[label]), std::end(extractedTrend.m_dzPhiChi2[label]));
+      dzPhiKS_[label].insert(std::end(dzPhiKS_[label]), std::begin(extractedTrend.m_dzPhiKS[label]), std::end(extractedTrend.m_dzPhiKS[label]));
+
       dzPhiHi_[label].insert(std::end(dzPhiHi_[label]), std::begin(extractedTrend.m_dzPhiHi[label]), std::end(extractedTrend.m_dzPhiHi[label]));
       dzPhiLo_[label].insert(std::end(dzPhiLo_[label]), std::begin(extractedTrend.m_dzPhiLo[label]), std::end(extractedTrend.m_dzPhiLo[label]));
 
+      //******************************//
       dxyEtaMeans_[label].insert(std::end(dxyEtaMeans_[label]), std::begin(extractedTrend.m_dxyEtaMeans[label]), std::end(extractedTrend.m_dxyEtaMeans[label]));
+      dxyEtaChi2_[label].insert(std::end(dxyEtaChi2_[label]), std::begin(extractedTrend.m_dxyEtaChi2[label]), std::end(extractedTrend.m_dxyEtaChi2[label]));
+      dxyEtaKS_[label].insert(std::end(dxyEtaKS_[label]), std::begin(extractedTrend.m_dxyEtaKS[label]), std::end(extractedTrend.m_dxyEtaKS[label]));
+
       dxyEtaHi_[label].insert(std::end(dxyEtaHi_[label]), std::begin(extractedTrend.m_dxyEtaHi[label]), std::end(extractedTrend.m_dxyEtaHi[label]));
       dxyEtaLo_[label].insert(std::end(dxyEtaLo_[label]), std::begin(extractedTrend.m_dxyEtaLo[label]), std::end(extractedTrend.m_dxyEtaLo[label]));
 
+      //******************************//
       dzEtaMeans_[label].insert(std::end(dzEtaMeans_[label]), std::begin(extractedTrend.m_dzEtaMeans[label]), std::end(extractedTrend.m_dzEtaMeans[label]));
+      dzEtaChi2_[label].insert(std::end(dzEtaChi2_[label]), std::begin(extractedTrend.m_dzEtaChi2[label]), std::end(extractedTrend.m_dzEtaChi2[label]));
+      dzEtaKS_[label].insert(std::end(dzEtaKS_[label]), std::begin(extractedTrend.m_dzEtaKS[label]), std::end(extractedTrend.m_dzEtaKS[label]));
+
       dzEtaHi_[label].insert(std::end(dzEtaHi_[label]), std::begin(extractedTrend.m_dzEtaHi[label]), std::end(extractedTrend.m_dzEtaHi[label]));
       dzEtaLo_[label].insert(std::end(dzEtaLo_[label]), std::begin(extractedTrend.m_dzEtaLo[label]), std::end(extractedTrend.m_dzEtaLo[label]));
      
+      //******************************//
       dxyVect[label].insert(std::end(dxyVect[label]),std::begin(extractedTrend.m_dxyVect[label]),std::end(extractedTrend.m_dxyVect[label]));
       dzVect[label].insert(std::end(dzVect[label]),std::begin(extractedTrend.m_dzVect[label]),std::end(extractedTrend.m_dzVect[label]));
 	 
@@ -476,24 +579,38 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   TCanvas *Scatter_dz_vs_run  = new TCanvas("Scatter_dz_vs_run","dxy bias vs run number",1600,800);
   Scatter_dz_vs_run->Divide(1,nDirs_);    
 
+  TCanvas *c_chisquare_vs_run = new TCanvas("c_chisquare_vs_run","chi2 of pol0 fit vs run number",1600,1000);
+  c_chisquare_vs_run->Divide(2,2);
+
+  TCanvas *c_KSScore_vs_run = new TCanvas("c_KSScore_vs_run","KS score compatibility to 0 vs run number",1600,1000);
+  c_KSScore_vs_run->Divide(2,2);
+
   // bias on the mean
 
   TGraph *g_dxy_phi_vs_run[nDirs_];
+  TGraph *g_chi2_dxy_phi_vs_run[nDirs_];
+  TGraph *g_KS_dxy_phi_vs_run[nDirs_];
   TGraph *gprime_dxy_phi_vs_run[nDirs_];  
   TGraph *g_dxy_phi_hi_vs_run[nDirs_];
   TGraph *g_dxy_phi_lo_vs_run[nDirs_];
   
   TGraph *g_dxy_eta_vs_run[nDirs_];
+  TGraph *g_chi2_dxy_eta_vs_run[nDirs_];
+  TGraph *g_KS_dxy_eta_vs_run[nDirs_];
   TGraph *gprime_dxy_eta_vs_run[nDirs_];
   TGraph *g_dxy_eta_hi_vs_run[nDirs_];
   TGraph *g_dxy_eta_lo_vs_run[nDirs_];
 
   TGraph *g_dz_phi_vs_run[nDirs_];
+  TGraph *g_chi2_dz_phi_vs_run[nDirs_];
+  TGraph *g_KS_dz_phi_vs_run[nDirs_];
   TGraph *gprime_dz_phi_vs_run[nDirs_];
   TGraph *g_dz_phi_hi_vs_run[nDirs_];
   TGraph *g_dz_phi_lo_vs_run[nDirs_];
 
   TGraph *g_dz_eta_vs_run[nDirs_];
+  TGraph *g_chi2_dz_eta_vs_run[nDirs_];
+  TGraph *g_KS_dz_eta_vs_run[nDirs_];
   TGraph *gprime_dz_eta_vs_run[nDirs_];
   TGraph *g_dz_eta_hi_vs_run[nDirs_];
   TGraph *g_dz_eta_lo_vs_run[nDirs_];
@@ -572,6 +689,8 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     // *************************************
     
     g_dxy_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiMeans_[LegLabels[j]])[0]));
+    g_chi2_dxy_phi_vs_run[j]  = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiChi2_[LegLabels[j]])[0]));
+    g_KS_dxy_phi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiKS_[LegLabels[j]])[0]));
     g_dxy_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiHi_[LegLabels[j]])[0]));
     g_dxy_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiLo_[LegLabels[j]])[0]));
 
@@ -699,6 +818,8 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     // dxy vs eta
     // *************************************
     g_dxy_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaMeans_[LegLabels[j]])[0]));
+    g_chi2_dxy_eta_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaChi2_[LegLabels[j]])[0]));
+    g_KS_dxy_eta_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaKS_[LegLabels[j]])[0]));
     g_dxy_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaHi_[LegLabels[j]])[0]));
     g_dxy_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaLo_[LegLabels[j]])[0]));
 
@@ -820,6 +941,8 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     // dz vs phi
     // *************************************
     g_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiMeans_[LegLabels[j]])[0]));
+    g_chi2_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiChi2_[LegLabels[j]])[0]));
+    g_KS_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiKS_[LegLabels[j]])[0]));
     g_dz_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiHi_[LegLabels[j]])[0]));
     g_dz_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiLo_[LegLabels[j]])[0]));
 
@@ -941,6 +1064,8 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     // dz vs eta
     // *************************************
     g_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaMeans_[LegLabels[j]])[0]));
+    g_chi2_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaChi2_[LegLabels[j]])[0]));
+    g_KS_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaKS_[LegLabels[j]])[0]));
     g_dz_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaHi_[LegLabels[j]])[0]));
     g_dz_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaLo_[LegLabels[j]])[0]));
 
@@ -1133,7 +1258,247 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     h2_scatter_dz_vs_run[j]->Draw("colz");  
     h_dzpfx_tmp->Draw("same");
 
- 
+    // **************************************** 
+    // Canvas for chi2 goodness of pol0 fit
+    // ****************************************
+
+    // 1st pad
+    c_chisquare_vs_run->cd(1);
+    adjustmargins(c_chisquare_vs_run->cd(1));
+    g_chi2_dxy_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_chi2_dxy_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_chi2_dxy_phi_vs_run[j]->SetLineColor(pv::colors[j]);
+
+    g_chi2_dxy_phi_vs_run[j]->SetName(Form("g_chi2_dxy_phi_%s",LegLabels[j].Data()));
+    g_chi2_dxy_phi_vs_run[j]->SetTitle(Form("log_{10}(#chi2/ndf) of d_{xy}(#varphi) fit vs %s",theType.Data()));
+    g_chi2_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_chi2_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("log_{10}(#chi^{2}/ndf) of d_{xy}(#phi) pol0 fit");
+    g_chi2_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.5);
+    beautify(g_chi2_dxy_phi_vs_run[j]);
+    //g_chi2_dxy_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_chi2_dxy_phi_vs_run[j]->Draw("APL");
+    } else {
+      g_chi2_dxy_phi_vs_run[j]->Draw("PLsame");
+    }
+
+    if(time_axis_format){
+      timify(g_chi2_dxy_phi_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    // 2nd pad
+    c_chisquare_vs_run->cd(2);
+    adjustmargins(c_chisquare_vs_run->cd(2));
+    g_chi2_dxy_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_chi2_dxy_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_chi2_dxy_eta_vs_run[j]->SetLineColor(pv::colors[j]);
+
+    g_chi2_dxy_eta_vs_run[j]->SetName(Form("g_chi2_dxy_eta_%s",LegLabels[j].Data()));
+    g_chi2_dxy_eta_vs_run[j]->SetTitle(Form("log_{10}(#chi2/ndf) of d_{xy}(#eta) fit vs %s",theType.Data()));
+    g_chi2_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_chi2_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("log_{10}(#chi^{2}/ndf) of d_{xy}(#eta) pol0 fit");
+    g_chi2_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.5);
+    beautify(g_chi2_dxy_eta_vs_run[j]);
+    //g_chi2_dxy_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_chi2_dxy_eta_vs_run[j]->Draw("APL");
+    } else {
+      g_chi2_dxy_eta_vs_run[j]->Draw("PLsame");
+    }
+
+    if(time_axis_format){
+      timify(g_chi2_dxy_eta_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    //3d pad
+    c_chisquare_vs_run->cd(3);
+    adjustmargins(c_chisquare_vs_run->cd(3));
+    g_chi2_dz_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_chi2_dz_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_chi2_dz_phi_vs_run[j]->SetLineColor(pv::colors[j]);
+
+    g_chi2_dz_phi_vs_run[j]->SetName(Form("g_chi2_dz_phi_%s",LegLabels[j].Data()));
+    g_chi2_dz_phi_vs_run[j]->SetTitle(Form("log_{10}(#chi2/ndf) of d_{z}(#varphi) fit vs %s",theType.Data()));
+    g_chi2_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_chi2_dz_phi_vs_run[j]->GetYaxis()->SetTitle("log_{10}(#chi^{2}/ndf) of d_{z}(#phi) pol0 fit");
+    g_chi2_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.5);
+    beautify(g_chi2_dz_phi_vs_run[j]);
+    //g_chi2_dz_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_chi2_dz_phi_vs_run[j]->Draw("APL");
+    } else {
+      g_chi2_dz_phi_vs_run[j]->Draw("PLsame");
+    }
+
+    if(time_axis_format){
+      timify(g_chi2_dz_phi_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    //4th pad
+    c_chisquare_vs_run->cd(4);
+    adjustmargins(c_chisquare_vs_run->cd(4));
+    g_chi2_dz_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_chi2_dz_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_chi2_dz_eta_vs_run[j]->SetLineColor(pv::colors[j]);
+
+    g_chi2_dz_eta_vs_run[j]->SetName(Form("g_chi2_dz_eta_%s",LegLabels[j].Data()));
+    g_chi2_dz_eta_vs_run[j]->SetTitle(Form("log_{10}(#chi2/ndf) of d_{z}(#eta) fit vs %s",theType.Data()));
+    g_chi2_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_chi2_dz_eta_vs_run[j]->GetYaxis()->SetTitle("log_{10}(#chi^{2}/ndf) of d_{z}(#eta) pol0 fit");
+    g_chi2_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,4.5);
+    beautify(g_chi2_dz_eta_vs_run[j]);
+    //g_chi2_dz_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_chi2_dz_eta_vs_run[j]->Draw("APL");
+    } else {
+      g_chi2_dz_eta_vs_run[j]->Draw("PLsame");
+    }
+
+    if(time_axis_format){
+      timify(g_chi2_dz_eta_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+
+    // **************************************** 
+    // Canvas for Kolmogorov-Smirnov test
+    // ****************************************
+
+    // 1st pad
+    c_KSScore_vs_run->cd(1);
+    adjustmargins(c_KSScore_vs_run->cd(1));
+    g_KS_dxy_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_KS_dxy_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_KS_dxy_phi_vs_run[j]->SetLineColor(pv::colors[j]);
+
+    g_KS_dxy_phi_vs_run[j]->SetName(Form("g_KS_dxy_phi_%s",LegLabels[j].Data()));
+    g_KS_dxy_phi_vs_run[j]->SetTitle(Form("log_{10}(KS-score) of d_{xy}(#varphi) vs %s",theType.Data()));
+    g_KS_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("log_{10}(KS-score) of d_{xy}(#phi) w.r.t 0");
+    g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-20.,1.);
+    beautify(g_KS_dxy_phi_vs_run[j]);
+    //g_KS_dxy_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_KS_dxy_phi_vs_run[j]->Draw("AP");
+    } else {
+      g_KS_dxy_phi_vs_run[j]->Draw("Psame");
+    }
+
+    if(time_axis_format){
+      timify(g_KS_dxy_phi_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    // 2nd pad
+    c_KSScore_vs_run->cd(2);
+    adjustmargins(c_KSScore_vs_run->cd(2));
+    g_KS_dxy_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_KS_dxy_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_KS_dxy_eta_vs_run[j]->SetLineColor(pv::colors[j]);
+
+    g_KS_dxy_eta_vs_run[j]->SetName(Form("g_KS_dxy_eta_%s",LegLabels[j].Data()));
+    g_KS_dxy_eta_vs_run[j]->SetTitle(Form("log_{10}(KS-score) of d_{xy}(#eta) vs %s",theType.Data()));
+    g_KS_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("log_{10}(KS-score) of d_{xy}(#eta) w.r.t 0");
+    g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20.,1.);
+    beautify(g_KS_dxy_eta_vs_run[j]);
+    //g_KS_dxy_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_KS_dxy_eta_vs_run[j]->Draw("AP");
+    } else {
+      g_KS_dxy_eta_vs_run[j]->Draw("Psame");
+    }
+
+    if(time_axis_format){
+      timify(g_KS_dxy_eta_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    //3d pad
+    c_KSScore_vs_run->cd(3);
+    adjustmargins(c_KSScore_vs_run->cd(3));
+    g_KS_dz_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_KS_dz_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_KS_dz_phi_vs_run[j]->SetLineColor(pv::colors[j]);
+
+    g_KS_dz_phi_vs_run[j]->SetName(Form("g_KS_dz_phi_%s",LegLabels[j].Data()));
+    g_KS_dz_phi_vs_run[j]->SetTitle(Form("log_{10}(KS-score) of d_{z}(#varphi) vs %s",theType.Data()));
+    g_KS_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_KS_dz_phi_vs_run[j]->GetYaxis()->SetTitle("log_{10}(KS-score) of d_{z}(#phi) w.r.t 0");
+    g_KS_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-20.,1.);
+    beautify(g_KS_dz_phi_vs_run[j]);
+    //g_KS_dz_phi_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_KS_dz_phi_vs_run[j]->Draw("AP");
+    } else {
+      g_KS_dz_phi_vs_run[j]->Draw("Psame");
+    }
+
+    if(time_axis_format){
+      timify(g_KS_dz_phi_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
+    //4th pad
+    c_KSScore_vs_run->cd(4);
+    adjustmargins(c_KSScore_vs_run->cd(4));
+    g_KS_dz_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_KS_dz_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_KS_dz_eta_vs_run[j]->SetLineColor(pv::colors[j]);
+
+    g_KS_dz_eta_vs_run[j]->SetName(Form("g_KS_dz_eta_%s",LegLabels[j].Data()));
+    g_KS_dz_eta_vs_run[j]->SetTitle(Form("log_{10}(KS-score) of d_{z}(#eta) vs %s",theType.Data()));
+    g_KS_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_KS_dz_eta_vs_run[j]->GetYaxis()->SetTitle("log_{10}(KS-score) of d_{z}(#eta) w.r.t 0");
+    g_KS_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20.,1.);
+    beautify(g_KS_dz_eta_vs_run[j]);
+    //g_KS_dz_eta_vs_run[j]->GetYaxis()->SetTitleOffset(1.3);
+
+    if(j==0){
+      g_KS_dz_eta_vs_run[j]->Draw("AP");
+    } else {
+      g_KS_dz_eta_vs_run[j]->Draw("Psame");
+    }
+
+    if(time_axis_format){
+      timify(g_KS_dz_eta_vs_run[j]);
+    }
+
+    if(j==nDirs_-1){
+      my_lego->Draw("same");
+    }
+
   }
   
   // delete the array for the maxima
@@ -1205,27 +1570,44 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   Scatter_dz_vs_run->SaveAs("Scatter_dz_vs_"+append+".pdf");
   Scatter_dz_vs_run->SaveAs("Scatter_dz_vs_"+append+".png");
 
+  // chi2 
+
+  c_chisquare_vs_run->SaveAs("chi2pol0fit_vs_"+append+".pdf");
+  c_chisquare_vs_run->SaveAs("chi2pol0fit_vs_"+append+".png");
+
+  // KS score
+  
+  c_KSScore_vs_run->SaveAs("KSScore_vs_"+append+".pdf");
+  c_KSScore_vs_run->SaveAs("KSScore_vs_"+append+".png");
 
   // do all the deletes
 
   for(int iDir=0;iDir<nDirs_;iDir++){
 
-   delete g_dxy_phi_vs_run[iDir];    
+   delete g_dxy_phi_vs_run[iDir]; 
+   delete g_chi2_dxy_phi_vs_run[iDir];    
+   delete g_KS_dxy_phi_vs_run[iDir];    
    delete gprime_dxy_phi_vs_run[iDir];    
    delete g_dxy_phi_hi_vs_run[iDir]; 
    delete g_dxy_phi_lo_vs_run[iDir]; 
                                
    delete g_dxy_eta_vs_run[iDir];    
+   delete g_chi2_dxy_eta_vs_run[iDir];    
+   delete g_KS_dxy_eta_vs_run[iDir];    
    delete gprime_dxy_eta_vs_run[iDir];    
    delete g_dxy_eta_hi_vs_run[iDir]; 
    delete g_dxy_eta_lo_vs_run[iDir]; 
                                
-   delete g_dz_phi_vs_run[iDir];     
+   delete g_dz_phi_vs_run[iDir];   
+   delete g_chi2_dz_phi_vs_run[iDir];     
+   delete g_KS_dz_phi_vs_run[iDir];       
    delete gprime_dz_phi_vs_run[iDir];     
    delete g_dz_phi_hi_vs_run[iDir];  
    delete g_dz_phi_lo_vs_run[iDir];  
                                
-   delete g_dz_eta_vs_run[iDir];     
+   delete g_dz_eta_vs_run[iDir];  
+   delete g_chi2_dz_eta_vs_run[iDir];     
+   delete g_KS_dz_eta_vs_run[iDir];          
    delete gprime_dz_eta_vs_run[iDir];     
    delete g_dz_eta_hi_vs_run[iDir];  
    delete g_dz_eta_lo_vs_run[iDir];  
@@ -1649,6 +2031,28 @@ TH1F* DrawConstant(TH1F *hist,Int_t iter,Double_t theConst)
 }
 
 /*--------------------------------------------------------------------*/
+TH1F* DrawConstantWithErr(TH1F *hist,Int_t iter,Double_t theConst)
+/*--------------------------------------------------------------------*/
+{ 
+
+  Int_t nbins       = hist->GetNbinsX();
+  Double_t lowedge  = hist->GetBinLowEdge(1);
+  Double_t highedge = hist->GetBinLowEdge(nbins+1);
+
+
+  TH1F *hzero = new TH1F(Form("hconst_%s_%i",hist->GetName(),iter),Form("hconst_%s_%i",hist->GetName(),iter),nbins,lowedge,highedge);
+  for (Int_t i=0;i<=hzero->GetNbinsX();i++){
+    hzero->SetBinContent(i,theConst);
+    hzero->SetBinError(i,hist->GetBinError(i));
+  }
+  hzero->SetLineWidth(2);
+  hzero->SetLineStyle(9);
+  hzero->SetLineColor(kMagenta);
+  
+  return hzero;
+}
+
+/*--------------------------------------------------------------------*/
 TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst)
 /*--------------------------------------------------------------------*/
 { 
@@ -1696,58 +2100,58 @@ unrolledHisto getUnrolledHisto(TH1F* hist)
 }
 
 /*--------------------------------------------------------------------*/
-std::pair<std::pair<Double_t,Double_t>, Double_t> getBiases(TH1F* hist,bool useRMS_)
+pv::biases getBiases(TH1F* hist)
 /*--------------------------------------------------------------------*/
 {
-  Double_t mean=0;
-  Double_t rms=0;
-
   int nbins = hist->GetNbinsX();
-
-  // remember for weight means <x> = sum_i (x_i* w_i) / sum_i w_i ; where w_i = 1/sigma^2_i
 
   //extract median from histogram
   double *y   = new double[nbins];
   double *err = new double[nbins];
+
+  // remember for weight means <x> = sum_i (x_i* w_i) / sum_i w_i ; where w_i = 1/sigma^2_i
+
   for (int j = 0; j < nbins; j++) {
     y[j]   = hist->GetBinContent(j+1);
-    //err[j] = hist->GetBinError(j+1);
     err[j] = 1./(hist->GetBinError(j+1)*hist->GetBinError(j+1));
   }
-  mean = TMath::Mean(nbins,y,err);
-  rms =  TMath::RMS(nbins,y,err);
 
-  Double_t max=hist->GetMaximum();
-  Double_t min=hist->GetMinimum();
+  Double_t w_mean = TMath::Mean(nbins,y,err);
+  Double_t w_rms  = TMath::RMS(nbins,y,err);
+
+  Double_t mean = TMath::Mean(nbins,y);
+  Double_t rms  = TMath::RMS(nbins,y);
+
+  Double_t max =hist->GetMaximum();
+  Double_t min =hist->GetMinimum();
+  
+  // in case one would like to use a pol0 fit
+  hist->Fit("pol0","Q0+");
+  TF1* f = (TF1*)hist->FindObject("pol0");
+  //f->SetLineColor(hist->GetLineColor());
+  //f->SetLineStyle(hist->GetLineStyle());
+  Double_t chi2 = f->GetChisquare();
+  Int_t    ndf  = f->GetNDF();
+
+  TH1F* theZero = DrawConstantWithErr(hist,1,1.);
+  TH1F* displaced = (TH1F*)hist->Clone("displaced");
+  displaced->Add(theZero);
+  Double_t ksScore   = std::max(-20.,TMath::Log10(displaced->KolmogorovTest(theZero)));
+  Double_t chi2Score = displaced->Chi2Test(theZero);
 
   /*
-  for(Int_t i=1;i<=hist->GetNbinsX();i++){
-    mean+=hist->GetBinContent(i);
-  }
-
-  mean = mean/hist->GetNbinsX();
-  
-  //std::pair<Double_t,Double_t> resultBounds = std::make_pair(min,max);
-  */
-  
-  /*
-    // in case one would like to use a pol0 fit
-    hist->Fit("pol0","Q0+");
-    TF1* f = (TF1*)hist->FindObject("pol0");
-    f->SetLineColor(hist->GetLineColor());
-    f->SetLineStyle(hist->GetLineStyle());
-    mean = f->GetParameter(0);
+    std::pair<std::pair<Double_t,Double_t>, Double_t> result;
+    std::pair<Double_t,Double_t> resultBounds;
+    resultBounds = useRMS_ ? std::make_pair(mean-rms,mean+rms) :  std::make_pair(min,max)  ;
+    result = make_pair(resultBounds,mean);
   */
 
-  std::pair<std::pair<Double_t,Double_t>, Double_t> result;
-  std::pair<Double_t,Double_t> resultBounds;
+  pv::biases result(mean,rms,w_mean,w_rms,min,max,chi2,ndf,ksScore);
 
-  resultBounds = useRMS_ ? std::make_pair(mean-rms,mean+rms) :  std::make_pair(min,max)  ;
-
-  result = make_pair(resultBounds,mean);
-  
+  delete theZero;
+  delete displaced;
   return result;
-   
+
 }
 
 /*--------------------------------------------------------------------*/
@@ -1799,10 +2203,10 @@ void adjustmargins(TCanvas *canv){
 /*--------------------------------------------------------------------*/
 void adjustmargins(TVirtualPad *canv){
 /*--------------------------------------------------------------------*/
-  canv->SetBottomMargin(0.14);
-  canv->SetLeftMargin(0.08);
-  canv->SetRightMargin(0.08);
-  canv->SetTopMargin(0.06);
+  canv->SetBottomMargin(0.12);
+  canv->SetLeftMargin(0.11);
+  canv->SetRightMargin(0.02);
+  canv->SetTopMargin(0.02);
 }
 
 /*--------------------------------------------------------------------*/
@@ -2127,36 +2531,47 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
 
       // fill the vectors of biases
       
-      auto dxyPhiBiases = getBiases(dxyPhiMeanTrend[j],useRMS);
+      auto dxyPhiBiases = getBiases(dxyPhiMeanTrend[j]);
       
-      //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) mean: "<< dxyPhiBiases.second
-      //       <<" dxy(phi) max: "<< dxyPhiBiases.first.first
-      //       <<" dxy(phi) min: "<< dxyPhiBiases.first.second
+      //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) mean: "<< dxyPhiBiases.getWeightedMean()
+      //       <<" dxy(phi) max: "<< dxyPhiBiases.getMax()
+      //       <<" dxy(phi) min: "<< dxyPhiBiases.getMin()
       //       << std::endl;
 
-      ret.m_dxyPhiMeans[LegLabels[j]].push_back(dxyPhiBiases.second);
-      ret.m_dxyPhiLo[LegLabels[j]].push_back(dxyPhiBiases.first.first);
-      ret.m_dxyPhiHi[LegLabels[j]].push_back(dxyPhiBiases.first.second);
+      ret.m_dxyPhiMeans[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean());
+      ret.m_dxyPhiChi2[LegLabels[j]].push_back(TMath::Log10(dxyPhiBiases.getNormChi2()));
+      ret.m_dxyPhiKS[LegLabels[j]].push_back(dxyPhiBiases.getKSScore());
 
-      auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j],useRMS);
-      ret.m_dxyEtaMeans[LegLabels[j]].push_back(dxyEtaBiases.second);
-      ret.m_dxyEtaLo[LegLabels[j]].push_back(dxyEtaBiases.first.first);
-      ret.m_dxyEtaHi[LegLabels[j]].push_back(dxyEtaBiases.first.second);
+      //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) ks score: "<< dxyPhiBiases.getKSScore() << std::endl;
 
-      auto dzPhiBiases = getBiases(dzPhiMeanTrend[j],useRMS);
-      ret.m_dzPhiMeans[LegLabels[j]].push_back(dzPhiBiases.second);
-      ret.m_dzPhiLo[LegLabels[j]].push_back(dzPhiBiases.first.first);
-      ret.m_dzPhiHi[LegLabels[j]].push_back(dzPhiBiases.first.second);
+      useRMS ? ret.m_dxyPhiLo[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean() - dxyPhiBiases.getWeightedRMS()) : ret.m_dxyPhiLo[LegLabels[j]].push_back(dxyPhiBiases.getMin());
+      useRMS ? ret.m_dxyPhiHi[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean() + dxyPhiBiases.getWeightedRMS()) : ret.m_dxyPhiHi[LegLabels[j]].push_back(dxyPhiBiases.getMax());
 
-      auto dzEtaBiases = getBiases(dzEtaMeanTrend[j],useRMS);
-      ret.m_dzEtaMeans[LegLabels[j]].push_back(dzEtaBiases.second);
-      ret.m_dzEtaLo[LegLabels[j]].push_back(dzEtaBiases.first.first);
-      ret.m_dzEtaHi[LegLabels[j]].push_back(dzEtaBiases.first.second);
+      auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j]);
+      ret.m_dxyEtaMeans[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean());
+      ret.m_dxyEtaChi2[LegLabels[j]].push_back(TMath::Log10(dxyEtaBiases.getNormChi2()));
+      ret.m_dxyEtaKS[LegLabels[j]].push_back(dxyEtaBiases.getKSScore());
+      useRMS ? ret.m_dxyEtaLo[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean() - dxyEtaBiases.getWeightedRMS()) :ret.m_dxyEtaLo[LegLabels[j]].push_back(dxyEtaBiases.getMin());
+      useRMS ? ret.m_dxyEtaHi[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean() + dxyEtaBiases.getWeightedRMS()) :ret.m_dxyEtaHi[LegLabels[j]].push_back(dxyEtaBiases.getMax());
+
+      auto dzPhiBiases = getBiases(dzPhiMeanTrend[j]);
+      ret.m_dzPhiMeans[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean());
+      ret.m_dzPhiChi2[LegLabels[j]].push_back(TMath::Log10(dzPhiBiases.getNormChi2()));
+      ret.m_dzPhiKS[LegLabels[j]].push_back(dzPhiBiases.getKSScore());
+      useRMS ? ret.m_dzPhiLo[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean() - dzPhiBiases.getWeightedRMS()) :ret.m_dzPhiLo[LegLabels[j]].push_back(dzPhiBiases.getMin());
+      useRMS ? ret.m_dzPhiHi[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean() + dzPhiBiases.getWeightedRMS()) :ret.m_dzPhiHi[LegLabels[j]].push_back(dzPhiBiases.getMax());
+
+      auto dzEtaBiases = getBiases(dzEtaMeanTrend[j]);
+      ret.m_dzEtaMeans[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean());
+      ret.m_dzEtaChi2[LegLabels[j]].push_back(TMath::Log10(dzEtaBiases.getNormChi2()));
+      ret.m_dzEtaKS[LegLabels[j]].push_back(dzEtaBiases.getKSScore());
+      useRMS ? ret.m_dzEtaLo[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean() - dzEtaBiases.getWeightedRMS()) :ret.m_dzEtaLo[LegLabels[j]].push_back(dzEtaBiases.getMin());
+      useRMS ? ret.m_dzEtaHi[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean() + dzEtaBiases.getWeightedRMS()) :ret.m_dzEtaHi[LegLabels[j]].push_back(dzEtaBiases.getMax());
 
       // unrolled histograms
       ret.m_dxyVect[LegLabels[j]].push_back(getUnrolledHisto(dxyIntegralTrend[j]));
       ret.m_dzVect[LegLabels[j]].push_back(getUnrolledHisto(dzIntegralTrend[j]));
-      
+
       //std::cout<<std::endl;
       //std::cout<<" n. bins: "<< dxyVect[LegLabels[j]].back().get_n_bins() 
       //       <<" y-min:   "<< dxyVect[LegLabels[j]].back().get_y_min()
