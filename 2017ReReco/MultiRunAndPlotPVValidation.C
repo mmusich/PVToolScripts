@@ -348,6 +348,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   } // if time axis in the plots
 
   //std::ofstream outfile ("lumiByRun.txt"); 
+  std::ofstream outfile ("log.txt"); 
   setStyle();
 
   TList *DirList   = new TList();
@@ -669,15 +670,28 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   arr_dxy_eta->Expand(nDirs_);
   arr_dz_eta->Expand(nDirs_);
 
-  // int ccc;
-  // for(const auto &tick: x_ticks ){
-  //   std::cout<< tick << " ";
-  //   for(Int_t j=0; j < nDirs_; j++) {
-  //     std::cout << LegLabels[j] << " " << dxyPhiMeans_[LegLabels[j]][ccc];
-  //   }
-  //   ccc++;
-  // }
-  // std::cout <<  std::endl;
+  int ccc=0;
+  for(const auto &tick: x_ticks ){
+    outfile<<"***************************************"<< std::endl;
+    outfile<< tick  << std::endl;
+    for(Int_t j=0; j < nDirs_; j++) {
+
+      double RMSxyphi = std::abs(dxyPhiLo_[LegLabels[j]][ccc] - dxyPhiHi_[LegLabels[j]][ccc]);
+      double RMSxyeta =	std::abs(dxyEtaLo_[LegLabels[j]][ccc] - dxyEtaHi_[LegLabels[j]][ccc]);
+      double RMSzphi  =	std::abs(dzPhiLo_[LegLabels[j]][ccc]  - dzPhiHi_[LegLabels[j]][ccc]); 
+      double RMSzeta  =	std::abs(dzEtaLo_[LegLabels[j]][ccc]  - dzEtaHi_[LegLabels[j]][ccc]);
+
+      if(RMSxyphi>100 || RMSxyeta>100 || RMSzphi >100 || RMSzeta>100){ 
+
+	outfile << LegLabels[j] << " dxy(phi) " << dxyPhiMeans_[LegLabels[j]][ccc] << " " << dxyPhiLo_[LegLabels[j]][ccc] << " " << dxyPhiHi_[LegLabels[j]][ccc] <<" " << std::abs(dxyPhiLo_[LegLabels[j]][ccc] - dxyPhiHi_[LegLabels[j]][ccc]) << std::endl;
+	outfile << LegLabels[j] << " dxy(eta) " << dxyEtaMeans_[LegLabels[j]][ccc] << " " << dxyEtaLo_[LegLabels[j]][ccc] << " " << dxyEtaHi_[LegLabels[j]][ccc] <<" " << std::abs(dxyEtaLo_[LegLabels[j]][ccc] - dxyEtaHi_[LegLabels[j]][ccc]) << std::endl;
+	outfile << LegLabels[j] << " dz (phi) " << dzPhiMeans_[LegLabels[j]][ccc]  << " " << dzPhiLo_[LegLabels[j]][ccc]  << " " << dzPhiHi_[LegLabels[j]][ccc]  <<" " << std::abs(dzPhiLo_[LegLabels[j]][ccc]  - dzPhiHi_[LegLabels[j]][ccc])  << std::endl;
+	outfile << LegLabels[j] << " dz (eta) " << dzEtaMeans_[LegLabels[j]][ccc]  << " " << dzEtaLo_[LegLabels[j]][ccc]  << " " << dzEtaHi_[LegLabels[j]][ccc]  <<" " << std::abs(dzEtaLo_[LegLabels[j]][ccc]  - dzEtaHi_[LegLabels[j]][ccc])  << std::endl;
+      }
+    }
+    ccc++;
+  }
+  outfile <<  std::endl;
   
   for(Int_t j=0; j < nDirs_; j++) {
 
@@ -794,6 +808,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     if(j==nDirs_-1){
 
       auto theMax = getMaximumFromArray(arr_dxy_phi);
+      std::cout<< "the max for dxy(phi) RMS is "<< theMax << std::endl;
 
       for(Int_t k=0; k< nDirs_; k++){
 	h_RMS_dxy_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.3);
@@ -918,6 +933,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     if(j==nDirs_-1){
 
       auto theMax = getMaximumFromArray(arr_dxy_eta);
+      std::cout<< "the max for dxy(eta) RMS is "<< theMax << std::endl;
 
       for(Int_t k=0; k< nDirs_; k++){
 	h_RMS_dxy_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.30);
@@ -1041,7 +1057,8 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     if(j==nDirs_-1){
 
       auto theMax = getMaximumFromArray(arr_dz_phi);
-      
+      std::cout<< "the max for dz(phi) RMS is "<< theMax << std::endl;
+
       for(Int_t k=0; k< nDirs_; k++){
 	h_RMS_dz_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.30);
 	if(k==0){
@@ -1163,6 +1180,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     if(j==nDirs_-1){
 
       auto theMax = getMaximumFromArray(arr_dz_eta);
+      std::cout<< "the max for dz(eta) RMS is "<< theMax << std::endl;
 
       for(Int_t k=0; k< nDirs_; k++){
 	h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.30);
@@ -2113,7 +2131,11 @@ pv::biases getBiases(TH1F* hist)
 
   for (int j = 0; j < nbins; j++) {
     y[j]   = hist->GetBinContent(j+1);
-    err[j] = 1./(hist->GetBinError(j+1)*hist->GetBinError(j+1));
+    if(hist->GetBinError(j+1)!=0.){
+      err[j] = 1./(hist->GetBinError(j+1)*hist->GetBinError(j+1));
+    } else {
+      err[j] = 0.;
+    }
   }
 
   Double_t w_mean = TMath::Mean(nbins,y,err);
@@ -2255,18 +2277,62 @@ void timify(T *mgr)
   mgr->GetXaxis()->SetLabelSize(.035);
 }
 
+
+struct increase
+{
+    template<class T>
+    bool operator()(T const &a, T const &b) const { return a > b; }
+};
+
 /*--------------------------------------------------------------------*/
 Double_t getMaximumFromArray(TObjArray *array)
 /*--------------------------------------------------------------------*/
 {
 
-  Double_t theMaximum = (static_cast<TH1*>(array->At(0)))->GetMaximum();
+  Double_t theMaximum = -999.; //(static_cast<TH1*>(array->At(0)))->GetMaximum();
+
   for(Int_t i = 0; i< array->GetSize(); i++){
+    
+    double theMaxForThisHist;
+    auto hist = static_cast<TH1*>(array->At(i));
+    std::vector<double> maxima;
+    for (int j=0;j<hist->GetNbinsX();j++) maxima.push_back(hist->GetBinContent(j));
+    std::sort(std::begin(maxima), std::end(maxima));//,increase());
+    double rms_maxima  = TMath::RMS(hist->GetNbinsX(),&(maxima[0]));
+    double mean_maxima = TMath::Mean(hist->GetNbinsX(),&(maxima[0]));
+
+    const Int_t nq = 100;
+    Double_t xq[nq];  // position where to compute the quantiles in [0,1]
+    Double_t yq[nq];  // array to contain the quantiles
+    for (Int_t i=0;i<nq;i++) xq[i] = 0.9+(Float_t(i+1)/nq)*0.10;
+    TMath::Quantiles(maxima.size(),nq,&(maxima[0]),yq, xq);
+    
+    //for(int q=0;q<nq;q++){
+    //  std::cout<<q<<" "<<xq[q]<<" "<<yq[q]<<std::endl;
+    //}
+
+    //for (const auto &element : maxima){
+    //  if(element<1.5*mean_maxima){
+    //	theMaxForThisHist=element;
+    //	break;
+    //  }
+    //} 
+
+    theMaxForThisHist=yq[80];
+
+    std::cout<<"rms_maxima["<<i<<"]"<<rms_maxima<<" mean maxima["<<mean_maxima<<"] purged maximum:"<<theMaxForThisHist<<std::endl;
+
+    if(theMaxForThisHist>theMaximum) theMaximum=theMaxForThisHist;
+
+    /*
     if( (static_cast<TH1*>(array->At(i)))->GetMaximum() > theMaximum){
       theMaximum = (static_cast<TH1*>(array->At(i)))->GetMaximum();
       //cout<<"i= "<<i<<" theMaximum="<<theMaximum<<endl;
     }
+    */
+
   }
+
   return theMaximum;
 }
 
@@ -2302,37 +2368,56 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
     std::cout<<" run:" << imap.first << " time: "<< imap.second.Convert() << std::endl;
   }
 
-  static const int nIOVs=12; //     1      2      3      4      5      6      7      8      9     10     11     12      
-  int IOVboundaries[nIOVs]  = {296641,297179,297281,298653,299277,299443,300389,301046,302131,303790,304911,305898};
+  static const int nIOVs=13; //     1      2      3      4      5      6      7      8      9     10     11     12     13 
+  int IOVboundaries[nIOVs]  = {294034,296641,297179,297281,298653,299277,299443,300389,301046,302131,303790,304911,305898};
+  int benchmarkruns[nIOVs]  = {296173,297057,297219,297503,299061,299368,300157,300560,301472,302472,304292,305108,305898};
   TArrow* IOV_lines[nIOVs];
   c->cd();
   c->Update();
 
   TArrow* a_lines[nIOVs];
+  TArrow* b_lines[nIOVs];
   for(Int_t IOV=0;IOV<nIOVs;IOV++){
 
     // check we are not in the RMS histogram to avoid first line
     if(IOVboundaries[IOV]<vruns.front() && ((TString)c->GetName()).Contains("RMS")) continue;
     int closestrun = pv::closest(vruns,IOVboundaries[IOV]); 
+    int closestbenchmark = pv::closest(vruns,benchmarkruns[IOV]);
 
     if(lumi_axis_format){
 
-      if(closestrun<0) break;
+      if(closestrun<0) continue;
       //std::cout<< "natural boundary: " << IOVboundaries[IOV] << " closest:" << closestrun << std::endl;
 
       a_lines[IOV] = new TArrow(lumiMapByRun.at(closestrun),(c->GetUymin()),lumiMapByRun.at(closestrun),0.65*c->GetUymax(),0.5,"|>");
+
+      if(closestbenchmark<0) continue;
+      b_lines[IOV] = new TArrow(lumiMapByRun.at(closestbenchmark),(c->GetUymin()),lumiMapByRun.at(closestbenchmark),0.65*c->GetUymax(),0.5,"|>");
+
     } else if(time_axis_format){
       
-      if(closestrun<0) break;
+      if(closestrun<0) continue;
       std::cout<< "natural boundary: " << IOVboundaries[IOV] << " closest:" << closestrun << std::endl;
       a_lines[IOV] = new TArrow(timeMap.at(closestrun).Convert(),(c->GetUymin()),timeMap.at(closestrun).Convert(),0.65*c->GetUymax(),0.5,"|>");
+
+      if(closestbenchmark<0) continue;
+      b_lines[IOV] = new TArrow(timeMap.at(closestbenchmark).Convert(),(c->GetUymin()),timeMap.at(closestbenchmark).Convert(),0.65*c->GetUymax(),0.5,"|>");
+
     } else {
       a_lines[IOV] = new TArrow(IOVboundaries[IOV],(c->GetUymin()),IOVboundaries[IOV],0.65*c->GetUymax(),0.5,"|>"); //(c->GetUymin()+0.2*(c->GetUymax()-c->GetUymin()) ),0.5,"|>");
+      b_lines[IOV] = new TArrow(benchmarkruns[IOV],(c->GetUymin()),benchmarkruns[IOV],0.65*c->GetUymax(),0.5,"|>"); //(c->GetUymin()+0.2*(c->GetUymax()-c->GetUymin()) ),0.5,"|>");
+      
     }
     a_lines[IOV]->SetLineColor(kRed);
     a_lines[IOV]->SetLineStyle(9);
     a_lines[IOV]->SetLineWidth(1);
     a_lines[IOV]->Draw("same");
+
+    b_lines[IOV]->SetLineColor(kGray);
+    b_lines[IOV]->SetLineStyle(1);
+    b_lines[IOV]->SetLineWidth(2);
+    b_lines[IOV]->Draw("same");
+
   }
 
   TPaveText* runnumbers[nIOVs];
