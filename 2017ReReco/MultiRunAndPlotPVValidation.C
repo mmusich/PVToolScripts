@@ -560,30 +560,30 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   
   // do the trend-plotting!
 
-  TCanvas *c_dxy_phi_vs_run = new TCanvas("c_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *c_dxy_eta_vs_run = new TCanvas("c_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
-  TCanvas *c_dz_phi_vs_run  = new TCanvas("c_dz_phi_vs_run" ,"dz(#phi) bias vs run number" ,1600,800);
-  TCanvas *c_dz_eta_vs_run  = new TCanvas("c_dz_eta_vs_run" ,"dz(#eta) bias vs run number" ,1600,800);
+  TCanvas *c_dxy_phi_vs_run = new TCanvas("c_dxy_phi_vs_run","dxy(#phi) bias vs run number",2000,800);
+  TCanvas *c_dxy_eta_vs_run = new TCanvas("c_dxy_eta_vs_run","dxy(#eta) bias vs run number",2000,800);
+  TCanvas *c_dz_phi_vs_run  = new TCanvas("c_dz_phi_vs_run" ,"dz(#phi) bias vs run number" ,2000,800);
+  TCanvas *c_dz_eta_vs_run  = new TCanvas("c_dz_eta_vs_run" ,"dz(#eta) bias vs run number" ,2000,800);
 
-  TCanvas *c_RMS_dxy_phi_vs_run = new TCanvas("c_RMS_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *c_RMS_dxy_eta_vs_run = new TCanvas("c_RMS_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
-  TCanvas *c_RMS_dz_phi_vs_run  = new TCanvas("c_RMS_dz_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *c_RMS_dz_eta_vs_run  = new TCanvas("c_RMS_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+  TCanvas *c_RMS_dxy_phi_vs_run = new TCanvas("c_RMS_dxy_phi_vs_run","dxy(#phi) bias vs run number",2000,800);
+  TCanvas *c_RMS_dxy_eta_vs_run = new TCanvas("c_RMS_dxy_eta_vs_run","dxy(#eta) bias vs run number",2000,800);
+  TCanvas *c_RMS_dz_phi_vs_run  = new TCanvas("c_RMS_dz_phi_vs_run","dxy(#phi) bias vs run number",2000,800);
+  TCanvas *c_RMS_dz_eta_vs_run  = new TCanvas("c_RMS_dz_eta_vs_run","dxy(#eta) bias vs run number",2000,800);
 
-  TCanvas *c_mean_dxy_phi_vs_run = new TCanvas("c_mean_dxy_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *c_mean_dxy_eta_vs_run = new TCanvas("c_mean_dxy_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
-  TCanvas *c_mean_dz_phi_vs_run  = new TCanvas("c_mean_dz_phi_vs_run","dxy(#phi) bias vs run number",1600,800);
-  TCanvas *c_mean_dz_eta_vs_run  = new TCanvas("c_mean_dz_eta_vs_run","dxy(#eta) bias vs run number",1600,800);
+  TCanvas *c_mean_dxy_phi_vs_run = new TCanvas("c_mean_dxy_phi_vs_run","dxy(#phi) bias vs run number",2000,800);
+  TCanvas *c_mean_dxy_eta_vs_run = new TCanvas("c_mean_dxy_eta_vs_run","dxy(#eta) bias vs run number",2000,800);
+  TCanvas *c_mean_dz_phi_vs_run  = new TCanvas("c_mean_dz_phi_vs_run","dxy(#phi) bias vs run number",2000,800);
+  TCanvas *c_mean_dz_eta_vs_run  = new TCanvas("c_mean_dz_eta_vs_run","dxy(#eta) bias vs run number",2000,800);
 
-  TCanvas *Scatter_dxy_vs_run = new TCanvas("Scatter_dxy_vs_run","dxy bias vs run number",1600,800);
+  TCanvas *Scatter_dxy_vs_run = new TCanvas("Scatter_dxy_vs_run","dxy bias vs run number",2000,800);
   Scatter_dxy_vs_run->Divide(1,nDirs_);
-  TCanvas *Scatter_dz_vs_run  = new TCanvas("Scatter_dz_vs_run","dxy bias vs run number",1600,800);
+  TCanvas *Scatter_dz_vs_run  = new TCanvas("Scatter_dz_vs_run","dxy bias vs run number",2000,800);
   Scatter_dz_vs_run->Divide(1,nDirs_);    
 
-  TCanvas *c_chisquare_vs_run = new TCanvas("c_chisquare_vs_run","chi2 of pol0 fit vs run number",1600,1000);
+  TCanvas *c_chisquare_vs_run = new TCanvas("c_chisquare_vs_run","chi2 of pol0 fit vs run number",2000,1000);
   c_chisquare_vs_run->Divide(2,2);
 
-  TCanvas *c_KSScore_vs_run = new TCanvas("c_KSScore_vs_run","KS score compatibility to 0 vs run number",1600,1000);
+  TCanvas *c_KSScore_vs_run = new TCanvas("c_KSScore_vs_run","KS score compatibility to 0 vs run number",2000,1000);
   c_KSScore_vs_run->Divide(2,2);
 
   // bias on the mean
@@ -643,14 +643,14 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
       x_ticks = runs;
     } else {
       theType="date";
-      theTypeLabel="date";
+      theTypeLabel="UTC date";
       for(const auto &run : runs){
 	x_ticks.push_back(times[run].Convert());
       }
     }
   }
   
-  TLegend *my_lego = new TLegend(0.12,0.80,0.25,0.93);
+  TLegend *my_lego = new TLegend(0.08,0.80,0.18,0.93);
   //my_lego-> SetNColumns(2);
   my_lego->SetFillColor(10);
   my_lego->SetTextSize(0.042);
@@ -1131,7 +1131,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     c_mean_dz_eta_vs_run->cd();
     gprime_dz_eta_vs_run[j] =  (TGraph*)g_dz_eta_vs_run[j]->Clone();
     if(j==0){
-      gprime_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-20.,20.);
+      gprime_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
       gprime_dz_eta_vs_run[j]->Draw("APL");
     } else {
       gprime_dz_eta_vs_run[j]->Draw("PLsame");
@@ -1538,19 +1538,19 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
   c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".pdf");
   c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".png");
-  c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".root");
+  c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".eps");
 
   c_dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".pdf");
   c_dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".png");
-  c_dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".root");
+  c_dxy_eta_vs_run->SaveAs("dxy_eta_vs_"+append+".eps");
 
   c_dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".pdf");
   c_dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".png");
-  c_dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".root");
+  c_dz_phi_vs_run->SaveAs("dz_phi_vs_"+append+".eps");
 
   c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".pdf");
   c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".png");
-  c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".root");
+  c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".eps");
 
   // mean
 
@@ -2005,7 +2005,7 @@ void cmsPrel(TPad* pad) {
   float t = pad->GetTopMargin();
   float r = pad->GetRightMargin();
   float b = pad->GetBottomMargin();
-  float relPosX = 0.015;
+  float relPosX = 0.009;
   float relPosY = 0.045;
   float lumiTextOffset = 0.8;
 
@@ -2013,15 +2013,19 @@ void cmsPrel(TPad* pad) {
   latex->SetNDC();
   latex->SetTextSize(0.045);
 
-  float posX_ =  1-r - relPosX*(1-l-r);
-  //  float posXCMS_ = 1-r -15*relPosX*(1-l-r);
+  float posX_    = 1-r - relPosX*(1-l-r);
+  float posXCMS_ = posX_- 0.125;
   float posY_ =  1-t + 0.05; /// - relPosY*(1-t-b);
+  float factor = 1./0.86;
+
 
   latex->SetTextAlign(33);
-  //latex->SetTextFont(61);
-  //latex->DrawLatex(posXCMS_,posY_,"CMS");
+  latex->SetTextFont(61);
+  latex->SetTextSize(0.045*factor);
+  latex->DrawLatex(posXCMS_,posY_,"CMS");
+  latex->SetTextSize(0.045);
   latex->SetTextFont(42); //22
-  latex->DrawLatex(posX_,posY_,"CMS Internal (13 TeV)");
+  latex->DrawLatex(posX_,posY_,"Internal (13 TeV)");
   //latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
   //latex->DrawLatex(posX_,posY_,"CMS 2017 Work in progress (13 TeV)");
   
@@ -2186,7 +2190,7 @@ void beautify(TGraph *g){
   g->GetYaxis()->SetTitleSize(.055);
   g->GetXaxis()->SetTitleSize(.055);
   g->GetXaxis()->SetTitleOffset(1.1);
-  g->GetYaxis()->SetTitleOffset(0.9);
+  g->GetYaxis()->SetTitleOffset(0.6);
   g->GetXaxis()->SetTitleFont(42);
   g->GetYaxis()->SetTitleFont(42);
   g->GetXaxis()->CenterTitle(true);
@@ -2205,7 +2209,7 @@ void beautify(TH1 *h){
   h->GetYaxis()->SetTitleSize(.055);
   h->GetXaxis()->SetTitleSize(.055);
   h->GetXaxis()->SetTitleOffset(1.1);
-  h->GetYaxis()->SetTitleOffset(0.9);
+  h->GetYaxis()->SetTitleOffset(0.6);
   h->GetXaxis()->SetTitleFont(42);
   h->GetYaxis()->SetTitleFont(42);
   h->GetXaxis()->CenterTitle(true);
@@ -2217,8 +2221,8 @@ void beautify(TH1 *h){
 void adjustmargins(TCanvas *canv){
 /*--------------------------------------------------------------------*/
   canv->cd()->SetBottomMargin(0.14);
-  canv->cd()->SetLeftMargin(0.11);
-  canv->cd()->SetRightMargin(0.01);
+  canv->cd()->SetLeftMargin(0.07);
+  canv->cd()->SetRightMargin(0.03);
   canv->cd()->SetTopMargin(0.06);
 }
 
@@ -2226,8 +2230,8 @@ void adjustmargins(TCanvas *canv){
 void adjustmargins(TVirtualPad *canv){
 /*--------------------------------------------------------------------*/
   canv->SetBottomMargin(0.12);
-  canv->SetLeftMargin(0.11);
-  canv->SetRightMargin(0.02);
+  canv->SetLeftMargin(0.07);
+  canv->SetRightMargin(0.01);
   canv->SetTopMargin(0.02);
 }
 
@@ -2454,12 +2458,12 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
     }
     Double_t _dx = _sx+0.05;
     
-    Int_t index;
-    if(IOV<5) 
-      index=IOV;
-    else{
-      index=IOV-5;
-    }
+    Int_t index = IOV%5;
+    // if(IOV<5) 
+    //   index=IOV;
+    // else{
+    //   index=IOV-5;
+    // }
     
     runnumbers[IOV] = new TPaveText(_sx+0.001,0.14+(0.03*index),_dx,(0.17+0.03*index),"blNDC");
     //runnumbers[IOV]->SetTextAlign(11);
@@ -2469,7 +2473,7 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
     runnumbers[IOV]->SetFillColor(10);
     runnumbers[IOV]->SetLineColor(kRed);
     runnumbers[IOV]->SetBorderSize(1);
-    runnumbers[IOV]->SetLineWidth(2);
+    runnumbers[IOV]->SetLineWidth(1);
     runnumbers[IOV]->SetTextColor(kRed);
     runnumbers[IOV]->SetTextFont(42);
     runnumbers[IOV]->Draw("same");
