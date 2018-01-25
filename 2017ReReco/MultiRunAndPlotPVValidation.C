@@ -254,7 +254,7 @@ TH1F* DrawConstantGraph(TGraph *graph,Int_t iter,Double_t theConst);
 std::vector<int> list_files(const char *dirname=".", const char *ext=".root");
 TH1F* checkTH1AndReturn(TFile *f,TString address);
 void MakeNiceTrendPlotStyle(TH1 *hist,Int_t color);
-void cmsPrel(TPad* pad);
+void cmsPrel(TPad* pad,size_t ipads=1);
 void makeNewXAxis (TH1 *h);
 void beautify(TGraph *g);
 void beautify(TH1 *h);
@@ -780,7 +780,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
     // scatter or RMS TH1
 
-    h_RMS_dxy_phi_vs_run[j] = new TH1F(Form("h_RMS_dxy_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;maximum scatter of d_{xy}(#phi) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
+    h_RMS_dxy_phi_vs_run[j] = new TH1F(Form("h_RMS_dxy_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;peak-to-peak deviation of d_{xy}(#phi) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dxy_phi_vs_run[j]->SetStats(kFALSE);
 
     int bincounter=0;
@@ -905,7 +905,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
     // scatter or RMS TH1
 
-    h_RMS_dxy_eta_vs_run[j] = new TH1F(Form("h_RMS_dxy_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;maximum scatter of d_{xy}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
+    h_RMS_dxy_eta_vs_run[j] = new TH1F(Form("h_RMS_dxy_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;peak-to-peak deviation of d_{xy}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dxy_eta_vs_run[j]->SetStats(kFALSE);
 
     bincounter=0;
@@ -1029,7 +1029,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
     // scatter or RMS TH1
 
-    h_RMS_dz_phi_vs_run[j] = new TH1F(Form("h_RMS_dz_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;maximum scatter of d_{z}(#phi) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
+    h_RMS_dz_phi_vs_run[j] = new TH1F(Form("h_RMS_dz_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;peak-to-peak deviation of d_{z}(#phi) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dz_phi_vs_run[j]->SetStats(kFALSE);
 
     bincounter=0;
@@ -1152,7 +1152,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     }
 
     // scatter or RMS TH1
-    h_RMS_dz_eta_vs_run[j] = new TH1F(Form("h_RMS_dz_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;maximum scatter of d_{z}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
+    h_RMS_dz_eta_vs_run[j] = new TH1F(Form("h_RMS_dz_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;peak-to-peak deviation of d_{z}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
     h_RMS_dz_eta_vs_run[j]->SetStats(kFALSE);
 
     bincounter=0;
@@ -1832,7 +1832,7 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 	makeNewXAxis(dBiasTrend[k][i]);
       }
       TPad *current_pad = static_cast<TPad*>(canv->GetPad(k+1));
-      cmsPrel(current_pad);
+      cmsPrel(current_pad,2);
       ptDate->Draw("same");
 
       if(k==0){
@@ -1995,8 +1995,44 @@ void setStyle(){
 
 }
 
+// /*--------------------------------------------------------------------*/
+// void cmsPrel(TPad* pad) {
+// /*--------------------------------------------------------------------*/
+  
+//   float H = pad->GetWh();
+//   float W = pad->GetWw();
+//   float l = pad->GetLeftMargin();
+//   float t = pad->GetTopMargin();
+//   float r = pad->GetRightMargin();
+//   float b = pad->GetBottomMargin();
+//   float relPosX = 0.009;
+//   float relPosY = 0.045;
+//   float lumiTextOffset = 0.8;
+
+//   TLatex *latex = new TLatex();
+//   latex->SetNDC();
+//   latex->SetTextSize(0.045);
+
+//   float posX_    = 1-r - relPosX*(1-l-r);
+//   float posXCMS_ = posX_- 0.125;
+//   float posY_ =  1-t + 0.05; /// - relPosY*(1-t-b);
+//   float factor = 1./0.86;
+
+//   latex->SetTextAlign(33);
+//   latex->SetTextFont(61);
+//   latex->SetTextSize(0.045*factor);
+//   latex->DrawLatex(posXCMS_,posY_,"CMS");
+//   latex->SetTextSize(0.045);
+//   latex->SetTextFont(42); //22
+//   latex->DrawLatex(posX_,posY_,"Internal (13 TeV)");
+//   //latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
+//   //latex->DrawLatex(posX_,posY_,"CMS 2017 Work in progress (13 TeV)");
+  
+// }
+
+
 /*--------------------------------------------------------------------*/
-void cmsPrel(TPad* pad) {
+void cmsPrel(TPad* pad,size_t ipads) {
 /*--------------------------------------------------------------------*/
   
   float H = pad->GetWh();
@@ -2013,19 +2049,27 @@ void cmsPrel(TPad* pad) {
   latex->SetNDC();
   latex->SetTextSize(0.045);
 
-  float posX_    = 1-r - relPosX*(1-l-r);
-  float posXCMS_ = posX_- 0.125;
-  float posY_ =  1-t + 0.05; /// - relPosY*(1-t-b);
-  float factor = 1./0.86;
+  float posX_    = 1-(r/ipads);
+  float posY_    = 1-t + 0.05; /// - relPosY*(1-t-b);
+  float factor   = 1./0.82;
 
+  latex->SetTextAlign(33);
+  latex->SetTextSize(0.045);
+  latex->SetTextFont(42); //22
+  latex->DrawLatex(posX_,posY_,"Internal (13 TeV)");
+
+  UInt_t w;
+  UInt_t h;
+  latex->GetTextExtent(w,h,"Internal (13 TeV)");
+  float size = w/(W/ipads);
+  //std::cout<<w<<" "<<" "<<W<<" "<<size<<std::endl;
+  float posXCMS_ = posX_- size*(1+0.025*ipads);
 
   latex->SetTextAlign(33);
   latex->SetTextFont(61);
   latex->SetTextSize(0.045*factor);
-  latex->DrawLatex(posXCMS_,posY_,"CMS");
-  latex->SetTextSize(0.045);
-  latex->SetTextFont(42); //22
-  latex->DrawLatex(posX_,posY_,"Internal (13 TeV)");
+  latex->DrawLatex(posXCMS_,posY_+0.004,"CMS");
+
   //latex->DrawLatex(posX_,posY_,"CMS Preliminary (13 TeV)");
   //latex->DrawLatex(posX_,posY_,"CMS 2017 Work in progress (13 TeV)");
   
