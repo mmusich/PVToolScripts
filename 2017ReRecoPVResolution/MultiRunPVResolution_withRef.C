@@ -102,6 +102,14 @@ struct outTrends {
   resolutionTrend m_yResolTrend400;
   resolutionTrend m_zResolTrend400;
 
+  resolutionTrend m_xPullTrend200;
+  resolutionTrend m_yPullTrend200;
+  resolutionTrend m_zPullTrend200;
+
+  resolutionTrend m_xPullTrend400;
+  resolutionTrend m_yPullTrend400;
+  resolutionTrend m_zPullTrend400;
+
 
   void init(){
     m_index=-1;
@@ -117,6 +125,14 @@ struct outTrends {
     m_xResolTrend400.clear();
     m_yResolTrend400.clear();
     m_zResolTrend400.clear();
+
+    m_xPullTrend200.clear();
+    m_yPullTrend200.clear();
+    m_zPullTrend200.clear();
+
+    m_xPullTrend400.clear();
+    m_yPullTrend400.clear();
+    m_zPullTrend400.clear();
 
   }
 };
@@ -346,6 +362,14 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   resolutionTrend yResolTrend400_;
   resolutionTrend zResolTrend400_;
 
+  resolutionTrend xPullTrend200_;
+  resolutionTrend yPullTrend200_;
+  resolutionTrend zPullTrend200_;
+
+  resolutionTrend xPullTrend400_;
+  resolutionTrend yPullTrend400_;
+  resolutionTrend zPullTrend400_;
+
   double lumiSoFar=0.0;
   
   std::cout<<" pre do-stuff: " << runs.size() << std::endl;
@@ -397,8 +421,20 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
       yResolTrend400_[label].insert(std::end(yResolTrend400_[label]), std::begin(extractedTrend.m_yResolTrend400[label]), std::end(extractedTrend.m_yResolTrend400[label]));
       zResolTrend400_[label].insert(std::end(zResolTrend400_[label]), std::begin(extractedTrend.m_zResolTrend400[label]), std::end(extractedTrend.m_zResolTrend400[label]));
 
+      // at sumPt = 200 GeV
+      xPullTrend200_[label].insert(std::end(xPullTrend200_[label]), std::begin(extractedTrend.m_xPullTrend200[label]), std::end(extractedTrend.m_xPullTrend200[label]));
+      yPullTrend200_[label].insert(std::end(yPullTrend200_[label]), std::begin(extractedTrend.m_yPullTrend200[label]), std::end(extractedTrend.m_yPullTrend200[label]));
+      zPullTrend200_[label].insert(std::end(zPullTrend200_[label]), std::begin(extractedTrend.m_zPullTrend200[label]), std::end(extractedTrend.m_zPullTrend200[label]));
+
+      // at sumPt = 400 GeV
+      xPullTrend400_[label].insert(std::end(xPullTrend400_[label]), std::begin(extractedTrend.m_xPullTrend400[label]), std::end(extractedTrend.m_xPullTrend400[label]));
+      yPullTrend400_[label].insert(std::end(yPullTrend400_[label]), std::begin(extractedTrend.m_yPullTrend400[label]), std::end(extractedTrend.m_yPullTrend400[label]));
+      zPullTrend400_[label].insert(std::end(zPullTrend400_[label]), std::begin(extractedTrend.m_zPullTrend400[label]), std::end(extractedTrend.m_zPullTrend400[label]));
+
     }
   }
+
+  // canvases
 
   TCanvas *c_xResol200_vs_run = new TCanvas("c_xResol200_vs_run","x vertex resolution vs run number",2000,800);
   TCanvas *c_yResol200_vs_run = new TCanvas("c_yResol200_vs_run","y vertex resolution vs run number",2000,800);
@@ -408,6 +444,16 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   TCanvas *c_yResol400_vs_run = new TCanvas("c_yResol400_vs_run","y vertex resolution vs run number",2000,800);
   TCanvas *c_zResol400_vs_run = new TCanvas("c_zResol400_vs_run" ,"z vertex resolution vs run number",2000,800);
 
+  TCanvas *c_xPull200_vs_run = new TCanvas("c_xPull200_vs_run","x vertex resolution vs run number",2000,800);
+  TCanvas *c_yPull200_vs_run = new TCanvas("c_yPull200_vs_run","y vertex resolution vs run number",2000,800);
+  TCanvas *c_zPull200_vs_run = new TCanvas("c_zPull200_vs_run" ,"z vertex resolution vs run number",2000,800);
+
+  TCanvas *c_xPull400_vs_run = new TCanvas("c_xPull400_vs_run","x vertex resolution vs run number",2000,800);
+  TCanvas *c_yPull400_vs_run = new TCanvas("c_yPull400_vs_run","y vertex resolution vs run number",2000,800);
+  TCanvas *c_zPull400_vs_run = new TCanvas("c_zPull400_vs_run" ,"z vertex resolution vs run number",2000,800);
+
+  // graphs
+
   TGraph *g_xResol200_vs_run[(nDirs_+nMCDirs_)];
   TGraph *g_yResol200_vs_run[(nDirs_+nMCDirs_)];
   TGraph *g_zResol200_vs_run[(nDirs_+nMCDirs_)];
@@ -415,6 +461,14 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   TGraph *g_xResol400_vs_run[(nDirs_+nMCDirs_)];
   TGraph *g_yResol400_vs_run[(nDirs_+nMCDirs_)];
   TGraph *g_zResol400_vs_run[(nDirs_+nMCDirs_)];
+
+  TGraph *g_xPull200_vs_run[(nDirs_+nMCDirs_)];
+  TGraph *g_yPull200_vs_run[(nDirs_+nMCDirs_)];
+  TGraph *g_zPull200_vs_run[(nDirs_+nMCDirs_)];
+
+  TGraph *g_xPull400_vs_run[(nDirs_+nMCDirs_)];
+  TGraph *g_yPull400_vs_run[(nDirs_+nMCDirs_)];
+  TGraph *g_zPull400_vs_run[(nDirs_+nMCDirs_)];
 
   // decide the type
 
@@ -438,7 +492,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
     }
   }
   
-  TLegend *my_lego = new TLegend(0.75,0.83,0.95,0.93);
+  TLegend *my_lego = new TLegend(0.75,0.80,0.95,0.93);
   //my_lego-> SetNColumns(2);
   my_lego->SetFillColor(10);
   my_lego->SetTextSize(0.042);
@@ -451,6 +505,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   t1.SetTextAlign(21);
   t1.SetTextSize(0.05);
   t1.SetTextFont(42);
+  //t1.SetTextColor(kBlue);
 
   for(Int_t j=0; j < (nDirs_+nMCDirs_); j++) {
 
@@ -481,7 +536,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
 
     if(j==0){
       g_xResol200_vs_run[j]->Draw("AP");
-      t1.DrawLatexNDC(0.20,0.85,"#sump_{T} = 200 GeV");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 200 GeV");
     } else {
       j<nDirs_ ? g_xResol200_vs_run[j]->Draw("Psame") : g_xResol200_vs_run[j]->Draw("Lsame") ;
     }
@@ -526,7 +581,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
  
     if(j==0){
       g_yResol200_vs_run[j]->Draw("AP");
-      t1.DrawLatexNDC(0.20,0.85,"#sump_{T} = 200 GeV");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 200 GeV");
     } else {
       j<nDirs_ ? g_yResol200_vs_run[j]->Draw("Psame") : g_yResol200_vs_run[j]->Draw("Lsame");
     }
@@ -571,7 +626,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
  
     if(j==0){
       g_zResol200_vs_run[j]->Draw("AP");
-      t1.DrawLatexNDC(0.20,0.85,"#sump_{T} = 200 GeV");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 200 GeV");
     } else {
       j<nDirs_ ?  g_zResol200_vs_run[j]->Draw("Psame") : g_zResol200_vs_run[j]->Draw("Lsame");
     }
@@ -616,7 +671,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
  
     if(j==0){
       g_xResol400_vs_run[j]->Draw("AP");
-      t1.DrawLatexNDC(0.20,0.85,"#sump_{T} = 400 GeV");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 400 GeV");
     } else {
       j<nDirs_ ? g_xResol400_vs_run[j]->Draw("Psame") : g_xResol400_vs_run[j]->Draw("Lsame");
     }
@@ -661,7 +716,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
  
     if(j==0){
       g_yResol400_vs_run[j]->Draw("AP");
-      t1.DrawLatexNDC(0.20,0.85,"#sump_{T} = 400 GeV");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 400 GeV");
     } else {
       j<nDirs_ ? g_yResol400_vs_run[j]->Draw("Psame") :  g_yResol400_vs_run[j]->Draw("Lsame") ;
     }
@@ -706,7 +761,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
  
     if(j==0){
       g_zResol400_vs_run[j]->Draw("AP");
-      t1.DrawLatexNDC(0.20,0.85,"#sump_{T} = 400 GeV");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 400 GeV");
     } else {
       j<nDirs_ ? g_zResol400_vs_run[j]->Draw("Psame") : g_zResol400_vs_run[j]->Draw("Lsame") ;
     }
@@ -728,6 +783,276 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
     cmsPrel(current_pad);
 
     superImposeIOVBoundaries(c_zResol400_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // *************************************
+    // x pull @ sumpT=200
+    // *************************************
+    
+    g_xPull200_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((xPullTrend200_[LegLabels[j]])[0]));
+
+    adjustmargins(c_xPull200_vs_run);
+    c_xPull200_vs_run->cd();
+    g_xPull200_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_xPull200_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_xPull200_vs_run[j]->SetLineColor(pv::colors[j]);
+    if(j>=nDirs_)  g_xPull200_vs_run[j]->SetLineWidth(3);
+
+    g_xPull200_vs_run[j]->SetName(Form("g_xPull200_%s",LegLabels[j].Data()));
+    g_xPull200_vs_run[j]->SetTitle(Form("Primary Vertex x-Pull vs %s",theType.Data()));
+    g_xPull200_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_xPull200_vs_run[j]->GetYaxis()->SetTitle("Primary Vertex x-Pull [#mum]");
+    g_xPull200_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,2.5);
+    beautify(g_xPull200_vs_run[j]);
+ 
+    if(j==0){
+      g_xPull200_vs_run[j]->Draw("AP");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 200 GeV");
+    } else {
+      j<nDirs_ ? g_xPull200_vs_run[j]->Draw("Psame") : g_xPull200_vs_run[j]->Draw("Lsame") ;
+    }
+
+    if(time_axis_format){
+      timify(g_xPull200_vs_run[j]);
+    }
+
+    if(j==(nDirs_+nMCDirs_)-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(g_xPull200_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
+
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(c_xPull200_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // *************************************
+    // y pull @ sumpT=200
+    // *************************************
+    
+    g_yPull200_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((yPullTrend200_[LegLabels[j]])[0]));
+
+    adjustmargins(c_yPull200_vs_run);
+    c_yPull200_vs_run->cd();
+    g_yPull200_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_yPull200_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_yPull200_vs_run[j]->SetLineColor(pv::colors[j]);
+    if(j>=nDirs_)  g_yPull200_vs_run[j]->SetLineWidth(3);
+
+    g_yPull200_vs_run[j]->SetName(Form("g_yPull200_%s",LegLabels[j].Data()));
+    g_yPull200_vs_run[j]->SetTitle(Form("Primary Vertex y-Pull vs %s",theType.Data()));
+    g_yPull200_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_yPull200_vs_run[j]->GetYaxis()->SetTitle("Primary Vertex y-Pull [#mum]");
+    g_yPull200_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,2.5);
+    beautify(g_yPull200_vs_run[j]);
+ 
+    if(j==0){
+      g_yPull200_vs_run[j]->Draw("AP");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 200 GeV");
+    } else {
+      j<nDirs_ ? g_yPull200_vs_run[j]->Draw("Psame") : g_yPull200_vs_run[j]->Draw("Lsame");
+    }
+
+    if(time_axis_format){
+      timify(g_yPull200_vs_run[j]);
+    }
+
+    if(j==(nDirs_+nMCDirs_)-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(g_yPull200_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
+
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(c_yPull200_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // *************************************
+    // z pull @ sumpT=200
+    // *************************************
+    
+    g_zPull200_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((zPullTrend200_[LegLabels[j]])[0]));
+
+    adjustmargins(c_zPull200_vs_run);
+    c_zPull200_vs_run->cd();
+    g_zPull200_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_zPull200_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_zPull200_vs_run[j]->SetLineColor(pv::colors[j]);
+    if(j>=nDirs_)  g_zPull200_vs_run[j]->SetLineWidth(3);
+
+    g_zPull200_vs_run[j]->SetName(Form("g_zPull200_%s",LegLabels[j].Data()));
+    g_zPull200_vs_run[j]->SetTitle(Form("Primary Vertex z-Pull vs %s",theType.Data()));
+    g_zPull200_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_zPull200_vs_run[j]->GetYaxis()->SetTitle("Primary Vertex z-Pull [#mum]");
+    g_zPull200_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,2.5);
+    beautify(g_zPull200_vs_run[j]);
+ 
+    if(j==0){
+      g_zPull200_vs_run[j]->Draw("AP");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 200 GeV");
+    } else {
+      j<nDirs_ ?  g_zPull200_vs_run[j]->Draw("Psame") : g_zPull200_vs_run[j]->Draw("Lsame");
+    }
+
+    if(time_axis_format){
+      timify(g_zPull200_vs_run[j]);
+    }
+
+    if(j==(nDirs_+nMCDirs_)-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(g_zPull200_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
+
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(c_zPull200_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // *************************************
+    // x pull @ sumpT=400
+    // *************************************
+    
+    g_xPull400_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((xPullTrend400_[LegLabels[j]])[0]));
+
+    adjustmargins(c_xPull400_vs_run);
+    c_xPull400_vs_run->cd();
+    g_xPull400_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_xPull400_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_xPull400_vs_run[j]->SetLineColor(pv::colors[j]);
+    if(j>=nDirs_)  g_xPull400_vs_run[j]->SetLineWidth(3);
+
+    g_xPull400_vs_run[j]->SetName(Form("g_xPull400_%s",LegLabels[j].Data()));
+    g_xPull400_vs_run[j]->SetTitle(Form("Primary Vertex x-Pull vs %s",theType.Data()));
+    g_xPull400_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_xPull400_vs_run[j]->GetYaxis()->SetTitle("Primary Vertex x-Pull [#mum]");
+    g_xPull400_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,2.5);
+    beautify(g_xPull400_vs_run[j]);
+ 
+    if(j==0){
+      g_xPull400_vs_run[j]->Draw("AP");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 400 GeV");
+    } else {
+      j<nDirs_ ? g_xPull400_vs_run[j]->Draw("Psame") : g_xPull400_vs_run[j]->Draw("Lsame");
+    }
+
+    if(time_axis_format){
+      timify(g_xPull400_vs_run[j]);
+    }
+
+    if(j==(nDirs_+nMCDirs_)-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(g_xPull400_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
+
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(c_xPull400_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // *************************************
+    // y pull @ sumpT=400
+    // *************************************
+    
+    g_yPull400_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((yPullTrend400_[LegLabels[j]])[0]));
+
+    adjustmargins(c_yPull400_vs_run);
+    c_yPull400_vs_run->cd();
+    g_yPull400_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_yPull400_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_yPull400_vs_run[j]->SetLineColor(pv::colors[j]);
+    if(j>=nDirs_)  g_yPull400_vs_run[j]->SetLineWidth(3);
+
+    g_yPull400_vs_run[j]->SetName(Form("g_yPull400_%s",LegLabels[j].Data()));
+    g_yPull400_vs_run[j]->SetTitle(Form("Primary Vertex y-Pull vs %s",theType.Data()));
+    g_yPull400_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_yPull400_vs_run[j]->GetYaxis()->SetTitle("Primary Vertex y-Pull [#mum]");
+    g_yPull400_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,2.5);
+    beautify(g_yPull400_vs_run[j]);
+ 
+    if(j==0){
+      g_yPull400_vs_run[j]->Draw("AP");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 400 GeV");
+    } else {
+      j<nDirs_ ? g_yPull400_vs_run[j]->Draw("Psame") :  g_yPull400_vs_run[j]->Draw("Lsame") ;
+    }
+
+    if(time_axis_format){
+      timify(g_yPull400_vs_run[j]);
+    }
+
+    if(j==(nDirs_+nMCDirs_)-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(g_yPull400_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
+
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(c_yPull400_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+
+    // *************************************
+    // z pull @ sumpT=400
+    // *************************************
+    
+    g_zPull400_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((zPullTrend400_[LegLabels[j]])[0]));
+
+    adjustmargins(c_zPull400_vs_run);
+    c_zPull400_vs_run->cd();
+    g_zPull400_vs_run[j]->SetMarkerStyle(pv::markers[j]);
+    g_zPull400_vs_run[j]->SetMarkerColor(pv::colors[j]);
+    g_zPull400_vs_run[j]->SetLineColor(pv::colors[j]);
+    if(j>=nDirs_)  g_zPull400_vs_run[j]->SetLineWidth(3);
+
+    g_zPull400_vs_run[j]->SetName(Form("g_zPull400_%s",LegLabels[j].Data()));
+    g_zPull400_vs_run[j]->SetTitle(Form("Primary Vertex z-Pull vs %s",theType.Data()));
+    g_zPull400_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
+    g_zPull400_vs_run[j]->GetYaxis()->SetTitle("Primary Vertex z-Pull [#mum]");
+    g_zPull400_vs_run[j]->GetYaxis()->SetRangeUser(-0.5,2.5);
+    beautify(g_zPull400_vs_run[j]);
+ 
+    if(j==0){
+      g_zPull400_vs_run[j]->Draw("AP");
+      t1.DrawLatexNDC(0.15,0.85,"#sump_{T} = 400 GeV");
+    } else {
+      j<nDirs_ ? g_zPull400_vs_run[j]->Draw("Psame") : g_zPull400_vs_run[j]->Draw("Lsame") ;
+    }
+
+    if(time_axis_format){
+      timify(g_zPull400_vs_run[j]);
+    }
+
+    if(j==(nDirs_+nMCDirs_)-1){
+      my_lego->Draw("same");
+    }
+
+    if(j==0){
+      TH1F* theZero = DrawConstantGraph(g_zPull400_vs_run[j],1,0.);
+      theZero->Draw("E1same");
+    }
+
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
+
+    superImposeIOVBoundaries(c_zPull400_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
 
   }
 
@@ -758,6 +1083,22 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   c_yResol400_vs_run->SaveAs("yResol400_vs_"+append+".pdf");
   c_zResol400_vs_run->SaveAs("zResol400_vs_"+append+".pdf");
 
+  c_xPull200_vs_run->SaveAs("xPull200_vs_"+append+".png");
+  c_yPull200_vs_run->SaveAs("yPull200_vs_"+append+".png");
+  c_zPull200_vs_run->SaveAs("zPull200_vs_"+append+".png");
+
+  c_xPull200_vs_run->SaveAs("xPull200_vs_"+append+".pdf");
+  c_yPull200_vs_run->SaveAs("yPull200_vs_"+append+".pdf");
+  c_zPull200_vs_run->SaveAs("zPull200_vs_"+append+".pdf");
+
+  c_xPull400_vs_run->SaveAs("xPull400_vs_"+append+".png");
+  c_yPull400_vs_run->SaveAs("yPull400_vs_"+append+".png");
+  c_zPull400_vs_run->SaveAs("zPull400_vs_"+append+".png");
+
+  c_xPull400_vs_run->SaveAs("xPull400_vs_"+append+".pdf");
+  c_yPull400_vs_run->SaveAs("yPull400_vs_"+append+".pdf");
+  c_zPull400_vs_run->SaveAs("zPull400_vs_"+append+".pdf");
+
   // do all the deletes
 
   for(int iDir=0;iDir<(nDirs_+nMCDirs_);iDir++){
@@ -769,6 +1110,14 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
    delete g_xResol400_vs_run[iDir]; 
    delete g_yResol400_vs_run[iDir];    
    delete g_zResol400_vs_run[iDir];    
+
+   delete g_xPull200_vs_run[iDir]; 
+   delete g_yPull200_vs_run[iDir];    
+   delete g_zPull200_vs_run[iDir];    
+
+   delete g_xPull400_vs_run[iDir]; 
+   delete g_yPull400_vs_run[iDir];    
+   delete g_zPull400_vs_run[iDir];    
 
   }
 
@@ -782,6 +1131,14 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   gSystem->Sleep(100);
   processline.Clear();
 
+  gSystem->mkdir("VertexPullsVsPt");
+  processline = ".! mv VertexPullsVsPt*.p* ./VertexPullsVsPt/";
+  std::cout<<"Executing: \n"
+	   <<processline<< "\n"<<std::endl;
+  gROOT->ProcessLine(processline.Data());
+  gSystem->Sleep(100);
+  processline.Clear();
+  
   timer.Stop(); 	 
   timer.Print();
 
@@ -1361,9 +1718,14 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
     std::cout<<" run:" << imap.first << " time: "<< imap.second.Convert() << std::endl;
   }
 
-  static const int nIOVs=13; //     1      2      3      4      5      6      7      8      9     10     11     12     13 
-  int IOVboundaries[nIOVs]  = {294034,296641,297179,297281,298653,299277,299443,300389,301046,302131,303790,304911,305898};
-  int benchmarkruns[nIOVs]  = {296173,297057,297219,297503,299061,299368,300157,300560,301472,302472,304292,305108,305898};
+  // static const int nIOVs=13; //     1      2      3      4      5      6      7      8      9     10     11     12     13 
+  // int IOVboundaries[nIOVs]  = {294034,296641,297179,297281,298653,299277,299443,300389,301046,302131,303790,304911,305898};
+  // int benchmarkruns[nIOVs]  = {296173,297057,297219,297503,299061,299368,300157,300560,301472,302472,304292,305108,305898};
+
+  static const int nIOVs=7;  //     1      2      3      4      5      6      7      
+  int IOVboundaries[nIOVs]  = {299443,300389,301046,302131,303790,304911,305898};
+  int benchmarkruns[nIOVs]  = {300157,300560,301472,302472,304292,305108,305898};
+
   TArrow* IOV_lines[nIOVs];
   c->cd();
   c->Update();
@@ -1493,6 +1855,10 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
     TH1F* xPVResolVsPT[nDirs_+nMCDirs_];  
     TH1F* yPVResolVsPT[nDirs_+nMCDirs_]; 
     TH1F* zPVResolVsPT[nDirs_+nMCDirs_];   
+
+    TH1F* xPVPullVsPT[nDirs_+nMCDirs_];  
+    TH1F* yPVPullVsPT[nDirs_+nMCDirs_]; 
+    TH1F* zPVPullVsPT[nDirs_+nMCDirs_];   
     
     bool areAllFilesOK = true;
     Int_t lastOpen = 0;
@@ -1548,7 +1914,11 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       xPVResolVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_resolX_vsSumPt");
       yPVResolVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_resolY_vsSumPt");
       zPVResolVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_resolZ_vsSumPt");
-    
+
+      xPVPullVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullX_vsSumPt");
+      yPVPullVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullY_vsSumPt");
+      zPVPullVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullZ_vsSumPt");
+
       // fill the vectors of resolutions
       
       auto xResol = getResolutions(xPVResolVsPT[j]);
@@ -1567,6 +1937,25 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       MakeNiceTrendPlotStyle(xPVResolVsPT[j],j);
       MakeNiceTrendPlotStyle(yPVResolVsPT[j],j);
       MakeNiceTrendPlotStyle(zPVResolVsPT[j],j);
+
+      // fill the vectors of pulls
+      
+      auto xPull = getResolutions(xPVPullVsPT[j]);
+      ret.m_xPullTrend200[LegLabels[j]].push_back(xPull.getResol200());
+      ret.m_xPullTrend400[LegLabels[j]].push_back(xPull.getResol400());
+
+      auto yPull = getResolutions(yPVPullVsPT[j]);
+      ret.m_yPullTrend200[LegLabels[j]].push_back(yPull.getResol200());
+      ret.m_yPullTrend400[LegLabels[j]].push_back(yPull.getResol400());
+
+      auto zPull = getResolutions(zPVPullVsPT[j]);
+      ret.m_zPullTrend200[LegLabels[j]].push_back(zPull.getResol200());
+      ret.m_zPullTrend400[LegLabels[j]].push_back(zPull.getResol400());
+
+      // beautify the histograms
+      MakeNiceTrendPlotStyle(xPVPullVsPT[j],j);
+      MakeNiceTrendPlotStyle(yPVPullVsPT[j],j);
+      MakeNiceTrendPlotStyle(zPVPullVsPT[j],j);
 
     }
 
@@ -1590,6 +1979,10 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       yPVResolVsPT[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_resolY_vsSumPt");
       zPVResolVsPT[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_resolZ_vsSumPt");
     
+      xPVPullVsPT[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullX_vsSumPt");
+      yPVPullVsPT[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullY_vsSumPt");
+      zPVPullVsPT[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullZ_vsSumPt");
+
       // fill the vectors of resolutions
       
       auto xResol = getResolutions(xPVResolVsPT[jMC]);
@@ -1608,6 +2001,25 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       MakeNiceTrendPlotStyle(xPVResolVsPT[jMC],jMC);
       MakeNiceTrendPlotStyle(yPVResolVsPT[jMC],jMC);
       MakeNiceTrendPlotStyle(zPVResolVsPT[jMC],jMC);
+
+      // fill the vectors of pulls
+      
+      auto xPull = getResolutions(xPVPullVsPT[jMC]);
+      ret.m_xPullTrend200[LegLabels[jMC]].push_back(xPull.getResol200());
+      ret.m_xPullTrend400[LegLabels[jMC]].push_back(xPull.getResol400());
+
+      auto yPull = getResolutions(yPVPullVsPT[jMC]);
+      ret.m_yPullTrend200[LegLabels[jMC]].push_back(yPull.getResol200());
+      ret.m_yPullTrend400[LegLabels[jMC]].push_back(yPull.getResol400());
+
+      auto zPull = getResolutions(zPVPullVsPT[jMC]);
+      ret.m_zPullTrend200[LegLabels[jMC]].push_back(zPull.getResol200());
+      ret.m_zPullTrend400[LegLabels[jMC]].push_back(zPull.getResol400());
+
+      // beautify the histograms
+      MakeNiceTrendPlotStyle(xPVPullVsPT[jMC],jMC);
+      MakeNiceTrendPlotStyle(yPVPullVsPT[jMC],jMC);
+      MakeNiceTrendPlotStyle(zPVPullVsPT[jMC],jMC);
 
     }
 
@@ -1637,6 +2049,14 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
     VertexResolutionsVsPt->SaveAs(Form("VertexResolutionsVsPt_%i.pdf",intersection.at(n)));
     VertexResolutionsVsPt->SaveAs(Form("VertexResolutionsVsPt_%i.png",intersection.at(n)));
 
+    // pull pT plots
+
+    TCanvas *VertexPullsVsPt = new TCanvas(Form("VertexPullsVsPT_%i",intersection.at(n)),"VertexPullsVsPt",1800,800);
+    arrangeOutCanvas(VertexPullsVsPt,xPVPullVsPT,yPVPullVsPT,zPVPullVsPT,(nDirs_+nMCDirs_),LegLabels,intersection.at(n));
+
+    VertexPullsVsPt->SaveAs(Form("VertexPullsVsPt_%i.pdf",intersection.at(n)));
+    VertexPullsVsPt->SaveAs(Form("VertexPullsVsPt_%i.png",intersection.at(n)));
+
     // do all the necessary deletions
 
     for(int i=0;i<nDirs_+nMCDirs_;i++){
@@ -1644,11 +2064,16 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       delete xPVResolVsPT[i];
       delete yPVResolVsPT[i];
       delete zPVResolVsPT[i];
+
+      delete xPVPullVsPT[i];
+      delete yPVPullVsPT[i];
+      delete zPVPullVsPT[i];
     
       fins[i]->Close();
     }
     
     delete VertexResolutionsVsPt;
+    delete VertexPullsVsPt;
 
     std::cout<<std::endl;
   }
