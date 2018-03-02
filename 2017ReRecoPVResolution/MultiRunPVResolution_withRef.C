@@ -322,7 +322,8 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
     
     std::vector<int> currentList = list_files(dirs[j]);
     std::vector<int> tempSwap;
-    
+    std::vector<int> difference;
+
     std::sort(currentList.begin(),currentList.end());
 
     if(j==0){
@@ -330,6 +331,20 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
     }
 
     std::sort(intersection.begin(),intersection.end());
+
+    std::set_difference(currentList.begin(),currentList.end(),
+			intersection.begin(),intersection.end(),
+			std::back_inserter(tempSwap));
+    
+    difference.clear();
+    difference = tempSwap;
+    tempSwap.clear();
+
+    std::cout<<j<<"-th list differs by: ";
+    for(auto d : difference){
+      std::cout<<d<< " " ;
+    }
+    std::cout<<std::endl;
 
     std::set_intersection(currentList.begin(),currentList.end(),
 			  intersection.begin(),intersection.end(),
@@ -340,6 +355,16 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
     tempSwap.clear();
   }
 
+  //////////
+  ///
+  /// to debug
+  ///
+  //////////
+
+  //vector<int>::iterator it;
+  //it = remove_if(intersection.begin(),intersection.end(), bind2nd(std::less_equal< int >(),306546));
+  //intersection.erase (it,intersection.end());
+
   // Filling MC info
   for(Int_t jMC=0; jMC< nMCDirs_;jMC++){
     TObjString* legend = (TObjString*)MCLabelList->At(jMC);
@@ -349,9 +374,9 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   }
 
   // debug only
-  for(UInt_t index=0;index<intersection.size();index++){
-    std::cout<<index<<" "<<intersection[index]<<std::endl;
-  }
+  //for(UInt_t index=0;index<intersection.size();index++){
+  //  std::cout<<index<<" "<<intersection[index]<<std::endl;
+  // }
 
   // book the vector of values
   resolutionTrend xResolTrend200_;
@@ -372,7 +397,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
 
   double lumiSoFar=0.0;
   
-  std::cout<<" pre do-stuff: " << runs.size() << std::endl;
+  //std::cout<<" pre do-stuff: " << runs.size() << std::endl;
   
   //we should use std::bind to create a functor and then pass it to the procPool
   auto f_doStuff = std::bind(doStuff,_1,intersection,nDirs_,nMCDirs_,dirs,LegLabels,useRMS);
@@ -380,6 +405,13 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   TProcPool procPool(nWorkers);
   std::vector<size_t> range(nWorkers);
   std::iota(range.begin(),range.end(),0);
+
+  std::cout<<" intersection size: "<<intersection.size() << std::endl;
+  for(const auto &elem: range ){
+    std::cout<<elem << " " ;
+  }
+  std::cout<<std::endl;
+
   //procPool.Map([&f_doStuff](size_t a) { f_doStuff(a); },{1,2,3});
   auto extracts = procPool.Map(f_doStuff,range);
   
@@ -1138,7 +1170,23 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
   gROOT->ProcessLine(processline.Data());
   gSystem->Sleep(100);
   processline.Clear();
-  
+
+  gSystem->mkdir("VertexResolutionsVsNtracks");
+  processline = ".! mv VertexResolutionsVsNtracks*.p* ./VertexResolutionsVsNtracks/";
+  std::cout<<"Executing: \n"
+	   <<processline<< "\n"<<std::endl;
+  gROOT->ProcessLine(processline.Data());
+  gSystem->Sleep(100);
+  processline.Clear();
+
+  gSystem->mkdir("VertexPullsVsNtracks");
+  processline = ".! mv VertexPullsVsNtracks*.p* ./VertexPullsVsNtracks/";
+  std::cout<<"Executing: \n"
+	   <<processline<< "\n"<<std::endl;
+  gROOT->ProcessLine(processline.Data());
+  gSystem->Sleep(100);
+  processline.Clear();
+
   timer.Stop(); 	 
   timer.Print();
 
@@ -1336,8 +1384,13 @@ void makeNewXAxis (TH1 *h)
     axmin = 0.;
     axmax = 1000.;
     ndiv = 505;
-  } else {
-    std::cout<<"unrecognized variable"<<std::endl;
+  } else if (myTitle.Contains("Ntracks")){
+    axmin = 0.;
+    axmax = 120.;
+    ndiv = 510;
+  }
+  else {
+    std::cout<<"unrecognized variable:"<< myTitle <<std::endl;
   }
   
   // Remove the current axis
@@ -1845,11 +1898,11 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
   outTrends ret;
   ret.init();
 
-  unsigned int pitch = std::ceil(intersection.size()/nWorkers);
+  unsigned int pitch = std::ceil(float(intersection.size())/float(nWorkers));
   unsigned int first = iter*pitch;
   unsigned int last  = std::min((iter+1)*pitch-1,intersection.size());
 
-  std::cout<< "pitch: " << pitch<< " first: "<< first << " last: "<< last<< std::endl;
+  std::cout<<"doStuff(): iter" << iter << " pitch: " << pitch<< " first: "<< first << " last: "<< last<< std::endl;
 
   ret.m_index=iter;
 
@@ -1866,7 +1919,15 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
     TH1F* xPVPullVsPT[nDirs_+nMCDirs_];  
     TH1F* yPVPullVsPT[nDirs_+nMCDirs_]; 
     TH1F* zPVPullVsPT[nDirs_+nMCDirs_];   
-    
+
+    TH1F* xPVResolVsNTracks[nDirs_+nMCDirs_];  
+    TH1F* yPVResolVsNTracks[nDirs_+nMCDirs_]; 
+    TH1F* zPVResolVsNTracks[nDirs_+nMCDirs_];   
+
+    TH1F* xPVPullVsNTracks[nDirs_+nMCDirs_];  
+    TH1F* yPVPullVsNTracks[nDirs_+nMCDirs_]; 
+    TH1F* zPVPullVsNTracks[nDirs_+nMCDirs_];   
+
     bool areAllFilesOK = true;
     Int_t lastOpen = 0;
  
@@ -1912,7 +1973,7 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
 
       Double_t numEvents = h_tracks->GetEntries();
       if(numEvents<2500){
-	std::cout<<"excluding " << intersection[n] << "because it has less than 2.5k events" << std::endl;
+	std::cout<<"excluding " << intersection[n] << " because it has less than 2500 events." << std::endl;
 	areAllFilesOK = false;
 	lastOpen=j;
 	break;
@@ -1925,6 +1986,14 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       xPVPullVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullX_vsSumPt");
       yPVPullVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullY_vsSumPt");
       zPVPullVsPT[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullZ_vsSumPt");
+
+      xPVResolVsNTracks[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_resolX_vsNtracks");
+      yPVResolVsNTracks[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_resolY_vsNtracks");
+      zPVResolVsNTracks[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_resolZ_vsNtracks");
+
+      xPVPullVsNTracks[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullX_vsNtracks");
+      yPVPullVsNTracks[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullY_vsNtracks");
+      zPVPullVsNTracks[j] = (TH1F*)fins[j]->Get("PrimaryVertexResolution/p_pullZ_vsNtracks");
 
       // fill the vectors of resolutions
       
@@ -1964,6 +2033,15 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       MakeNiceTrendPlotStyle(yPVPullVsPT[j],j);
       MakeNiceTrendPlotStyle(zPVPullVsPT[j],j);
 
+      // beautify the histograms
+      MakeNiceTrendPlotStyle(xPVResolVsNTracks[j],j);
+      MakeNiceTrendPlotStyle(yPVResolVsNTracks[j],j);
+      MakeNiceTrendPlotStyle(zPVResolVsNTracks[j],j);
+
+      MakeNiceTrendPlotStyle(xPVPullVsNTracks[j],j);
+      MakeNiceTrendPlotStyle(yPVPullVsNTracks[j],j);
+      MakeNiceTrendPlotStyle(zPVPullVsNTracks[j],j);
+
     }
 
     // now for the MC
@@ -1989,6 +2067,14 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       xPVPullVsPT[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullX_vsSumPt");
       yPVPullVsPT[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullY_vsSumPt");
       zPVPullVsPT[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullZ_vsSumPt");
+
+      xPVResolVsNTracks[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_resolX_vsNtracks");
+      yPVResolVsNTracks[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_resolY_vsNtracks");
+      zPVResolVsNTracks[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_resolZ_vsNtracks");
+
+      xPVPullVsNTracks[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullX_vsNtracks");
+      yPVPullVsNTracks[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullY_vsNtracks");
+      zPVPullVsNTracks[jMC] = (TH1F*)fins[jMC]->Get("PrimaryVertexResolution/p_pullZ_vsNtracks");
 
       // fill the vectors of resolutions
       
@@ -2028,6 +2114,15 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       MakeNiceTrendPlotStyle(yPVPullVsPT[jMC],jMC);
       MakeNiceTrendPlotStyle(zPVPullVsPT[jMC],jMC);
 
+      // beautify the histograms
+      MakeNiceTrendPlotStyle(xPVResolVsNTracks[jMC],jMC);
+      MakeNiceTrendPlotStyle(yPVResolVsNTracks[jMC],jMC);
+      MakeNiceTrendPlotStyle(zPVResolVsNTracks[jMC],jMC);
+
+      MakeNiceTrendPlotStyle(xPVPullVsNTracks[jMC],jMC);
+      MakeNiceTrendPlotStyle(yPVPullVsNTracks[jMC],jMC);
+      MakeNiceTrendPlotStyle(zPVPullVsNTracks[jMC],jMC);
+
     }
 
     if(!areAllFilesOK){
@@ -2064,6 +2159,23 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
     VertexPullsVsPt->SaveAs(Form("VertexPullsVsPt_%i.pdf",intersection.at(n)));
     VertexPullsVsPt->SaveAs(Form("VertexPullsVsPt_%i.png",intersection.at(n)));
 
+
+    // resolutions ntracks plots
+
+    TCanvas *VertexResolutionsVsNtracks = new TCanvas(Form("VertexResolutionsVsNTracks_%i",intersection.at(n)),"VertexResolutionsVsNtracks",1800,800);
+    arrangeOutCanvas(VertexResolutionsVsNtracks,xPVResolVsNTracks,yPVResolVsNTracks,zPVResolVsNTracks,(nDirs_+nMCDirs_),LegLabels,intersection.at(n));
+
+    VertexResolutionsVsNtracks->SaveAs(Form("VertexResolutionsVsNtracks_%i.pdf",intersection.at(n)));
+    VertexResolutionsVsNtracks->SaveAs(Form("VertexResolutionsVsNtracks_%i.png",intersection.at(n)));
+
+    // pull ntracks plots
+
+    TCanvas *VertexPullsVsNtracks = new TCanvas(Form("VertexPullsVsNTracks_%i",intersection.at(n)),"VertexPullsVsNtracks",1800,800);
+    arrangeOutCanvas(VertexPullsVsNtracks,xPVPullVsNTracks,yPVPullVsNTracks,zPVPullVsNTracks,(nDirs_+nMCDirs_),LegLabels,intersection.at(n));
+
+    VertexPullsVsNtracks->SaveAs(Form("VertexPullsVsNtracks_%i.pdf",intersection.at(n)));
+    VertexPullsVsNtracks->SaveAs(Form("VertexPullsVsNtracks_%i.png",intersection.at(n)));
+
     // do all the necessary deletions
 
     for(int i=0;i<nDirs_+nMCDirs_;i++){
@@ -2075,12 +2187,23 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       delete xPVPullVsPT[i];
       delete yPVPullVsPT[i];
       delete zPVPullVsPT[i];
+
+      delete xPVResolVsNTracks[i];
+      delete yPVResolVsNTracks[i];
+      delete zPVResolVsNTracks[i];
+
+      delete xPVPullVsNTracks[i];
+      delete yPVPullVsNTracks[i];
+      delete zPVPullVsNTracks[i];
     
       fins[i]->Close();
     }
     
     delete VertexResolutionsVsPt;
     delete VertexPullsVsPt;
+
+    delete VertexResolutionsVsNtracks;
+    delete VertexPullsVsNtracks;
 
     std::cout<<std::endl;
   }
