@@ -1155,7 +1155,7 @@ void MultiRunPVResolution_withRef(TString namesandlabels,bool lumi_axis_format,b
 void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],TH1F* m_13Trend[100],Int_t nDirs, TString LegLabels[10],unsigned int theRun){
 //*************************************************************
 
-  TLegend *lego = new TLegend(0.19,0.80,0.79,0.93);
+  TLegend *lego = new TLegend(0.39,0.80,0.89,0.93);
   //lego-> SetNColumns(2);
   lego->SetFillColor(10);
   lego->SetTextSize(0.042);
@@ -1193,8 +1193,8 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
   for(Int_t k=0; k<3; k++){
 
     canv->cd(k+1)->SetBottomMargin(0.14);
-    canv->cd(k+1)->SetLeftMargin(0.18);
-    canv->cd(k+1)->SetRightMargin(0.01);
+    canv->cd(k+1)->SetLeftMargin(0.16);
+    canv->cd(k+1)->SetRightMargin(0.05);
     canv->cd(k+1)->SetTopMargin(0.06);
     canv->cd(k+1);
     
@@ -1210,8 +1210,12 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
       if(i==0){
 
 	TString theTitle = dResolTrend[k][i]->GetName();
-	dResolTrend[k][i]->GetYaxis()->SetRangeUser(0.,theExtreme+(safeDelta/2.));
-       
+	if(!theTitle.Contains("pull")){
+	  dResolTrend[k][i]->GetYaxis()->SetRangeUser(0.,theExtreme+(safeDelta/2.));
+	} else {
+	  dResolTrend[k][i]->GetYaxis()->SetRangeUser(0.,1.8);
+	}    
+
 	dResolTrend[k][i]->Draw("Le1");
 	makeNewXAxis(dResolTrend[k][i]);
       
@@ -1225,7 +1229,7 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 	makeNewXAxis(dResolTrend[k][i]);
       }
       TPad *current_pad = static_cast<TPad*>(canv->GetPad(k+1));
-      cmsPrel(current_pad,2);
+      cmsPrel(current_pad,3);
       ptDate->Draw("same");
 
       if(k==0){
@@ -1293,6 +1297,9 @@ void  MakeNiceTrendPlotStyle(TH1 *hist,Int_t color)
   hist->SetMarkerStyle(pv::markers[color]);
   hist->SetLineColor(pv::colors[color]);
   hist->SetMarkerColor(pv::colors[color]);
+  TString myTitle = hist->GetName();
+  if(myTitle.Contains("SumPt")) hist->GetXaxis()->SetTitle("#scale[0.8]{#sum}p_{T} [GeV]");
+
 }
 
 
@@ -1360,7 +1367,7 @@ void makeNewXAxis (TH1 *h)
   newaxisup->SetLabelFont(42);
   newaxisup->SetLabelSize(0);
   
-  newaxis->Draw();
+  newaxis->Draw();  
   newaxisup->Draw();
 
 }
