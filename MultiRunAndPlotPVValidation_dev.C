@@ -140,13 +140,13 @@ namespace pv{
       m_KS      = KS;     
     }
     
-    alignmentTrend getMean(){return m_mean;}
-    alignmentTrend getLow(){return m_low;}
-    alignmentTrend getHigh(){return m_high;}
-    alignmentTrend getLowErr(){return m_lowerr;}
-    alignmentTrend getHighErr(){return m_higherr;}
-    alignmentTrend getChi2(){return m_chi2;}
-    alignmentTrend getKS(){return m_KS;}
+    alignmentTrend getMean()    const {return m_mean;}
+    alignmentTrend getLow()     const {return m_low;}
+    alignmentTrend getHigh()    const {return m_high;}
+    alignmentTrend getLowErr()  const {return m_lowerr;}
+    alignmentTrend getHighErr() const {return m_higherr;}
+    alignmentTrend getChi2()    const {return m_chi2;}
+    alignmentTrend getKS()      const {return m_KS;}
 
   private:
     alignmentTrend m_mean;
@@ -160,8 +160,9 @@ namespace pv{
 
   struct bundle{
     
-    bundle(const TString& dataType,const TString& dataTypeLabel,const std::map<int,double>& lumiMapByRun,const std::map<int,TDatime>& times,const bool& lumiaxisformat,const bool& timeaxisformat){
+    bundle(int nObjects, const TString& dataType,const TString& dataTypeLabel,const std::map<int,double>& lumiMapByRun,const std::map<int,TDatime>& times,const bool& lumiaxisformat,const bool& timeaxisformat){
 
+      m_nObjects = nObjects;
       m_datatype = dataType.Data();
       m_datatypelabel = dataTypeLabel.Data();
       m_lumiMapByRun = lumiMapByRun;
@@ -169,7 +170,8 @@ namespace pv{
 
       std::cout<<"pv::bundle c'tor: "<< dataTypeLabel << " member: " <<    m_datatypelabel << std::endl;
 
-      //assert(lumiaxisformat!=timeaxisformat); 
+      // make sure you don't use them at the same time
+      assert(lumiaxisformat!=timeaxisformat); 
 
       if(lumiaxisformat){
 	std::cout<<"is lumiaxis format"<<std::endl;
@@ -186,12 +188,13 @@ namespace pv{
 
     }
 
-    const char* getDataType() {return m_datatype;}		  
-    const char* getDataTypeLabel() {return m_datatypelabel;}	  
-    std::map<int,double> getLumiMapByRun() {return m_lumiMapByRun;}  
-    std::map<int,TDatime> getTimes() {return m_times;}	  
-    bool isLumiAxis() {return m_axis_types.test(0);}
-    bool isTimeAxis() {return m_axis_types.test(1);}
+    int getNObjects() const {return m_nObjects;}
+    const char* getDataType() const {return m_datatype;}		  
+    const char* getDataTypeLabel() const {return m_datatypelabel;}	  
+    const std::map<int,double> getLumiMapByRun() const {return m_lumiMapByRun;}  
+    const std::map<int,TDatime> getTimes() const {return m_times;}	  
+    bool isLumiAxis() const {return m_axis_types.test(0);}
+    bool isTimeAxis() const {return m_axis_types.test(1);}
     void printAll() {
       std::cout<< "dataType      " << m_datatype << std::endl;
       std::cout<< "dataTypeLabel " << m_datatypelabel << std::endl;
@@ -200,6 +203,7 @@ namespace pv{
     }
 
   private:
+    int m_nObjects;
     const char* m_datatype;
     const char* m_datatypelabel;
     std::map<int,double> m_lumiMapByRun;
@@ -359,9 +363,9 @@ pv::view checkTheView(const TString &toCheck);
 template<typename T> void timify(T *mgr);
 Double_t getMaximumFromArray(TObjArray *array);
 void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_format,const std::map<int,double> &lumiMapByRun,const std::map<int,TDatime>& timeMap);
-void outputGraphs(pv::wrappedTrends allInputs,
-		  std::vector<double> ticks,
-		  std::vector<double> ex_ticks,
+void outputGraphs(const pv::wrappedTrends& allInputs,
+		  const std::vector<double>& ticks,
+		  const std::vector<double>& ex_ticks,
 		  TCanvas* &canv,
 		  TCanvas* &mean_canv,
 		  TCanvas* &rms_canv,
@@ -371,11 +375,13 @@ void outputGraphs(pv::wrappedTrends allInputs,
 		  TGraph* &g_low,
 		  TGraph* &g_high,
 		  TGraphAsymmErrors* &g_asym,
-		  TH1F* &h_RMS,      
-		  pv::bundle mybundle,
-		  pv::view theView,
-		  int index,
-		  TString label
+		  TH1F* h_RMS[],      
+		  const pv::bundle& mybundle,
+		  const pv::view& theView,
+		  const int index,
+		  TObjArray* &array,
+		  const TString& label,
+		  TLegend* &legend
 		  );
 
 // utility function to split strings
@@ -837,7 +843,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   }
   outfile <<  std::endl;
 
-  pv::bundle theBundle = pv::bundle(theType,theTypeLabel,lumiMapByRun,times,lumi_axis_format,time_axis_format);
+  pv::bundle theBundle = pv::bundle(nDirs_,theType,theTypeLabel,lumiMapByRun,times,lumi_axis_format,time_axis_format);
   theBundle.printAll();
 
   for(Int_t j=0; j < nDirs_; j++) {
@@ -865,567 +871,101 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 		 g_dxy_phi_lo_vs_run[j],  			      	                          
 		 g_dxy_phi_hi_vs_run[j],  			     
 		 gerr_dxy_phi_vs_run[j],			     
-		 h_RMS_dxy_phi_vs_run[j],			      
+		 h_RMS_dxy_phi_vs_run,			      
 		 theBundle,
 		 pv::dxyphi,
 		 j,
-		 LegLabels[j]
+		 arr_dxy_phi,
+		 LegLabels[j],
+		 my_lego
 		 );
-
-    // g_dxy_phi_vs_run[j]       = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiMeans_[LegLabels[j]])[0]));
-    // g_chi2_dxy_phi_vs_run[j]  = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiChi2_[LegLabels[j]])[0]));
-    // g_KS_dxy_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiKS_[LegLabels[j]])[0]));
-    // g_dxy_phi_hi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiHi_[LegLabels[j]])[0]));
-    // g_dxy_phi_lo_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyPhiLo_[LegLabels[j]])[0]));
-
-    // gerr_dxy_phi_vs_run[j] =  new TGraphAsymmErrors(x_ticks.size(),&(x_ticks[0]),&((dxyPhiMeans_[LegLabels[j]])[0]),&(ex_ticks[0]),&(ex_ticks[0]),&((dxyPhiLoErr_[LegLabels[j]])[0]),&((dxyPhiHiErr_[LegLabels[j]])[0]));
-
-    // adjustmargins(c_dxy_phi_vs_run);
-    // c_dxy_phi_vs_run->cd();
-    // gerr_dxy_phi_vs_run[j]->SetFillStyle(3005);
-    // gerr_dxy_phi_vs_run[j]->SetFillColor(pv::colors[j]);
-    // g_dxy_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
-    // g_dxy_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
-    // g_dxy_phi_vs_run[j]->SetMarkerSize(2);
-    // g_dxy_phi_vs_run[j]->SetLineColor(pv::colors[j]);
-    // g_dxy_phi_hi_vs_run[j]->SetLineColor(pv::colors[j]);
-    // g_dxy_phi_lo_vs_run[j]->SetLineColor(pv::colors[j]);
-
-    // g_dxy_phi_vs_run[j]->SetName(Form("g_bias_dxy_phi_%s",LegLabels[j].Data()));
-    // g_dxy_phi_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#varphi) vs %s",theType.Data()));
-    // g_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    // g_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#phi) #GT [#mum]");
-    // g_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-30,30);
-
-    // gerr_dxy_phi_vs_run[j]->SetName(Form("gerr_bias_dxy_phi_%s",LegLabels[j].Data()));
-    // gerr_dxy_phi_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#varphi) vs %s",theType.Data()));
-    // gerr_dxy_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    // gerr_dxy_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#phi) #GT [#mum]");
-    // gerr_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-30,30);
-
-    // beautify(g_dxy_phi_vs_run[j]);
-    // beautify(gerr_dxy_phi_vs_run[j]);
-    // my_lego->AddEntry(g_dxy_phi_vs_run[j],LegLabels[j],"PL");
-
-    // if(j==0){
-    //   gerr_dxy_phi_vs_run[j]->Draw("A3");
-    //   g_dxy_phi_vs_run[j]->Draw("Psame");
-    // } else {
-    //   gerr_dxy_phi_vs_run[j]->Draw("3same");
-    //   g_dxy_phi_vs_run[j]->Draw("Psame");
-    // }
-    // g_dxy_phi_hi_vs_run[j]->Draw("Lsame");
-    // g_dxy_phi_lo_vs_run[j]->Draw("Lsame");
-
-    // if(time_axis_format){
-    //   timify(g_dxy_phi_vs_run[j]);
-    //   timify(g_dxy_phi_hi_vs_run[j]);
-    //   timify(g_dxy_phi_lo_vs_run[j]);
-    // }
-
-    // if(j==nDirs_-1){
-    //   my_lego->Draw("same");
-    // }
-
-    // if(j==0){
-    //   TH1F* theZero = DrawConstantGraph(g_dxy_phi_vs_run[j],1,0.);
-    //   theZero->Draw("E1same");
-    // }
-
-    // TPad *current_pad = static_cast<TPad*>(gPad);
-    // cmsPrel(current_pad);
-
-    // superImposeIOVBoundaries(c_dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
-
-    // // mean only
-    // adjustmargins(c_mean_dxy_phi_vs_run);
-    // c_mean_dxy_phi_vs_run->cd();
-    // gprime_dxy_phi_vs_run[j] =  (TGraph*)g_dxy_phi_vs_run[j]->Clone();
-    // if(j==0){
-    //   gprime_dxy_phi_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
-    //   gprime_dxy_phi_vs_run[j]->Draw("APL");
-    // } else {
-    //   gprime_dxy_phi_vs_run[j]->Draw("PLsame");
-    // }
     
-    // if(j==nDirs_-1){
-    //   my_lego->Draw("same");
-    // }
-
-    // if(j==0){
-    //   TH1F* theZero = DrawConstantGraph(gprime_dxy_phi_vs_run[j],2,0.);
-    //   theZero->Draw("E1same");
-
-    //   current_pad = static_cast<TPad*>(gPad);
-    //   cmsPrel(current_pad);
-
-    //   superImposeIOVBoundaries(c_mean_dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
-    // }
-
-    // // scatter or RMS TH1
-
-    // h_RMS_dxy_phi_vs_run[j] = new TH1F(Form("h_RMS_dxy_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;peak-to-peak deviation of d_{xy}(#phi) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
-    // h_RMS_dxy_phi_vs_run[j]->SetStats(kFALSE);
-
-    // int bincounter=0;
-    // for(const auto &tick : x_ticks ){
-    //   bincounter++;
-    //   h_RMS_dxy_phi_vs_run[j]->SetBinContent(bincounter,std::abs(dxyPhiHi_[LegLabels[j]][bincounter-1]-dxyPhiLo_[LegLabels[j]][bincounter-1]));
-    //   h_RMS_dxy_phi_vs_run[j]->SetBinError(bincounter,0.01);
-    // }
-
-    // h_RMS_dxy_phi_vs_run[j]->SetLineColor(pv::colors[j]);
-    // h_RMS_dxy_phi_vs_run[j]->SetLineWidth(2);
-    // h_RMS_dxy_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
-    // h_RMS_dxy_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
-    // adjustmargins(c_RMS_dxy_phi_vs_run);
-    // c_RMS_dxy_phi_vs_run->cd();
-    // beautify(h_RMS_dxy_phi_vs_run[j]);
-
-    // if(time_axis_format){
-    //   timify(h_RMS_dxy_phi_vs_run[j]);
-    // }
-
-    // arr_dxy_phi->Add(h_RMS_dxy_phi_vs_run[j]);
-
-    // // at the last file re-loop
-    // if(j==nDirs_-1){
-
-    //   auto theMax = getMaximumFromArray(arr_dxy_phi);
-    //   std::cout<< "the max for dxy(phi) RMS is "<< theMax << std::endl;
-
-    //   for(Int_t k=0; k< nDirs_; k++){
-    // 	h_RMS_dxy_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.4);
-    // 	if(k==0){
-    // 	  h_RMS_dxy_phi_vs_run[k]->Draw("L");
-    // 	} else {
-    // 	  h_RMS_dxy_phi_vs_run[k]->Draw("Lsame");
-    // 	}
-    //   }
-      
-    //   my_lego->Draw("same");
-    //   TH1F* theConst = DrawConstant(h_RMS_dxy_phi_vs_run[j],1,0.);
-    //   theConst->Draw("same");
-    // }
-
-    // current_pad = static_cast<TPad*>(gPad);
-    // cmsPrel(current_pad);
-
-    // superImposeIOVBoundaries(c_RMS_dxy_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
-
     // *************************************
     // dxy vs eta
     // *************************************
-    g_dxy_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaMeans_[LegLabels[j]])[0]));
-    g_chi2_dxy_eta_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaChi2_[LegLabels[j]])[0]));
-    g_KS_dxy_eta_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaKS_[LegLabels[j]])[0]));
-    g_dxy_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaHi_[LegLabels[j]])[0]));
-    g_dxy_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dxyEtaLo_[LegLabels[j]])[0]));
 
-    gerr_dxy_eta_vs_run[j] =  new TGraphAsymmErrors(x_ticks.size(),&(x_ticks[0]),&((dxyEtaMeans_[LegLabels[j]])[0]),&(ex_ticks[0]),&(ex_ticks[0]),&((dxyEtaLoErr_[LegLabels[j]])[0]),&((dxyEtaHiErr_[LegLabels[j]])[0]));
+    auto dxyEtaInputs = pv::wrappedTrends(dxyEtaMeans_,
+					  dxyEtaLo_,
+					  dxyEtaHi_,
+					  dxyEtaLoErr_,
+					  dxyEtaHiErr_,
+					  dxyEtaChi2_,
+					  dxyEtaKS_);
 
-    adjustmargins(c_dxy_eta_vs_run);
-    c_dxy_eta_vs_run->cd();
-    gerr_dxy_eta_vs_run[j]->SetFillStyle(3005);
-    gerr_dxy_eta_vs_run[j]->SetFillColor(pv::colors[j]);
-    g_dxy_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
-    g_dxy_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
-    g_dxy_eta_vs_run[j]->SetLineColor(pv::colors[j]);
-    g_dxy_eta_vs_run[j]->SetMarkerSize(2);
-    g_dxy_eta_hi_vs_run[j]->SetLineColor(pv::colors[j]);
-    g_dxy_eta_lo_vs_run[j]->SetLineColor(pv::colors[j]);
-    
-    g_dxy_eta_vs_run[j]->SetName(Form("g_bias_dxy_eta_%s",LegLabels[j].Data()));
-    g_dxy_eta_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#eta) vs %s",theType.Data()));
-    g_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#eta) #GT [#mum]");
-    g_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-30,30);
-
-    gerr_dxy_eta_vs_run[j]->SetName(Form("gerr_bias_dxy_eta_%s",LegLabels[j].Data()));
-    gerr_dxy_eta_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#eta) vs %s",theType.Data()));
-    gerr_dxy_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    gerr_dxy_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{xy}(#eta) #GT [#mum]");
-    gerr_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-30,30);
-
-    beautify(g_dxy_eta_vs_run[j]);
-    beautify(gerr_dxy_eta_vs_run[j]);
-
-    if(j==0){
-      gerr_dxy_eta_vs_run[j]->Draw("A3");
-      g_dxy_eta_vs_run[j]->Draw("Psame");
-    } else {
-      gerr_dxy_eta_vs_run[j]->Draw("3same");
-      g_dxy_eta_vs_run[j]->Draw("Psame");
-    }
-    g_dxy_eta_hi_vs_run[j]->Draw("Lsame");
-    g_dxy_eta_lo_vs_run[j]->Draw("Lsame");
-
-    if(time_axis_format){
-      timify(g_dxy_eta_vs_run[j]);
-      timify(g_dxy_eta_hi_vs_run[j]);
-      timify(g_dxy_eta_lo_vs_run[j]);
-    }
-
-    if(j==nDirs_-1){
-      my_lego->Draw("same");
-      TH1F* theZero = DrawConstantGraph(g_dxy_eta_vs_run[j],1,0.);
-      theZero->Draw("E1same");
-    }
-	
-    auto current_pad = static_cast<TPad*>(gPad);
-    cmsPrel(current_pad);
-
-    superImposeIOVBoundaries(c_dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
-
-    // mean only
-    adjustmargins(c_mean_dxy_eta_vs_run);
-    c_mean_dxy_eta_vs_run->cd();
-    gprime_dxy_eta_vs_run[j] =  (TGraph*)g_dxy_eta_vs_run[j]->Clone();
-    if(j==0){
-      gprime_dxy_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
-      gprime_dxy_eta_vs_run[j]->Draw("APL");
-    } else {
-      gprime_dxy_eta_vs_run[j]->Draw("PLsame");
-    }
-    
-    if(j==nDirs_-1){
-      my_lego->Draw("same");
-    }
-
-    if(j==0){
-      TH1F* theZero = DrawConstantGraph(gprime_dxy_eta_vs_run[j],2,0.);
-      theZero->Draw("E1same");
-
-      current_pad = static_cast<TPad*>(gPad);
-      cmsPrel(current_pad);
-
-      superImposeIOVBoundaries(c_mean_dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
-    }
-
-    // scatter or RMS TH1
-
-    h_RMS_dxy_eta_vs_run[j] = new TH1F(Form("h_RMS_dxy_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;peak-to-peak deviation of d_{xy}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
-    h_RMS_dxy_eta_vs_run[j]->SetStats(kFALSE);
-
-    int bincounter=0;
-    for(const auto &tick : x_ticks ){
-      bincounter++;
-      h_RMS_dxy_eta_vs_run[j]->SetBinContent(bincounter,std::abs(dxyEtaHi_[LegLabels[j]][bincounter-1]-dxyEtaLo_[LegLabels[j]][bincounter-1]));
-      h_RMS_dxy_eta_vs_run[j]->SetBinError(bincounter,0.01);
-    }
-
-    h_RMS_dxy_eta_vs_run[j]->SetLineColor(pv::colors[j]);
-    h_RMS_dxy_eta_vs_run[j]->SetLineWidth(2);
-    h_RMS_dxy_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
-    h_RMS_dxy_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
-    adjustmargins(c_RMS_dxy_eta_vs_run);
-    c_RMS_dxy_eta_vs_run->cd();
-    beautify(h_RMS_dxy_eta_vs_run[j]);
-
-    if(time_axis_format){
-      timify(h_RMS_dxy_eta_vs_run[j]);
-    }
-
-    arr_dxy_eta->Add(h_RMS_dxy_eta_vs_run[j]);
-
-    // at the last file re-loop
-    if(j==nDirs_-1){
-
-      auto theMax = getMaximumFromArray(arr_dxy_eta);
-      std::cout<< "the max for dxy(eta) RMS is "<< theMax << std::endl;
-
-      for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dxy_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.40);
-	if(k==0){
-	  h_RMS_dxy_eta_vs_run[k]->Draw("L");
-	} else {
-	  h_RMS_dxy_eta_vs_run[k]->Draw("Lsame");
-	}
-      }
-      my_lego->Draw("same");
-      TH1F* theConst = DrawConstant(h_RMS_dxy_eta_vs_run[j],1,0.);
-      theConst->Draw("same");
-    }
-
-    current_pad = static_cast<TPad*>(gPad);
-    cmsPrel(current_pad);
-
-    superImposeIOVBoundaries(c_RMS_dxy_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    outputGraphs(dxyEtaInputs,x_ticks,ex_ticks,
+		 c_dxy_eta_vs_run,c_mean_dxy_eta_vs_run,c_RMS_dxy_eta_vs_run,
+		 g_dxy_eta_vs_run[j],           		     
+		 g_chi2_dxy_eta_vs_run[j],    			     
+		 g_KS_dxy_eta_vs_run[j],   			      
+		 g_dxy_eta_lo_vs_run[j],  			      	                          
+		 g_dxy_eta_hi_vs_run[j],  			     
+		 gerr_dxy_eta_vs_run[j],			     
+		 h_RMS_dxy_eta_vs_run,			      
+		 theBundle,
+		 pv::dxyeta,
+		 j,
+		 arr_dxy_eta,
+		 LegLabels[j],
+		 my_lego
+		 );
 
     // *************************************
     // dz vs phi
     // *************************************
-    g_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiMeans_[LegLabels[j]])[0]));
-    g_chi2_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiChi2_[LegLabels[j]])[0]));
-    g_KS_dz_phi_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiKS_[LegLabels[j]])[0]));
-    g_dz_phi_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiHi_[LegLabels[j]])[0]));
-    g_dz_phi_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzPhiLo_[LegLabels[j]])[0]));
-
-    gerr_dz_phi_vs_run[j] =  new TGraphAsymmErrors(x_ticks.size(),&(x_ticks[0]),&((dzPhiMeans_[LegLabels[j]])[0]),&(ex_ticks[0]),&(ex_ticks[0]),&((dzPhiLoErr_[LegLabels[j]])[0]),&((dzPhiHiErr_[LegLabels[j]])[0]));
-
-    adjustmargins(c_dz_phi_vs_run);
-    c_dz_phi_vs_run->cd();
-    gerr_dz_phi_vs_run[j]->SetFillStyle(3005);
-    gerr_dz_phi_vs_run[j]->SetFillColor(pv::colors[j]);
-    g_dz_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
-    g_dz_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
-    g_dz_phi_vs_run[j]->SetLineColor(pv::colors[j]);
-    g_dz_phi_vs_run[j]->SetMarkerSize(2);
-    g_dz_phi_hi_vs_run[j]->SetLineColor(pv::colors[j]);
-    g_dz_phi_lo_vs_run[j]->SetLineColor(pv::colors[j]);
-    beautify(g_dz_phi_vs_run[j]);
-    beautify(gerr_dz_phi_vs_run[j]);
-
-    gerr_dz_phi_vs_run[j]->SetName(Form("gerr_bias_dz_phi_%s",LegLabels[j].Data()));
-    gerr_dz_phi_vs_run[j]->SetTitle(Form("Bias of d_{xy}(#varphi) vs %s",theType.Data()));
-    gerr_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    gerr_dz_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#phi) #GT [#mum]");
-    gerr_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-30,30);
- 
-    g_dz_phi_vs_run[j]->SetName(Form("g_bias_dz_phi_%s",LegLabels[j].Data()));
-    g_dz_phi_vs_run[j]->SetTitle(Form("Bias of d_{z}(#varphi) vs %s",theType.Data()));
-    g_dz_phi_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_dz_phi_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#phi) #GT [#mum]");
-    g_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-30,30);
-
-    if(j==0){
-      gerr_dz_phi_vs_run[j]->Draw("A3");
-      g_dz_phi_vs_run[j]->Draw("Psame");
-    } else {
-      gerr_dz_phi_vs_run[j]->Draw("3same");
-      g_dz_phi_vs_run[j]->Draw("Psame");
-    }
-    g_dz_phi_hi_vs_run[j]->Draw("Lsame");
-    g_dz_phi_lo_vs_run[j]->Draw("Lsame");
-
-    if(time_axis_format){
-      timify(g_dz_phi_vs_run[j]);
-      timify(g_dz_phi_hi_vs_run[j]);
-      timify(g_dz_phi_lo_vs_run[j]);
-    }
-
-    if(j==nDirs_-1){
-      my_lego->Draw("same");
-      TH1F* theZero = DrawConstantGraph(g_dz_phi_vs_run[j],1,0.);
-      theZero->Draw("E1same");
-    }
-
-    current_pad = static_cast<TPad*>(gPad);
-    cmsPrel(current_pad);
     
-    superImposeIOVBoundaries(c_dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    auto dzPhiInputs = pv::wrappedTrends(dzPhiMeans_,
+					 dzPhiLo_,
+					 dzPhiHi_,
+					 dzPhiLoErr_,
+					 dzPhiHiErr_,
+					 dzPhiChi2_,
+					 dzPhiKS_);
 
-    // mean only
-    adjustmargins(c_mean_dz_phi_vs_run);
-    c_mean_dz_phi_vs_run->cd();
-    gprime_dz_phi_vs_run[j] =  (TGraph*)g_dz_phi_vs_run[j]->Clone();
-    if(j==0){
-      gprime_dz_phi_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
-      gprime_dz_phi_vs_run[j]->Draw("APL");
-    } else {
-      gprime_dz_phi_vs_run[j]->Draw("PLsame");
-    }
-    
-    if(j==nDirs_-1){
-      my_lego->Draw("same");
-    }
-
-    if(j==0){
-      TH1F* theZero = DrawConstantGraph(gprime_dz_phi_vs_run[j],2,0.);
-      theZero->Draw("E1same");
-
-      current_pad = static_cast<TPad*>(gPad);
-      cmsPrel(current_pad);
-
-      superImposeIOVBoundaries(c_mean_dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
-    }
-
-    // scatter or RMS TH1
-
-    h_RMS_dz_phi_vs_run[j] = new TH1F(Form("h_RMS_dz_phi_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#varphi) vs %s;%s;peak-to-peak deviation of d_{z}(#phi) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
-    h_RMS_dz_phi_vs_run[j]->SetStats(kFALSE);
-
-    bincounter=0;
-    for(const auto &tick : x_ticks ){
-      bincounter++;
-      h_RMS_dz_phi_vs_run[j]->SetBinContent(bincounter,std::abs(dzPhiHi_[LegLabels[j]][bincounter-1]-dzPhiLo_[LegLabels[j]][bincounter-1]));
-      h_RMS_dz_phi_vs_run[j]->SetBinError(bincounter,0.01);
-    }
-
-    h_RMS_dz_phi_vs_run[j]->SetLineColor(pv::colors[j]);
-    h_RMS_dz_phi_vs_run[j]->SetLineWidth(2);
-    h_RMS_dz_phi_vs_run[j]->SetMarkerStyle(pv::markers[j]);
-    h_RMS_dz_phi_vs_run[j]->SetMarkerColor(pv::colors[j]);
-    adjustmargins(c_RMS_dz_phi_vs_run);
-    c_RMS_dz_phi_vs_run->cd();
-    beautify(h_RMS_dz_phi_vs_run[j]);
-
-    if(time_axis_format){
-      timify(h_RMS_dz_phi_vs_run[j]);
-    }
-
-    arr_dz_phi->Add(h_RMS_dz_phi_vs_run[j]);
-
-    // at the last file re-loop
-    if(j==nDirs_-1){
-
-      auto theMax = getMaximumFromArray(arr_dz_phi);
-      std::cout<< "the max for dz(phi) RMS is "<< theMax << std::endl;
-
-      for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dz_phi_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.40);
-	if(k==0){
-	  h_RMS_dz_phi_vs_run[k]->Draw("L");
-	} else {
-	  h_RMS_dz_phi_vs_run[k]->Draw("Lsame");
-	}
-      }
-      my_lego->Draw("same");
-      TH1F* theConst = DrawConstant(h_RMS_dz_phi_vs_run[j],1,0.);
-      theConst->Draw("same");
-    }
-
-    current_pad = static_cast<TPad*>(gPad);
-    cmsPrel(current_pad);
-
-    superImposeIOVBoundaries(c_RMS_dz_phi_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    outputGraphs(dzPhiInputs,x_ticks,ex_ticks,
+		 c_dz_phi_vs_run,c_mean_dz_phi_vs_run,c_RMS_dz_phi_vs_run,
+		 g_dz_phi_vs_run[j],           		     
+		 g_chi2_dz_phi_vs_run[j],    			     
+		 g_KS_dz_phi_vs_run[j],   			      
+		 g_dz_phi_lo_vs_run[j],  			      	                          
+		 g_dz_phi_hi_vs_run[j],  			     
+		 gerr_dz_phi_vs_run[j],			     
+		 h_RMS_dz_phi_vs_run,			      
+		 theBundle,
+		 pv::dzphi,
+		 j,
+		 arr_dz_phi,
+		 LegLabels[j],
+		 my_lego
+		 );
 
     // *************************************
     // dz vs eta
     // *************************************
-    g_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaMeans_[LegLabels[j]])[0]));
-    g_chi2_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaChi2_[LegLabels[j]])[0]));
-    g_KS_dz_eta_vs_run[j]    = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaKS_[LegLabels[j]])[0]));
-    g_dz_eta_hi_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaHi_[LegLabels[j]])[0]));
-    g_dz_eta_lo_vs_run[j] = new TGraph(x_ticks.size(),&(x_ticks[0]),&((dzEtaLo_[LegLabels[j]])[0]));
 
-    gerr_dz_eta_vs_run[j] =  new TGraphAsymmErrors(x_ticks.size(),&(x_ticks[0]),&((dzEtaMeans_[LegLabels[j]])[0]),&(ex_ticks[0]),&(ex_ticks[0]),&((dzEtaLoErr_[LegLabels[j]])[0]),&((dzEtaHiErr_[LegLabels[j]])[0]));
+    auto dzEtaInputs = pv::wrappedTrends(dzEtaMeans_,
+					 dzEtaLo_,
+					 dzEtaHi_,
+					 dzEtaLoErr_,
+					 dzEtaHiErr_,
+					 dzEtaChi2_,
+					 dzEtaKS_);
 
-    adjustmargins(c_dz_eta_vs_run);
-    c_dz_eta_vs_run->cd();
-    gerr_dz_eta_vs_run[j]->SetFillStyle(3005);
-    gerr_dz_eta_vs_run[j]->SetFillColor(pv::colors[j]);
-    g_dz_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
-    g_dz_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
-    g_dz_eta_vs_run[j]->SetLineColor(pv::colors[j]);
-    g_dz_eta_vs_run[j]->SetMarkerSize(2);
-    g_dz_eta_hi_vs_run[j]->SetLineColor(pv::colors[j]);
-    g_dz_eta_lo_vs_run[j]->SetLineColor(pv::colors[j]);
-    beautify(g_dz_eta_vs_run[j]);
-    beautify(gerr_dz_eta_vs_run[j]);
-
-    g_dz_eta_vs_run[j]->SetName(Form("g_bias_dz_eta_%s",LegLabels[j].Data()));
-    g_dz_eta_vs_run[j]->SetTitle(Form("Bias of d_{z}(#eta) vs %s",theType.Data()));
-    g_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    g_dz_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#eta) #GT [#mum]");
-    g_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-150,150);
-
-    gerr_dz_eta_vs_run[j]->SetName(Form("gerr_bias_dz_eta_%s",LegLabels[j].Data()));
-    gerr_dz_eta_vs_run[j]->SetTitle(Form("Bias of d_{z}(#eta) vs %s",theType.Data()));
-    gerr_dz_eta_vs_run[j]->GetXaxis()->SetTitle(theTypeLabel.Data());
-    gerr_dz_eta_vs_run[j]->GetYaxis()->SetTitle("#LT d_{z}(#eta) #GT [#mum]");
-    gerr_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-150,150);
-
-    if(j==0){
-      gerr_dz_eta_vs_run[j]->Draw("A3");
-      g_dz_eta_vs_run[j]->Draw("Psame");
-    } else {
-      gerr_dz_eta_vs_run[j]->Draw("3same");
-      g_dz_eta_vs_run[j]->Draw("Psame");
-    }
-    g_dz_eta_hi_vs_run[j]->Draw("Lsame");
-    g_dz_eta_lo_vs_run[j]->Draw("Lsame");
-
-    if(time_axis_format){
-      timify(g_dz_eta_vs_run[j]);
-      timify(g_dz_eta_hi_vs_run[j]);
-      timify(g_dz_eta_lo_vs_run[j]);
-    }
-
-    if(j==nDirs_-1){ 
-      my_lego->Draw("same");
-      TH1F* theZero = DrawConstantGraph(g_dz_eta_vs_run[j],1,0.);
-      theZero->Draw("E1same");
-    }
-	
-    current_pad = static_cast<TPad*>(gPad);
-    cmsPrel(current_pad);
-
-    superImposeIOVBoundaries(c_dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
-
-    // mean only
-    adjustmargins(c_mean_dz_eta_vs_run);
-    c_mean_dz_eta_vs_run->cd();
-    gprime_dz_eta_vs_run[j] =  (TGraph*)g_dz_eta_vs_run[j]->Clone();
-    if(j==0){
-      gprime_dz_eta_vs_run[j]->GetYaxis()->SetRangeUser(-10.,10.);
-      gprime_dz_eta_vs_run[j]->Draw("APL");
-    } else {
-      gprime_dz_eta_vs_run[j]->Draw("PLsame");
-    }
-    
-    if(j==nDirs_-1){
-      my_lego->Draw("same");
-    }
-
-    if(j==0){
-      TH1F* theZero = DrawConstantGraph(gprime_dz_eta_vs_run[j],2,0.);
-      theZero->Draw("E1same");
-
-      current_pad = static_cast<TPad*>(gPad);
-      cmsPrel(current_pad);
-
-      superImposeIOVBoundaries(c_mean_dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
-    }
-
-    // scatter or RMS TH1
-    h_RMS_dz_eta_vs_run[j] = new TH1F(Form("h_RMS_dz_eta_%s",LegLabels[j].Data()),Form("scatter of d_{xy}(#eta) vs %s;%s;peak-to-peak deviation of d_{z}(#eta) [#mum]",theType.Data(),theTypeLabel.Data()),x_ticks.size()-1,&(x_ticks[0]));
-    h_RMS_dz_eta_vs_run[j]->SetStats(kFALSE);
-
-    bincounter=0;
-    for(const auto &tick : x_ticks ){
-      bincounter++;
-      h_RMS_dz_eta_vs_run[j]->SetBinContent(bincounter,std::abs(dzEtaHi_[LegLabels[j]][bincounter-1]-dzEtaLo_[LegLabels[j]][bincounter-1]));
-      h_RMS_dz_eta_vs_run[j]->SetBinError(bincounter,0.01);
-    }
-
-    h_RMS_dz_eta_vs_run[j]->SetLineColor(pv::colors[j]);
-    h_RMS_dz_eta_vs_run[j]->SetLineWidth(2);
-    h_RMS_dz_eta_vs_run[j]->SetMarkerStyle(pv::markers[j]);
-    h_RMS_dz_eta_vs_run[j]->SetMarkerColor(pv::colors[j]);
-    adjustmargins(c_RMS_dz_eta_vs_run);
-    c_RMS_dz_eta_vs_run->cd();
-    beautify(h_RMS_dz_eta_vs_run[j]);
-
-    if(time_axis_format){
-      timify(h_RMS_dz_eta_vs_run[j]);
-    }
-
-    arr_dz_eta->Add(h_RMS_dz_eta_vs_run[j]);
-
-    // at the last file re-loop
-    if(j==nDirs_-1){
-
-      auto theMax = getMaximumFromArray(arr_dz_eta);
-      std::cout<< "the max for dz(eta) RMS is "<< theMax << std::endl;
-
-      for(Int_t k=0; k< nDirs_; k++){
-	h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.40);
-	if(k==0){
-	  h_RMS_dz_eta_vs_run[k]->Draw("L");
-	} else {
-	  h_RMS_dz_eta_vs_run[k]->Draw("Lsame");
-	}
-      }
-      my_lego->Draw("same");
-      TH1F* theConst = DrawConstant(h_RMS_dz_eta_vs_run[j],1,0.);
-      theConst->Draw("same");
-    }
-
-    current_pad = static_cast<TPad*>(gPad);
-    cmsPrel(current_pad);
-
-    superImposeIOVBoundaries(c_RMS_dz_eta_vs_run,lumi_axis_format,time_axis_format,lumiMapByRun,times);
+    outputGraphs(dzEtaInputs,x_ticks,ex_ticks,
+		 c_dz_eta_vs_run,c_mean_dz_eta_vs_run,c_RMS_dz_eta_vs_run,
+		 g_dz_eta_vs_run[j],           		     
+		 g_chi2_dz_eta_vs_run[j],    			     
+		 g_KS_dz_eta_vs_run[j],   			      
+		 g_dz_eta_lo_vs_run[j],  			      	                          
+		 g_dz_eta_hi_vs_run[j],  			     
+		 gerr_dz_eta_vs_run[j],			     
+		 h_RMS_dz_eta_vs_run,			      
+		 theBundle,
+		 pv::dzeta,
+		 j,
+		 arr_dz_eta,
+		 LegLabels[j],
+		 my_lego
+		 );
     
     // *************************************
     // Integrated bias dxy scatter plots
@@ -1832,28 +1372,24 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
    delete g_dxy_phi_vs_run[iDir]; 
    delete g_chi2_dxy_phi_vs_run[iDir];    
    delete g_KS_dxy_phi_vs_run[iDir];    
-   // delete gprime_dxy_phi_vs_run[iDir];    
    delete g_dxy_phi_hi_vs_run[iDir]; 
    delete g_dxy_phi_lo_vs_run[iDir]; 
                                
    delete g_dxy_eta_vs_run[iDir];    
    delete g_chi2_dxy_eta_vs_run[iDir];    
    delete g_KS_dxy_eta_vs_run[iDir];    
-   delete gprime_dxy_eta_vs_run[iDir];    
    delete g_dxy_eta_hi_vs_run[iDir]; 
    delete g_dxy_eta_lo_vs_run[iDir]; 
                                
    delete g_dz_phi_vs_run[iDir];   
    delete g_chi2_dz_phi_vs_run[iDir];     
    delete g_KS_dz_phi_vs_run[iDir];       
-   delete gprime_dz_phi_vs_run[iDir];     
    delete g_dz_phi_hi_vs_run[iDir];  
    delete g_dz_phi_lo_vs_run[iDir];  
                                
    delete g_dz_eta_vs_run[iDir];  
    delete g_chi2_dz_eta_vs_run[iDir];     
    delete g_KS_dz_eta_vs_run[iDir];          
-   delete gprime_dz_eta_vs_run[iDir];     
    delete g_dz_eta_hi_vs_run[iDir];  
    delete g_dz_eta_lo_vs_run[iDir];  
                                                              
@@ -1904,9 +1440,9 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 }
 
 /*--------------------------------------------------------------------*/
-void outputGraphs(pv::wrappedTrends allInputs,
-		  std::vector<double> ticks,
-		  std::vector<double> ex_ticks,
+void outputGraphs(const pv::wrappedTrends& allInputs,
+		  const std::vector<double>& ticks,
+		  const std::vector<double>& ex_ticks,
 		  TCanvas* &canv,
 		  TCanvas* &mean_canv,
 		  TCanvas* &rms_canv,
@@ -1916,11 +1452,13 @@ void outputGraphs(pv::wrappedTrends allInputs,
 		  TGraph* &g_low,
 		  TGraph* &g_high,
 		  TGraphAsymmErrors* &g_asym,
-		  TH1F* &h_RMS,      
-		  pv::bundle mybundle,
-		  pv::view theView,
-		  int index,
-		  TString label
+		  TH1F* h_RMS[],      
+		  const pv::bundle& mybundle,
+		  const pv::view& theView,
+		  const int index,
+		  TObjArray* &array,
+		  const TString& label,
+		  TLegend* &legend
 		  )
 /*--------------------------------------------------------------------*/
 {
@@ -1945,6 +1483,10 @@ void outputGraphs(pv::wrappedTrends allInputs,
   g_low->SetLineColor(pv::colors[index]);
   beautify(g_mean);
   beautify(g_asym);
+
+  if(theView==pv::dxyphi){
+    legend->AddEntry(g_mean,label,"PL");
+  }
 
   const char* coord;
   const char* kin;
@@ -2006,8 +1548,8 @@ void outputGraphs(pv::wrappedTrends allInputs,
     timify(g_low);
   }
   
-  if(index==int(allInputs.getMean().size())-1){ 
-    //my_lego->Draw("same");
+  if(index==(mybundle.getNObjects()-1)){ 
+    legend->Draw("same");
     TH1F* theZero = DrawConstantGraph(g_mean,1,0.);
     theZero->Draw("E1same");
   }
@@ -2028,9 +1570,9 @@ void outputGraphs(pv::wrappedTrends allInputs,
     gprime->Draw("PLsame");
   }
   
-  // if(index==nDirs_-1){
-  //   my_lego->Draw("same");
-  // }
+  if(index==(mybundle.getNObjects()-1)){ 
+    legend->Draw("same");
+  }
   
   if(index==0){
     TH1F* theZero = DrawConstantGraph(gprime,2,0.);
@@ -2043,53 +1585,56 @@ void outputGraphs(pv::wrappedTrends allInputs,
   }
 
   // scatter or RMS TH1
-  h_RMS = new TH1F(Form("h_RMS_dz_eta_%s",label.Data()),Form("scatter of d_{%s}(#%s) vs %s;%s;peak-to-peak deviation of d_{%s}(#%s) [#mum]",coord,kin,mybundle.getDataType(),mybundle.getDataTypeLabel(),coord,kin),ticks.size()-1,&(ticks[0]));
-  h_RMS->SetStats(kFALSE);
+  h_RMS[index] = new TH1F(Form("h_RMS_dz_eta_%s",label.Data()),Form("scatter of d_{%s}(#%s) vs %s;%s;peak-to-peak deviation of d_{%s}(#%s) [#mum]",coord,kin,mybundle.getDataType(),mybundle.getDataTypeLabel(),coord,kin),ticks.size()-1,&(ticks[0]));
+  h_RMS[index]->SetStats(kFALSE);
    
   int bincounter=0;
   for(const auto &tick : ticks ){
     bincounter++;
-    h_RMS->SetBinContent(bincounter,std::abs(allInputs.getHigh()[label][bincounter-1]-allInputs.getLow()[label][bincounter-1]));
-    h_RMS->SetBinError(bincounter,0.01);
+    h_RMS[index]->SetBinContent(bincounter,std::abs(allInputs.getHigh()[label][bincounter-1]-allInputs.getLow()[label][bincounter-1]));
+    h_RMS[index]->SetBinError(bincounter,0.01);
   }
    
-  h_RMS->SetLineColor(pv::colors[index]);
-  h_RMS->SetLineWidth(2);
-  h_RMS->SetMarkerStyle(pv::markers[index]);
-  h_RMS->SetMarkerColor(pv::colors[index]);
+  h_RMS[index]->SetLineColor(pv::colors[index]);
+  h_RMS[index]->SetLineWidth(2);
+  h_RMS[index]->SetMarkerSize(2);
+  h_RMS[index]->SetMarkerStyle(pv::markers[index]);
+  h_RMS[index]->SetMarkerColor(pv::colors[index]);
   adjustmargins(rms_canv);
   rms_canv->cd();
-  beautify(h_RMS);
+  beautify(h_RMS[index]);
   
   if(mybundle.isTimeAxis()){
-    timify(h_RMS);
+    timify(h_RMS[index]);
   }
   
-  // arr_dz_eta->Add(h_RMS);
+  array->Add(h_RMS[index]);
    
-  // // at the last file re-loop
-  // if(index==nDirs_-1){
+  // at the last file re-loop
+  if(index==(mybundle.getNObjects()-1)){
      
-  //   auto theMax = getMaximumFromArray(arr_dz_eta);
-  //   std::cout<< "the max for dz(eta) RMS is "<< theMax << std::endl;
+    auto theMax = getMaximumFromArray(array);
+    std::cout<< "the max for d"<< coord <<"("<<kin<<") RMS is "<< theMax << std::endl;
     
-  //   for(Int_t k=0; k< nDirs_; k++){
-  //     h_RMS_dz_eta_vs_run[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.40);
-  //     if(k==0){
-  // 	h_RMS_dz_eta_vs_run[k]->Draw("L");
-  //     } else {
-  // 	h_RMS_dz_eta_vs_run[k]->Draw("Lsame");
-  //     }
-  //   }
-  //   my_lego->Draw("same");
-  //   TH1F* theConst = DrawConstant(h_RMS_dz_eta_vs_run[index],1,0.);
-  //   theConst->Draw("same");
-  // }
-  
-  current_pad = static_cast<TPad*>(gPad);
-  cmsPrel(current_pad);
+    for(Int_t k=0; k<mybundle.getNObjects() ; k++){
+      h_RMS[k]->GetYaxis()->SetRangeUser(-theMax*0.45,theMax*1.40);
+      if(k==0){
+  	h_RMS[k]->Draw("L");
+      } else {
+  	h_RMS[k]->Draw("Lsame");
+      }
+    }
+    legend->Draw("same");
+    TH1F* theConst = DrawConstant(h_RMS[index],1,0.);
+    theConst->Draw("same");
+
+    current_pad = static_cast<TPad*>(gPad);
+    cmsPrel(current_pad);
    
-  superImposeIOVBoundaries(rms_canv,mybundle.isLumiAxis(),mybundle.isTimeAxis(),mybundle.getLumiMapByRun(),mybundle.getTimes());
+    superImposeIOVBoundaries(rms_canv,mybundle.isLumiAxis(),mybundle.isTimeAxis(),mybundle.getLumiMapByRun(),mybundle.getTimes());
+
+  }
+  
 }
 
 
