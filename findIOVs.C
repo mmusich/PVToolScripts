@@ -35,6 +35,53 @@
 #include <bitset>
 #include <sstream>
 
+// *------- constants ------* //
+const Int_t nplots = 48; 
+const Int_t nbins_ = 200;
+Int_t _divs = nplots/2.;
+Float_t _boundMin   = -0.5;
+Float_t _boundSx    = (nplots/4.)-0.5;
+Float_t _boundDx    = 3*(nplots/4.)-0.5;
+Float_t _boundMax = nplots-0.5;
+
+/*--------------------------------------------------------------------*/
+Double_t splitfunconly(Double_t *x, Double_t *par)
+/*--------------------------------------------------------------------*/
+{
+  Double_t xx = x[0];
+  Double_t dxhs =  par[0]*(1 - sin((TMath::Pi()/_divs)*(xx-_divs)));
+  Double_t sxhs = -par[1]*(1 - sin((TMath::Pi()/_divs)*(xx-_divs)));
+						   
+  if (xx >= _boundSx && xx <= _boundDx) {
+    return dxhs;
+  } else {
+    return sxhs;
+  }
+}
+
+
+/*--------------------------------------------------------------------*/
+Double_t splitfunc(Double_t *x, Double_t *par)
+/*--------------------------------------------------------------------*/
+{
+  Double_t xx = x[0];
+  Double_t dxhs = -par[1]*cos((TMath::Pi()/_divs)*(xx-_divs))+par[0]*sin((TMath::Pi()/_divs)*(xx-_divs)) + par[2]*(1 - sin((TMath::Pi()/_divs)*(xx-_divs)));
+  Double_t sxhs = -par[1]*cos((TMath::Pi()/_divs)*(xx-_divs))-par[0]*sin((TMath::Pi()/_divs)*(xx-_divs)) - par[3]*(1 - sin((TMath::Pi()/_divs)*(xx-_divs)));
+						   
+  if (xx > _boundSx && xx < _boundDx) {
+    return dxhs;
+  } else if (xx> _boundMin && xx < _boundSx) {
+    return sxhs;
+  } else if (xx == _boundSx && xx == _boundDx) {
+    return par[0];
+  } else if (xx > _boundDx && xx < _boundMax)
+    return sxhs;
+  else {
+    std::cout<<"shouldn't ever be the case"<<std::endl;
+    return 0;
+  }
+}
+
 double square ( const double a )
 {
   return a*a;
@@ -351,6 +398,9 @@ void findIOVs(const char* dirname)
   TCanvas dummyC2("dummyC2","dummyC2",1200,1200);  
   dummyC2.Print("superimpose.pdf[");
 
+  TCanvas dummyC3("dxy_vs_phi","dxy_vs_phi",800,800);
+  dummyC3.Print("c_dxy_vs_phi.pdf[");
+
   for(unsigned int i=1;i<nFiles;i++){
 
     bool writeIOV(false);
@@ -364,6 +414,8 @@ void findIOVs(const char* dirname)
 
     TCanvas *csup = new TCanvas(Form("sup_%s_%i",dirname,i),dirname,1200,1200);
     csup->Divide(2,2);
+
+    TCanvas *cdxyphi = new TCanvas(Form("cdxyphi_%s_%i",dirname,i),dirname,800,800);
 
     TLegend *lego = new TLegend(0.62,0.83,0.92,0.93);
     makeNiceLegend(lego);
@@ -446,7 +498,52 @@ void findIOVs(const char* dirname)
     lego_dxy_phi->AddEntry(dxyPhiMeanTrend[i],Form("%i",currentList[i]),"L");
     lego_dxy_phi->AddEntry(dxyPhiMeanTrend[i-1],Form("%i",currentList[i-1]),"L");
     lego_dxy_phi->Draw("same");
-      
+
+    //------------------------------------------------------------------------------
+
+    cdxyphi->cd();
+    cdxyphi->cd()->SetBottomMargin(0.14);
+    cdxyphi->cd()->SetLeftMargin(0.18);
+    cdxyphi->cd()->SetRightMargin(0.01);
+    cdxyphi->cd()->SetTopMargin(0.03);
+
+    dxyPhiMeanTrend[i]->Draw();
+    makeNewXAxis(dxyPhiMeanTrend[i]);
+            
+    TF1 *func = new TF1(Form("myfunc%i",i),splitfunc,-0.5,47.5,4);
+    func->SetParameters(5,5,5,5);
+    func->SetParLimits(0,-80.,80.);
+    func->SetParLimits(1,-80.,80.);
+    func->SetParLimits(2,-80.,80.);
+    func->SetParLimits(3,-80.,80.);
+    func->SetParNames("A","B","k_{+}","k_{-}");
+    func->SetLineColor(kBlue);
+    func->SetNpx(1000);
+
+    dxyPhiMeanTrend[i]->Fit(func,"Q");
+    func->Draw("same");
+
+    TPaveText *pi = new TPaveText(0.20,0.82,0.8,0.96,"NDC");
+    pi->SetFillColor(10);
+    pi->SetTextColor(1);
+    pi->SetTextSize(0.04);
+    pi->SetTextFont(42);
+    pi->SetTextAlign(11);
+    TText *textPi1 = pi->AddText("Fitting function:");
+    textPi1->SetTextSize(0.025);
+    TText *textPi2 = pi->AddText("d_{xy} (#varphi) = #ltbar #splitline{|#varphi|<#pi/2  -A cos #varphi + B sin #varphi + k_{+} (1- sin #varphi) }{|#varphi|>#pi/2   -A cos #varphi  - B sin #varphi - k_{-} (1- sin#varphi) } ");
+    textPi2->SetTextSize(0.025); 
+    pi->Draw("sames");
+    
+    TLegend *legParameters = new TLegend(0.20,0.78,0.8,0.82);
+    legParameters->SetTextSize(0.025);
+    legParameters->SetLineColor(10);
+    legParameters->AddEntry(func,Form("A= %.2f    B= %.2f    k_{+}=%.2f    k_{-}=%.2f",func->GetParameter(1),func->GetParError(0),func->GetParameter(3),func->GetParError(2)),"L");
+
+    legParameters->Draw("same");
+
+    cdxyphi->Print("c_dxy_vs_phi.pdf");
+
     // dxy vs eta
 
     dxyEtaMeanDiff[i] = (TH1F*)(dxyEtaMeanTrend[i]->Clone(Form("%s_clone",dxyEtaMeanTrend[i]->GetName())));
@@ -579,6 +676,7 @@ void findIOVs(const char* dirname)
 
   dummyC.Print("diff.pdf]");
   dummyC2.Print("superimpose.pdf]");
+  dummyC3.Print("c_dxy_vs_phi.pdf]");
 
   TCanvas *scores = new TCanvas("scores","scores",1200,1200);
   scores->Divide(2,2);
