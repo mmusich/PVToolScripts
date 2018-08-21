@@ -104,6 +104,7 @@ TH1F* DrawConstantWithErr(TH1F *hist,Int_t iter,Double_t theConst)
 void makeNiceTrendPlotStyle(TH1 *hist,bool hasexceeded)
 /*--------------------------------------------------------------------*/
 { 
+  TString myTitle = hist->GetName();
   hist->SetStats(kFALSE);  
   hist->SetLineWidth(2);
   hist->GetXaxis()->CenterTitle(true);
@@ -118,6 +119,10 @@ void makeNiceTrendPlotStyle(TH1 *hist,bool hasexceeded)
   hist->GetYaxis()->SetLabelFont(42);
   hist->GetYaxis()->SetLabelSize(.05);
   hist->GetXaxis()->SetLabelSize(.07);
+  if(myTitle.Contains("chi2Score")){
+    hist->SetStats(kTRUE);
+    hist->GetXaxis()->SetLabelSize(.05);
+  }
   //hist->GetXaxis()->SetNdivisions(505);
   hist->SetMarkerSize(1.);
   hist->SetMarkerStyle(21);
@@ -276,8 +281,8 @@ double buildMetric(TH1F* &hist,TH1F* &hist2)
   Int_t nbins       = hist->GetNbinsX();
   Double_t lowedge  = hist->GetBinLowEdge(1);
   Double_t highedge = hist->GetBinLowEdge(nbins+1);
-  for (Int_t i=0;i<=hist->GetNbinsX();i++){
-    theScore+= std::abs(hist->GetBinContent(i)-hist2->GetBinContent(i))/10.; //sqrt(square(hist->GetBinError(i)) + square(hist->GetBinError(i)));
+  for (Int_t i=1;i<=hist->GetNbinsX();i++){
+    theScore+= std::abs(hist->GetBinContent(i)-hist2->GetBinContent(i))/sqrt(square(std::max(5.,hist->GetBinError(i))) + square(std::max(5.,hist2->GetBinError(i))));
   }
 
   std::cout << hist->GetName() << "chi2 test:" << theScore << std::endl;
@@ -318,10 +323,10 @@ void findIOVs(const char* dirname)
   TH1F* dxyEtaMeanDiff[nFiles]; 
   TH1F* dzEtaMeanDiff[nFiles];  
 
-  TH1F* chi2Score_dxy_phi = new TH1F("chi2Score_dxy_phi","#chi^{2} score_d_{xy} vs #phi",100,0.,100.);
-  TH1F* chi2Score_dxy_eta = new TH1F("chi2Score_dxy_eta","#chi^{2} score_d_{xy} vs #eta",100,0.,100.);
-  TH1F* chi2Score_dz_phi  = new TH1F("chi2Score_dz_phi","#chi^{2} score_d_{z} vs #eta",100,0.,100.);
-  TH1F* chi2Score_dz_eta  = new TH1F("chi2Score_dz_eta","#chi^{2} score_d_{z} vs #eta",100,0.,100.);
+  TH1F* chi2Score_dxy_phi = new TH1F("chi2Score_dxy_phi","#chi^{2} score d_{xy} vs #phi;#chi^{2} score;n. runs",100,0.,100.);
+  TH1F* chi2Score_dxy_eta = new TH1F("chi2Score_dxy_eta","#chi^{2} score d_{xy} vs #eta;#chi^{2} score;n. runs",100,0.,100.);
+  TH1F* chi2Score_dz_phi  = new TH1F("chi2Score_dz_phi" ,"#chi^{2} score d_{z} vs #eta ;#chi^{2} score;n. runs",100,0.,100.);
+  TH1F* chi2Score_dz_eta  = new TH1F("chi2Score_dz_eta" ,"#chi^{2} score d_{z} vs #eta ;#chi^{2} score;n. runs",100,0.,100.);
 
   for(unsigned int j=0;j<nFiles;j++){
     std::cout << "count:" << j << std::endl;
@@ -575,15 +580,26 @@ void findIOVs(const char* dirname)
   dummyC.Print("diff.pdf]");
   dummyC2.Print("superimpose.pdf]");
 
-  TCanvas *scores = new TCanvas("scores","scores",1000,1000);
+  TCanvas *scores = new TCanvas("scores","scores",1200,1200);
   scores->Divide(2,2);
+  for(Int_t k=0; k<4; k++){
+    scores->cd(k+1)->SetBottomMargin(0.14);
+    scores->cd(k+1)->SetLeftMargin(0.18);
+    scores->cd(k+1)->SetRightMargin(0.01);
+    scores->cd(k+1)->SetTopMargin(0.06);
+  }	
+
   scores->cd(1);
+  makeNiceTrendPlotStyle(chi2Score_dxy_phi,false);
   chi2Score_dxy_phi->Draw(); 
   scores->cd(2);
+  makeNiceTrendPlotStyle(chi2Score_dxy_eta,false);
   chi2Score_dxy_eta->Draw(); 
   scores->cd(3);
+  makeNiceTrendPlotStyle(chi2Score_dz_phi,false);
   chi2Score_dz_phi->Draw(); 
   scores->cd(4);
+  makeNiceTrendPlotStyle(chi2Score_dz_eta,false);
   chi2Score_dz_eta->Draw();  
 
   scores->SaveAs("scores.png");
