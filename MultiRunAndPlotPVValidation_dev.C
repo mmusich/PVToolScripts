@@ -171,7 +171,9 @@ namespace pv{
       std::cout<<"pv::bundle c'tor: "<< dataTypeLabel << " member: " <<    m_datatypelabel << std::endl;
 
       // make sure you don't use them at the same time
-      assert(lumiaxisformat!=timeaxisformat); 
+      if(lumiaxisformat || timeaxisformat){
+	assert(lumiaxisformat!=timeaxisformat); 
+      }
 
       if(lumiaxisformat){
 	std::cout<<"is lumiaxis format"<<std::endl;
@@ -1303,6 +1305,7 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
     }
   }   
 
+
   c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".pdf");
   c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".png");
   c_dxy_phi_vs_run->SaveAs("dxy_phi_vs_"+append+".eps");
@@ -1319,6 +1322,14 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".png");
   c_dz_eta_vs_run->SaveAs("dz_eta_vs_"+append+".eps");
 
+  TCanvas dummyC("dummyC","dummyC",2000,800); 
+  dummyC.Print("combined.pdf[");
+  c_dxy_phi_vs_run->Print("combined.pdf");
+  c_dxy_eta_vs_run->Print("combined.pdf");                  
+  c_dz_phi_vs_run->Print("combined.pdf");
+  c_dz_eta_vs_run->Print("combined.pdf");
+  dummyC.Print("combined.pdf]");
+
   // mean
 
   c_mean_dxy_phi_vs_run->SaveAs("mean_dxy_phi_vs_"+append+".pdf");
@@ -1333,6 +1344,14 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
   c_mean_dz_eta_vs_run->SaveAs("mean_dz_eta_vs_"+append+".pdf");
   c_mean_dz_eta_vs_run->SaveAs("mean_dz_eta_vs_"+append+".png");
 
+  TCanvas dummyC2("dummyC2","dummyC2",2000,800); 
+  dummyC2.Print("means.pdf[");
+  c_mean_dxy_phi_vs_run->Print("means.pdf");
+  c_mean_dxy_eta_vs_run->Print("means.pdf");                  
+  c_mean_dz_phi_vs_run->Print("means.pdf");
+  c_mean_dz_eta_vs_run->Print("means.pdf");
+  dummyC2.Print("means.pdf]");
+
   // RMS
 
   c_RMS_dxy_phi_vs_run->SaveAs("RMS_dxy_phi_vs_"+append+".pdf");
@@ -1346,6 +1365,15 @@ void MultiRunPVValidation(TString namesandlabels,bool lumi_axis_format,bool time
 
   c_RMS_dz_eta_vs_run->SaveAs("RMS_dz_eta_vs_"+append+".pdf");
   c_RMS_dz_eta_vs_run->SaveAs("RMS_dz_eta_vs_"+append+".png");
+
+  TCanvas dummyC3("dummyC3","dummyC3",2000,800); 
+  dummyC3.Print("RMSs.pdf[");
+  c_RMS_dxy_phi_vs_run->Print("RMSs.pdf");
+  c_RMS_dxy_eta_vs_run->Print("RMSs.pdf");                  
+  c_RMS_dz_phi_vs_run->Print("RMSs.pdf");
+  c_RMS_dz_eta_vs_run->Print("RMSs.pdf");
+  dummyC3.Print("RMSs.pdf]");
+
 
   // scatter
 
@@ -1478,7 +1506,7 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
   g_mean->SetMarkerStyle(pv::markers[index]);
   g_mean->SetMarkerColor(pv::colors[index]);
   g_mean->SetLineColor(pv::colors[index]);
-  g_mean->SetMarkerSize(2);
+  g_mean->SetMarkerSize(1.5);
   g_high->SetLineColor(pv::colors[index]);
   g_low->SetLineColor(pv::colors[index]);
   beautify(g_mean);
@@ -1496,17 +1524,17 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
   case pv::dxyphi  :
     coord = "xy";
     kin   = "phi";
-    ampl  = 30;
+    ampl  = 40;
     break;
   case pv::dzphi   : 
     coord = "z";
     kin   = "phi";
-    ampl  = 30;
+    ampl  = 40;
     break;
   case pv::dxyeta  :
     coord = "xy";
     kin   = "eta";
-    ampl  = 30;
+    ampl  = 40;
     break;
   case pv::dzeta   : 
     coord = "z";
@@ -1530,6 +1558,9 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
   g_asym->GetXaxis()->SetTitle(mybundle.getDataTypeLabel());
   g_asym->GetYaxis()->SetTitle(Form("#LT d_{%s}(#%s) #GT [#mum]",coord,kin));
   g_asym->GetYaxis()->SetRangeUser(-ampl,ampl);
+
+  g_mean->GetXaxis()->UnZoom();
+  g_asym->GetXaxis()->UnZoom();
 
   if(index==0){
     g_asym->Draw("A3");
@@ -1597,7 +1628,7 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
    
   h_RMS[index]->SetLineColor(pv::colors[index]);
   h_RMS[index]->SetLineWidth(2);
-  h_RMS[index]->SetMarkerSize(2);
+  h_RMS[index]->SetMarkerSize(1.5);
   h_RMS[index]->SetMarkerStyle(pv::markers[index]);
   h_RMS[index]->SetMarkerColor(pv::colors[index]);
   adjustmargins(rms_canv);
@@ -2384,26 +2415,45 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
      317393       2018-06-04 16:18:49  841254d3c88b0a906c241de3a906394c063a5b9d  Alignments  
   */
 
-  /* 2018D 
-  320551       2018-07-30 18:56:08  5ef1b88947a246ff4f44b56e66314c176889e32e  Alignments   
-  320812       2018-08-03 21:15:40  70ebb0c3b83e5a93b1662bd39617ae452da6540b  Alignments   
-  320845       2018-08-05 00:21:08  8b5f42f55164132f6a06889c1f3d96e7176ce924  Alignments   
-  320855       2018-08-05 09:28:41  e2436a8e838aeb1444f6f8214f675a4ab9c06cf4  Alignments   
-  320885       2018-08-05 22:00:35  680e859cdea640ce24744c27c58b564e669c0f9c  Alignments   
-  320901       2018-08-06 05:23:45  f1da7f661c087214fe452bd6714e25b131a58f3f  Alignments   
-  320918       2018-08-06 12:37:42  a6fe27aa494007e065d23e763b680748d8f0293b  Alignments   
-  320924       2018-08-06 23:41:03  f9a1eb4c6e7b44711d4c8e813d9a14270fe1f8ba  Alignments   
-  320932       2018-08-07 02:00:48  4d74559fdb483ca63401426c145110fb2f8d9c67  Alignments   
-  320972       2018-08-07 15:10:14  9d6e3283a09bdeb9beab05094fce4eb55e0a7aa2  Alignments   
-  320981       2018-08-07 15:41:48  ba0ca93b7605378b651afd8a928b51bb34ab01ed  Alignments   
-  320997       2018-08-07 22:00:42  f9a1eb4c6e7b44711d4c8e813d9a14270fe1f8ba  Alignments   
-  321013       2018-08-08 15:31:58  6324bd8162744eaf7ab0fd44e0b01301fb9ff102  Alignments   
+  /* 2018D Prompt IOVs
+     320551       2018-07-30 18:56:08  5ef1b88947a246ff4f44b56e66314c176889e32e  Alignments   
+     320812       2018-08-03 21:15:40  70ebb0c3b83e5a93b1662bd39617ae452da6540b  Alignments   
+     320845       2018-08-05 00:21:08  8b5f42f55164132f6a06889c1f3d96e7176ce924  Alignments   
+     320855       2018-08-05 09:28:41  e2436a8e838aeb1444f6f8214f675a4ab9c06cf4  Alignments   
+     320885       2018-08-05 22:00:35  680e859cdea640ce24744c27c58b564e669c0f9c  Alignments   
+     320901       2018-08-06 05:23:45  f1da7f661c087214fe452bd6714e25b131a58f3f  Alignments   
+     320918       2018-08-06 12:37:42  a6fe27aa494007e065d23e763b680748d8f0293b  Alignments   
+     320924       2018-08-06 23:41:03  f9a1eb4c6e7b44711d4c8e813d9a14270fe1f8ba  Alignments   
+     320932       2018-08-07 02:00:48  4d74559fdb483ca63401426c145110fb2f8d9c67  Alignments   
+     320972       2018-08-07 15:10:14  9d6e3283a09bdeb9beab05094fce4eb55e0a7aa2  Alignments   
+     320981       2018-08-07 15:41:48  ba0ca93b7605378b651afd8a928b51bb34ab01ed  Alignments   
+     320997       2018-08-07 22:00:42  f9a1eb4c6e7b44711d4c8e813d9a14270fe1f8ba  Alignments   
+     321013       2018-08-08 15:31:58  6324bd8162744eaf7ab0fd44e0b01301fb9ff102  Alignments   
   */
 
+  /*2018 ReReco IOVs
+    1   Alignments|313041|a2131f53f578e09de59f48a6707dc8d4ca8ffb1c|2018-08-15 08:32:54.825398
+    2   Alignments|314881|5d354a6bd2a1a256ec2ff5a3f735facccd030f30|2018-08-15 08:33:02.877544
+    3   Alignments|315488|9231ad0c6737600ab90761498d97077afe549905|2018-08-15 08:33:10.975766
+    4   Alignments|315689|ca322cc8364407dde43256235833f92756497caf|2018-08-15 08:33:20.157337
+    5   Alignments|316559|0adc667ed82407644f10f9de96500f83451b29ca|2018-08-15 08:33:31.927466
+    6   Alignments|316758|faa90f0fc255d2b66a4b528f585c375b0053a00b|2018-08-15 08:33:39.992558
+    7   Alignments|317438|3940f07daa4fa5079ec9d2c7ea8571aaa258f605|2018-08-15 08:33:47.803401
+    8   Alignments|317527|08de11788363dc19f94deeb57655d1b3dc1d3926|2018-08-15 08:33:55.853235
+    9   Alignments|318228|35baae799b7a186f0bc6487ae4bdc5af75201acc|2018-08-15 08:34:07.181786
+    10  Alignments|319337|7ddd2bb52fa50f6e7b66af5576a0c064089d56b9|2018-08-15 08:34:15.024333
+    11  Alignments|320377|c8fbff3dbddd3f19a084b280a382f61a6cebdc47|2018-08-15 08:34:22.900776
+    12  Alignments|320688|6060521269c9f119df1bcb0668936caa311cc9b9|2018-08-15 08:34:31.094154
+   */
 
-  static const int nIOVs=13;//       1       2       3      4      5      6      7      8      9     10     11     12     13 
-  int IOVboundaries[nIOVs]  = {320551,  320812,  320845,  320855,  320885,  320901,  320918,  320924,  320932,  320972,  320981,  320997,  321013};
-  int benchmarkruns[nIOVs]  = {320551,  320812,  320845,  320855,  320885,  320901,  320918,  320924,  320932,  320972,  320981,  320997,  321013};
+  // static const int nIOVs=13;//       1       2       3      4      5      6      7      8      9     10     11     12     13 
+  // int IOVboundaries[nIOVs]  = {320551,  320812,  320845,  320855,  320885,  320901,  320918,  320924,  320932,  320972,  320981,  320997,  321013};
+  // int benchmarkruns[nIOVs]  = {320551,  320812,  320845,  320855,  320885,  320901,  320918,  320924,  320932,  320972,  320981,  320997,  321013};
+
+  static const int nIOVs=12 ;//       1         2       3        4        5        6        7        8        9       10       11        12   		      
+  int IOVboundaries[nIOVs]  = {  313041,  314881,  315488,  315689,  316559,  316758,  317438,  317527,  318228,  319337,  320377,  320688};
+  int benchmarkruns[nIOVs]  = {  313041,  314881,  315488,  315689,  316559,  316758,  317438,  317527,  318228,  319337,  320377,  320688};
+
   TArrow* IOV_lines[nIOVs];
   c->cd();
   c->Update();
@@ -2618,7 +2668,7 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
       dxyPhiWidthTrend[j]    = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/widths_dxy_phi");
       dzPhiMeanTrend[j]      = (TH1F*)fins[j]->Get("PVValidation/MeanTrends/means_dz_phi");
       dzPhiWidthTrend[j]     = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/widths_dz_phi");
-
+            
       dxyLadderMeanTrend[j]  = (TH1F*)fins[j]->Get("PVValidation/MeanTrends/means_dxy_ladder");
       dxyLadderWidthTrend[j] = (TH1F*)fins[j]->Get("PVValidation/WidthTrends/widths_dxy_ladder");
       dzLadderMeanTrend[j]   = (TH1F*)fins[j]->Get("PVValidation/MeanTrends/means_dz_ladder");
@@ -2662,29 +2712,29 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
 
       //std::cout<<"\n" <<j<<" "<< LegLabels[j] << " dxy(phi) ks score: "<< dxyPhiBiases.getKSScore() << std::endl;
 
-      useRMS ? ret.m_dxyPhiLo[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean() - dxyPhiBiases.getWeightedRMS()) : ret.m_dxyPhiLo[LegLabels[j]].push_back(dxyPhiBiases.getMin());
-      useRMS ? ret.m_dxyPhiHi[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean() + dxyPhiBiases.getWeightedRMS()) : ret.m_dxyPhiHi[LegLabels[j]].push_back(dxyPhiBiases.getMax());
+      useRMS ? ret.m_dxyPhiLo[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean() - 2*dxyPhiBiases.getWeightedRMS()) : ret.m_dxyPhiLo[LegLabels[j]].push_back(dxyPhiBiases.getMin());
+      useRMS ? ret.m_dxyPhiHi[LegLabels[j]].push_back(dxyPhiBiases.getWeightedMean() + 2*dxyPhiBiases.getWeightedRMS()) : ret.m_dxyPhiHi[LegLabels[j]].push_back(dxyPhiBiases.getMax());
 
       auto dxyEtaBiases = getBiases(dxyEtaMeanTrend[j]);
       ret.m_dxyEtaMeans[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean());
       ret.m_dxyEtaChi2[LegLabels[j]].push_back(TMath::Log10(dxyEtaBiases.getNormChi2()));
       ret.m_dxyEtaKS[LegLabels[j]].push_back(dxyEtaBiases.getKSScore());
-      useRMS ? ret.m_dxyEtaLo[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean() - dxyEtaBiases.getWeightedRMS()) :ret.m_dxyEtaLo[LegLabels[j]].push_back(dxyEtaBiases.getMin());
-      useRMS ? ret.m_dxyEtaHi[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean() + dxyEtaBiases.getWeightedRMS()) :ret.m_dxyEtaHi[LegLabels[j]].push_back(dxyEtaBiases.getMax());
+      useRMS ? ret.m_dxyEtaLo[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean() - 2*dxyEtaBiases.getWeightedRMS()) :ret.m_dxyEtaLo[LegLabels[j]].push_back(dxyEtaBiases.getMin());
+      useRMS ? ret.m_dxyEtaHi[LegLabels[j]].push_back(dxyEtaBiases.getWeightedMean() + 2*dxyEtaBiases.getWeightedRMS()) :ret.m_dxyEtaHi[LegLabels[j]].push_back(dxyEtaBiases.getMax());
 
       auto dzPhiBiases = getBiases(dzPhiMeanTrend[j]);
       ret.m_dzPhiMeans[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean());
       ret.m_dzPhiChi2[LegLabels[j]].push_back(TMath::Log10(dzPhiBiases.getNormChi2()));
       ret.m_dzPhiKS[LegLabels[j]].push_back(dzPhiBiases.getKSScore());
-      useRMS ? ret.m_dzPhiLo[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean() - dzPhiBiases.getWeightedRMS()) :ret.m_dzPhiLo[LegLabels[j]].push_back(dzPhiBiases.getMin());
-      useRMS ? ret.m_dzPhiHi[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean() + dzPhiBiases.getWeightedRMS()) :ret.m_dzPhiHi[LegLabels[j]].push_back(dzPhiBiases.getMax());
+      useRMS ? ret.m_dzPhiLo[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean() - 2*dzPhiBiases.getWeightedRMS()) :ret.m_dzPhiLo[LegLabels[j]].push_back(dzPhiBiases.getMin());
+      useRMS ? ret.m_dzPhiHi[LegLabels[j]].push_back(dzPhiBiases.getWeightedMean() + 2*dzPhiBiases.getWeightedRMS()) :ret.m_dzPhiHi[LegLabels[j]].push_back(dzPhiBiases.getMax());
 
       auto dzEtaBiases = getBiases(dzEtaMeanTrend[j]);
       ret.m_dzEtaMeans[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean());
       ret.m_dzEtaChi2[LegLabels[j]].push_back(TMath::Log10(dzEtaBiases.getNormChi2()));
       ret.m_dzEtaKS[LegLabels[j]].push_back(dzEtaBiases.getKSScore());
-      useRMS ? ret.m_dzEtaLo[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean() - dzEtaBiases.getWeightedRMS()) :ret.m_dzEtaLo[LegLabels[j]].push_back(dzEtaBiases.getMin());
-      useRMS ? ret.m_dzEtaHi[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean() + dzEtaBiases.getWeightedRMS()) :ret.m_dzEtaHi[LegLabels[j]].push_back(dzEtaBiases.getMax());
+      useRMS ? ret.m_dzEtaLo[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean() - 2*dzEtaBiases.getWeightedRMS()) :ret.m_dzEtaLo[LegLabels[j]].push_back(dzEtaBiases.getMin());
+      useRMS ? ret.m_dzEtaHi[LegLabels[j]].push_back(dzEtaBiases.getWeightedMean() + 2*dzEtaBiases.getWeightedRMS()) :ret.m_dzEtaHi[LegLabels[j]].push_back(dzEtaBiases.getMax());
 
       // unrolled histograms
       ret.m_dxyVect[LegLabels[j]].push_back(getUnrolledHisto(dxyIntegralTrend[j]));
@@ -2753,7 +2803,7 @@ outTrends doStuff(size_t iter,std::vector<int> intersection,const Int_t nDirs_,c
 
     BiasesCanvas->SaveAs(Form("Biases_%i.pdf",intersection.at(n)));
     BiasesCanvas->SaveAs(Form("Biases_%i.png",intersection.at(n)));
-   
+      
     // Bias vs L1 modules position
 
     TCanvas *BiasesL1Canvas = new TCanvas(Form("BiasesL1_%i",intersection.at(n)),"BiasesL1",1200,1200);
