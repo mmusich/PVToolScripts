@@ -1539,7 +1539,7 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
   case pv::dzeta   : 
     coord = "z";
     kin   = "eta";
-    ampl  = 150;
+    ampl  = 60;
     break;
   default :
     coord = "unknown";
@@ -1905,6 +1905,10 @@ void makeNewXAxis (TH1 *h)
   h->GetXaxis()->SetLabelOffset(999);
   h->GetXaxis()->SetTickLength(0);
   
+  if (myTitle.Contains("phi")){
+    h->GetXaxis()->SetTitle("#varphi (sector) [rad]");
+  }
+
    // Redraw the new axis
   gPad->Update();
   
@@ -2446,13 +2450,25 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
     12  Alignments|320688|6060521269c9f119df1bcb0668936caa311cc9b9|2018-08-15 08:34:31.094154
    */
 
-  // static const int nIOVs=13;//       1       2       3      4      5      6      7      8      9     10     11     12     13 
+  // static const int nIOVs=13;//       1       2}       3      4      5      6      7      8      9     10     11     12     13 
   // int IOVboundaries[nIOVs]  = {320551,  320812,  320845,  320855,  320885,  320901,  320918,  320924,  320932,  320972,  320981,  320997,  321013};
   // int benchmarkruns[nIOVs]  = {320551,  320812,  320845,  320855,  320885,  320901,  320918,  320924,  320932,  320972,  320981,  320997,  321013};
 
-  static const int nIOVs=12 ;//       1         2       3        4        5        6        7        8        9       10       11        12   		      
-  int IOVboundaries[nIOVs]  = {  313041,  314881,  315488,  315689,  316559,  316758,  317438,  317527,  318228,  319337,  320377,  320688};
-  int benchmarkruns[nIOVs]  = {  313041,  314881,  315488,  315689,  316559,  316758,  317438,  317527,  318228,  319337,  320377,  320688};
+  /* template IOVs
+     316758       2018-08-28 17:43:26  3a8abe693d1d3df829212e1049330e68f3392282  SiPixelTemplateDBObject  
+     317527       2018-08-28 17:43:26  356b03fcd7e869ef8f28153318f0cd32c27b1f40  SiPixelTemplateDBObject  
+     317661       2018-08-28 17:54:14  1cbb2fc3edf448c50d00fac3aa47c8cf3b19ac6f  SiPixelTemplateDBObject  
+     317664       2018-08-28 17:57:00  356b03fcd7e869ef8f28153318f0cd32c27b1f40  SiPixelTemplateDBObject  
+     318227       2018-08-28 17:58:17  1cbb2fc3edf448c50d00fac3aa47c8cf3b19ac6f  SiPixelTemplateDBObject  
+     320377       2018-09-04 18:20:50  5e9cd265167ec543aac49685cf706a58014c08f8  SiPixelTemplateDBObject  
+  */
+
+  static const int nIOVs=6 ;//       1         2       3        4        5        6        7        8        9       10       11        12   		      
+  //int IOVboundaries[nIOVs]  = {  313041,  314881,  315488,  315689,  316559,  316758,  317438,  317527,  318228,  319337,  320377,  320688};
+
+  int IOVboundaries[nIOVs] =  {316758,  317527,  317661,  317664,  318227,  320377};
+  int benchmarkruns[nIOVs]  = {316758,  317527,  317661,  317664,  318227,  320377};
+  //int benchmarkruns[nIOVs]  = {  313041,  314881,  315488,  315689,  316559,  316758,  317438,  317527,  318228,  319337,  320377,  320688};
 
   TArrow* IOV_lines[nIOVs];
   c->cd();
@@ -2499,7 +2515,7 @@ void superImposeIOVBoundaries(TCanvas *c,bool lumi_axis_format,bool time_axis_fo
     b_lines[IOV]->SetLineColor(kGray);
     b_lines[IOV]->SetLineStyle(1);
     b_lines[IOV]->SetLineWidth(2);
-    b_lines[IOV]->Draw("same");
+    //b_lines[IOV]->Draw("same");
 
   }
 
