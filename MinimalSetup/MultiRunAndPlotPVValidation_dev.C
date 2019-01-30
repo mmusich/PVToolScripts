@@ -187,6 +187,8 @@ namespace pv{
       }
 
       std::cout<< m_axis_types << std::endl;
+      
+      m_totalLumi = lumiMapByRun.rbegin()->second;
 
     }
 
@@ -194,6 +196,7 @@ namespace pv{
     const char* getDataType() const {return m_datatype;}		  
     const char* getDataTypeLabel() const {return m_datatypelabel;}	  
     const std::map<int,double> getLumiMapByRun() const {return m_lumiMapByRun;}  
+    double getTotalLumi() const { return m_totalLumi;}
     const std::map<int,TDatime> getTimes() const {return m_times;}	  
     bool isLumiAxis() const {return m_axis_types.test(0);}
     bool isTimeAxis() const {return m_axis_types.test(1);}
@@ -208,6 +211,7 @@ namespace pv{
     int m_nObjects;
     const char* m_datatype;
     const char* m_datatypelabel;
+    float m_totalLumi;
     std::map<int,double> m_lumiMapByRun;
     std::map<int,TDatime> m_times;
     std::bitset<2> m_axis_types;          
@@ -1552,22 +1556,28 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
   g_mean->GetXaxis()->SetTitle(mybundle.getDataTypeLabel());
   g_mean->GetYaxis()->SetTitle(Form("#LT d_{%s}(#%s) #GT [#mum]",coord,kin));
   g_mean->GetYaxis()->SetRangeUser(-ampl,ampl);
-  
+
+
+  std::cout<<"===================================================================================================="<<std::endl;
+  std::cout<< mybundle.getTotalLumi() << std::endl;
+  std::cout<<"===================================================================================================="<<std::endl;
+
   g_asym->SetName(Form("gerr_bias_d%s_%s_%s",coord,kin,label.Data()));
   g_asym->SetTitle(Form("Bias of d_{%s}(#%s) vs %s",coord,kin,mybundle.getDataType()));
   g_asym->GetXaxis()->SetTitle(mybundle.getDataTypeLabel());
   g_asym->GetYaxis()->SetTitle(Form("#LT d_{%s}(#%s) #GT [#mum]",coord,kin));
   g_asym->GetYaxis()->SetRangeUser(-ampl,ampl);
 
-  g_mean->GetXaxis()->UnZoom();
-  g_asym->GetXaxis()->UnZoom();
+  //g_mean->GetXaxis()->UnZoom();
+  //g_asym->GetXaxis()->UnZoom();
 
   if(index==0){
-    g_asym->Draw("A3");
-    g_mean->Draw("Psame");
+    g_asym->GetXaxis()->SetRangeUser(0.,mybundle.getTotalLumi());
+    g_mean->Draw("AP");
+    g_asym->Draw("P3same");
   } else {
-    g_asym->Draw("3same");
     g_mean->Draw("Psame");
+    g_asym->Draw("3same");
   }
   g_high->Draw("Lsame");
   g_low->Draw("Lsame");
@@ -1578,11 +1588,18 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
     timify(g_high);
     timify(g_low);
   }
-  
+
+  if(mybundle.isLumiAxis()){
+    g_asym->GetXaxis()->SetRangeUser(0.,mybundle.getTotalLumi());
+    g_mean->GetXaxis()->SetRangeUser(0.,mybundle.getTotalLumi());
+    g_high->GetXaxis()->SetRangeUser(0.,mybundle.getTotalLumi());
+    g_low->GetXaxis()->SetRangeUser(0.,mybundle.getTotalLumi());
+  }
+
   if(index==(mybundle.getNObjects()-1)){ 
     legend->Draw("same");
     TH1F* theZero = DrawConstantGraph(g_mean,1,0.);
-    theZero->Draw("E1same");
+    theZero->Draw("E1same][");
   }
 	
   auto current_pad = static_cast<TPad*>(gPad);
@@ -1596,6 +1613,7 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
   auto gprime  =  (TGraph*)g_mean->Clone();
   if(index==0){
     gprime->GetYaxis()->SetRangeUser(-10.,10.);
+    if(mybundle.isLumiAxis()) gprime->GetXaxis()->SetRangeUser(0.,mybundle.getTotalLumi());
     gprime->Draw("APL");
   } else {
     gprime->Draw("PLsame");
@@ -1607,7 +1625,7 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
   
   if(index==0){
     TH1F* theZero = DrawConstantGraph(gprime,2,0.);
-    theZero->Draw("E1same");
+    theZero->Draw("E1same][");
     
     auto current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
@@ -1657,7 +1675,7 @@ void outputGraphs(const pv::wrappedTrends& allInputs,
     }
     legend->Draw("same");
     TH1F* theConst = DrawConstant(h_RMS[index],1,0.);
-    theConst->Draw("same");
+    theConst->Draw("same][");
 
     current_pad = static_cast<TPad*>(gPad);
     cmsPrel(current_pad);
@@ -1821,7 +1839,7 @@ void arrangeOutCanvas(TCanvas *canv, TH1F* m_11Trend[100],TH1F* m_12Trend[100],T
 	}
 	
 	TH1F* theConst = DrawConstant(dBiasTrend[k][i],1,theC);
-	theConst->Draw("PLsame");
+	theConst->Draw("PLsame][");
 
       } else { 
 	dBiasTrend[k][i]->Draw("Le1sames");
