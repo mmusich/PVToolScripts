@@ -3,8 +3,7 @@
 \usepackage{color}
 \usepackage{longtable}
 \usetheme{default}
-\title[Primary Vertex Validation]{Run by Run Primary Vertex Validation \\
-  Cluster Repair CPE Check }
+\title[Primary Vertex Validation]{Run by Run Primary Vertex Validation}
 \author{Marco Musich}
 \institute{KIT - Karlsurher Institut f\"ur Technologie}
 \date{\today}
@@ -19,11 +18,7 @@
 \begin{frame}{Introduction}
   {
     \begin{itemize}
-    \item Check impact on PV Validation (trends) of novel Cluster
-      Repair Check CPE algorithm (as in \href{https://github.com/cms-sw/cmssw/pull/25727}{PR #25727}
-    \item use Global Tag: 104X\_dataRun2\_pixel2DTemplate\_Cand\_v1
-    \item alternatively employ Cluster Repair in the track refit via:
-      process.TTRHBuilderAngleAndTemplate.PixelCPE = cms.string('PixelCPEClusterRepair') 
+    \item Run By Run Primary Vertex Validation
     \end{itemize}
   }
 \end{frame}
@@ -51,21 +46,21 @@
 
 \section{Plots}
 
-%% \begin{frame}{Transverse Impact parameter}
-%%   \begin{figure}
-%%     \centering
-%%     \includegraphics[width=0.9\textwidth, keepaspectratio=true]{dxy_phi_vs_lumi.pdf}\\
-%%     \includegraphics[width=0.9\textwidth, keepaspectratio=true]{dxy_eta_vs_lumi.pdf}
-%%   \end{figure}
-%% \end{frame}
+\begin{frame}{Transverse Impact parameter}
+\begin{figure}
+   \centering
+   \includegraphics[width=0.9\textwidth, keepaspectratio=true]{dxy_phi_vs_lumi.pdf}\\
+    \includegraphics[width=0.9\textwidth, keepaspectratio=true]{dxy_eta_vs_lumi.pdf}
+\end{figure}
+\end{frame}
 
-%% \begin{frame}{Longitudinal Impact parameter}
-%%   \begin{figure}
-%%     \centering
-%%     \includegraphics[width=0.9\textwidth, keepaspectratio=true]{dz_phi_vs_lumi.pdf}\\
-%%     \includegraphics[width=0.9\textwidth, keepaspectratio=true]{dz_eta_vs_lumi.pdf}
-%%   \end{figure}
-%% \end{frame}
+\begin{frame}{Longitudinal Impact parameter}
+\begin{figure}
+ \centering
+ \includegraphics[width=0.9\textwidth, keepaspectratio=true]{dz_phi_vs_lumi.pdf}\\
+   \includegraphics[width=0.9\textwidth, keepaspectratio=true]{dz_eta_vs_lumi.pdf}
+ \end{figure}
+\end{frame}
 
 \begin{frame}{Transverse Impact parameter mean}
   \begin{figure}
