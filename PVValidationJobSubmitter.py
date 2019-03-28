@@ -24,6 +24,42 @@ import collections
 import multiprocessing
 
 ##############################################
+def write_HTCondor_submit_file(path, name, nruns, proxy_path=None):
+##############################################
+    """Writes 'job.submit' file in `path`.
+    Arguments:
+    - `path`: job directory
+    - `script`: script to be executed
+    - `proxy_path`: path to proxy (only used in case of requested proxy forward)
+    """
+        
+    job_submit_template="""\
+universe              = vanilla
+executable            = {script:s}
+output                = {jobm:s}/{out:s}.out
+error                 = {jobm:s}/{out:s}.err
+log                   = {jobm:s}/{out:s}.log
+transfer_output_files = ""
++JobFlavour           = "{flavour:s}"
+queue {njobs:s}
+"""
+    if proxy_path is not None:
+        job_submit_template += """\
++x509userproxy        = "{proxy:s}"
+"""
+        
+    job_submit_file = os.path.join(path, "job_"+name+".submit")
+    with open(job_submit_file, "w") as f:
+        f.write(job_submit_template.format(script = os.path.join(path,name+"_$(ProcId).sh"),
+                                           out  = name+"_$(ProcId)",
+                                           jobm = os.path.abspath(path),
+                                           flavour = "tomorrow",
+                                           njobs = str(nruns),
+                                           proxy = proxy_path))
+
+    return job_submit_file
+
+##############################################
 def getCommandOutput(command):
 ##############################################
     """This function executes `command` and returns it output.
@@ -254,11 +290,12 @@ def split(sequence, size):
 class Job:
 #############
 
-    def __init__(self, job_id, job_name, isDA, isMC, applyBOWS, applyEXTRACOND, extraconditions, runboundary, lumilist, intlumi, maxevents, gt, allFromGT, alignmentDB, alignmentTAG, apeDB, apeTAG, bowDB, bowTAG, vertextype, tracktype, applyruncontrol, ptcut, CMSSW_dir ,the_dir):
+    def __init__(self,job_number, job_id, job_name, isDA, isMC, applyBOWS, applyEXTRACOND, extraconditions, runboundary, lumilist, intlumi, maxevents, gt, allFromGT, alignmentDB, alignmentTAG, apeDB, apeTAG, bowDB, bowTAG, vertextype, tracktype, applyruncontrol, ptcut, CMSSW_dir ,the_dir):
 ###############################
-        self.job_id=job_id    
-        self.batch_job_id = None 
-        self.job_name=job_name
+        self.job_number        = job_number
+        self.job_id            = job_id    
+        self.batch_job_id      = None 
+        self.job_name          = job_name
         
         self.isDA              = isDA             
         self.isMC              = isMC             
@@ -286,13 +323,16 @@ class Job:
         self.CMSSW_dir=CMSSW_dir
 
         self.output_full_name=self.getOutputBaseName()+"_"+str(self.job_id)
-
+        self.output_number_name=self.getOutputBaseName()+"_"+str(self.job_number)
+        
         self.cfg_dir=None
         self.outputCfgName=None
         
         # LSF variables        
         self.LSF_dir=None
+        self.BASH_dir=None
         self.output_LSF_name=None
+        self.output_BASH_name=None
 
         self.lfn_list=list()      
 
@@ -478,6 +518,48 @@ class Job:
         fout.write("ls -lh . \n")
         fout.write("for RootOutputFile in $(ls *root ); do xrdcp -f ${RootOutputFile} root://eoscms//eos/cms${OUT_DIR}/${RootOutputFile} ; done \n")
         fout.write("for TxtOutputFile in $(ls *txt ); do xrdcp -f ${TxtOutputFile}  root://eoscms//eos/cms${OUT_DIR}/${TxtOutputFile} ; done \n")
+
+        fout.close()
+
+
+    def createTheBashFile(self):
+###############################
+
+       # directory to store the BASH to be submitted
+        self.BASH_dir = os.path.join(self.the_dir,"BASH")
+        if not os.path.exists(self.BASH_dir):
+            os.makedirs(self.BASH_dir)
+
+        self.output_BASH_name=self.output_number_name+".sh"
+        fout=open(os.path.join(self.BASH_dir,self.output_BASH_name),'w')
+    
+        job_name = self.output_full_name
+
+        log_dir = os.path.join(self.the_dir,"log")
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        fout.write("#!/bin/bash \n")
+        fout.write("export EOS_MGM_URL=root://eoscms.cern.ch \n")
+        fout.write("JobName="+job_name+" \n")
+        fout.write("echo  \"Job started at \" `date` \n")
+        fout.write("CMSSW_DIR="+os.path.join(self.CMSSW_dir,"src")+" \n")
+        fout.write("OUT_DIR="+self.OUTDIR+" \n")
+        fout.write("LXBATCH_DIR=$PWD \n") 
+        #fout.write("cd "+os.path.join(self.CMSSW_dir,"src")+" \n")
+        fout.write("cd ${CMSSW_DIR} \n")
+        fout.write("eval `scramv1 runtime -sh` \n")
+        fout.write("echo \"batch dir: $LXBATCH_DIR release: $CMSSW_DIR release base: $CMSSW_RELEASE_BASE\" \n") 
+        fout.write("cd $LXBATCH_DIR \n") 
+        fout.write("cp "+os.path.join(self.cfg_dir,self.outputCfgName)+" . \n")
+        fout.write("echo \"cmsRun "+self.outputCfgName+"\" \n")
+        fout.write("cmsRun "+self.outputCfgName+" \n")
+        fout.write("echo \"Content of working dir is \"`ls -lh` \n")
+        #fout.write("less condor_exec.exe \n")
+        fout.write("for RootOutputFile in $(ls *root ); do xrdcp -f ${RootOutputFile} root://eoscms//eos/cms${OUT_DIR}/${RootOutputFile} ; done \n")
+        #fout.write("mv ${JobName}.out ${CMSSW_DIR}/BASH \n")
+        fout.write("echo  \"Job ended at \" `date` \n")
+        fout.write("exit 0 \n")
 
         fout.close()
 
@@ -813,6 +895,10 @@ def main():
 
         print "myRuns =====>",myRuns
 
+        totalJobs=0
+        theBashDir=None
+        theBaseName=None
+
         for jobN,theSrcFiles in enumerate(inputFiles):
             print "JOB:",jobN,"run",myRuns[jobN],theSrcFiles
             thejobIndex=None
@@ -856,7 +942,10 @@ def main():
 
             updateDB(((iConf+1)*10)+(jobN+1),runInfo)
 
-            aJob = Job(thejobIndex,
+            totalJobs=totalJobs+1
+
+            aJob = Job(jobN,
+                       thejobIndex,
                        jobName[iConf],isDA[iConf],isMC[iConf],
                        applyBOWS[iConf],applyEXTRACOND[iConf],conditions[iConf],
                        myRuns[jobN], lumilist[iConf], theLumi, maxevents[iConf],
@@ -870,23 +959,24 @@ def main():
             
             aJob.setEOSout(eosdir)
             aJob.createTheCfgFile(theSrcFiles)
-            aJob.createTheLSFFile()
+            aJob.createTheBashFile()
 
             output_file_list1.append("xrdcp root://eoscms//eos/cms"+aJob.getOutputFileName()+" /tmp/$USER/"+opts.taskname+" \n")
             if jobN == 0:
+                theBashDir=aJob.BASH_dir
+                theBaseName=aJob.getOutputBaseName()
                 mergedFile = "/tmp/$USER/"+opts.taskname+"/"+aJob.getOutputBaseName()+" "+opts.taskname+".root"
                 output_file_list2.append("/tmp/$USER/"+opts.taskname+"/"+aJob.getOutputBaseName()+opts.taskname+".root ")
-            output_file_list2.append("/tmp/$USER/"+opts.taskname+"/"+os.path.split(aJob.getOutputFileName())[1]+" ")    
-   
-            if opts.submit:
-                aJob.submit()
-                batchJobIds.append(aJob.getBatchjobId())
+            output_file_list2.append("/tmp/$USER/"+opts.taskname+"/"+os.path.split(aJob.getOutputFileName())[1]+" ")       
             del aJob
 
+        job_submit_file = write_HTCondor_submit_file(theBashDir,theBaseName,totalJobs,None)
+
         if opts.submit:
-            print "********************************************************"
-            for theBatchJobId in batchJobIds:
-                print "theBatchJobId is: ",theBatchJobId
+            os.system("chmod u+x "+theBashDir+"/*.sh")
+            submissionCommand = "condor_submit "+job_submit_file
+            submissionOutput = getCommandOutput(submissionCommand)
+            print submissionOutput
 
         fout.write("#!/bin/bash \n")
         fout.write("MAIL=$USER@mail.cern.ch \n")
@@ -913,7 +1003,7 @@ def main():
             lastJobOutput = getCommandOutput(lastJobCommand)
             print lastJobOutput
 
-        fout.close()
+            fout.close()
         del output_file_list1
         
 if __name__ == "__main__":        
